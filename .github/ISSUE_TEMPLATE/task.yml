@@ -1,0 +1,155 @@
+name: 📋 Tarea de Desarrollo Frontend
+description: Crear una nueva tarea de desarrollo para el equipo frontend
+title: "[TASK] "
+labels: ["task", "frontend"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📋 Nueva Tarea de Desarrollo Frontend
+        Completa la información para crear una tarea estructurada para el equipo.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Descripción de la Tarea
+      description: Describe claramente qué se debe hacer en esta tarea
+      placeholder: |
+        Ejemplo: Implementar componente de carga de archivos con drag & drop
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component_area
+    attributes:
+      label: 🎯 Área/Componente
+      description: Selecciona el área o componente principal afectado
+      options:
+        - UI/Components
+        - Pages/Views
+        - Services/API
+        - State Management
+        - Routing
+        - Styling/Design
+        - Configuration
+        - Documentation
+        - Testing
+        - Build/Deploy
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: roles
+    attributes:
+      label: 👥 Roles Involucrados
+      description: Selecciona los roles del equipo que participarán en esta tarea
+      options:
+        - label: 🔐 Administrador de Bases de Datos y Seguridad
+        - label: ⚙️ Desarrollador Backend
+        - label: 🎨 Frontend & UX
+        - label: 💻 Desarrollador JS
+        - label: 🧪 Lead de Integración y QA
+        - label: 📊 Business Intelligence
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: ✅ Definition of Done (DoD)
+      description: Lista de criterios que deben cumplirse para considerar la tarea completa
+      placeholder: |
+        - [ ] Componente implementado según diseño
+        - [ ] Tests unitarios creados
+        - [ ] Documentación actualizada
+        - [ ] Code review aprobado
+      value: |
+        - [ ] Código implementado
+        - [ ] Linting pasa sin errores
+        - [ ] Build exitoso
+        - [ ] Probado en navegadores principales
+        - [ ] Documentación actualizada
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Prioridad
+      description: Nivel de prioridad de la tarea
+      options:
+        - 🔴 Alta (Urgente)
+        - 🟡 Media (Normal)
+        - 🟢 Baja (Puede esperar)
+    validations:
+      required: true
+
+  - type: input
+    id: estimation
+    attributes:
+      label: ⏱️ Estimación
+      description: Tiempo estimado para completar la tarea (ej. 2 horas, 1 día, 1 semana)
+      placeholder: "Ej: 4 horas"
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 📋 Criterios de Aceptación
+      description: Especificaciones funcionales que debe cumplir la implementación
+      placeholder: |
+        - El usuario puede arrastrar archivos al área designada
+        - Se muestra feedback visual durante la carga
+        - Se valida el tipo de archivo antes de cargar
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: 🔧 Notas Técnicas
+      description: Consideraciones técnicas, dependencias o detalles de implementación
+      placeholder: |
+        - Usar react-dropzone para el drag & drop
+        - Validar archivos .java y .zip
+        - Integrar con API endpoint /api/projects/{id}/files
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 🎨 Checklist UI/UX
+      description: Aspectos de interfaz y experiencia de usuario
+      options:
+        - label: 📱 Responsive design implementado
+        - label: ♿ Accesibilidad considerada (ARIA labels, keyboard navigation)
+        - label: 🎨 Sigue el sistema de diseño del proyecto
+        - label: 🌐 Internacionalización implementada (si aplica)
+        - label: ⚡ Performance optimizado (lazy loading, memoization)
+        - label: 🧪 Probado en Chrome, Firefox, Safari, Edge
+        - label: 📸 Screenshots/mockups actualizados
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: ℹ️ Contexto Adicional
+      description: Enlaces, mockups, referencias o cualquier otra información relevante
+      placeholder: |
+        - Mockup en Figma: [link]
+        - Issue relacionado: #123
+        - Documentación de referencia: [link]
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: dependencies
+    attributes:
+      label: 🔗 Dependencias
+      description: Dependencias o bloqueadores de esta tarea
+      options:
+        - label: Depende de API del backend
+        - label: Requiere diseño/mockup
+        - label: Bloqueada por otra tarea (especificar en notas)
+        - label: Requiere nuevas dependencias npm
+        - label: Sin dependencias
