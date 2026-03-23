@@ -1,0 +1,223 @@
+name: 🐛 Reporte de Error Frontend
+description: Reportar un error o problema en el frontend
+title: "[BUG] "
+labels: ["bug", "frontend"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Reporte de Error Frontend
+        Gracias por ayudarnos a mejorar CodeMio. Por favor completa la información para resolver el problema.
+
+  - type: input
+    id: version
+    attributes:
+      label: 🏷️ Versión del Proyecto
+      description: Versión del frontend donde ocurre el error
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: 🌐 Navegador
+      description: Navegador donde ocurre el problema
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Opera
+        - Brave
+        - Otro (especificar en descripción)
+    validations:
+      required: true
+
+  - type: input
+    id: browser_version
+    attributes:
+      label: 📦 Versión del Navegador
+      description: Versión del navegador (ej. Chrome 120.0.0)
+      placeholder: "120.0.0"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 🌍 Ambiente
+      description: ¿Dónde ocurre el problema?
+      options:
+        - Desarrollo Local
+        - Producción (Render)
+        - Staging
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: 🔗 URL donde ocurre
+      description: URL completa donde se reproduce el problema
+      placeholder: "https://codemio-front.onrender.com/dashboard"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Descripción del Error
+      description: Describe claramente qué está fallando
+      placeholder: |
+        El botón de "Cargar Archivo" no responde al hacer clic...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🔄 Pasos para Reproducir
+      description: Lista los pasos exactos para reproducir el error
+      placeholder: |
+        1. Ir a la página de Dashboard
+        2. Hacer clic en "Nuevo Proyecto"
+        3. Hacer clic en "Cargar Archivo"
+        4. Observar que no sucede nada
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Comportamiento Esperado
+      description: ¿Qué debería suceder?
+      placeholder: "El botón debería abrir el diálogo de selección de archivos..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: ❌ Comportamiento Actual
+      description: ¿Qué está sucediendo en su lugar?
+      placeholder: "El botón no responde, no se abre ningún diálogo..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: console_logs
+    attributes:
+      label: 🖥️ Logs de Consola
+      description: Errores o warnings en la consola del navegador (F12 > Console)
+      placeholder: |
+        Uncaught TypeError: Cannot read property 'files' of null
+            at FileUpload.jsx:45
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: network_errors
+    attributes:
+      label: 🌐 Errores de Red
+      description: Errores en las peticiones HTTP (F12 > Network)
+      placeholder: |
+        POST /api/files/ 500 Internal Server Error
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Capturas de Pantalla
+      description: Agrega capturas de pantalla que ayuden a entender el problema
+      placeholder: "Arrastra imágenes aquí o pega URLs"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 🔥 Severidad
+      description: Nivel de impacto del problema
+      options:
+        - 🔴 Crítico (La aplicación no funciona)
+        - 🟠 Alto (Funcionalidad principal afectada)
+        - 🟡 Medio (Funcionalidad secundaria afectada)
+        - 🟢 Bajo (Problema cosmético o menor)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_type
+    attributes:
+      label: 📱 Tipo de Dispositivo
+      description: Dispositivo donde ocurre el problema
+      options:
+        - Desktop
+        - Tablet
+        - Mobile
+    validations:
+      required: false
+
+  - type: input
+    id: screen_size
+    attributes:
+      label: 📐 Tamaño de Pantalla
+      description: Resolución o tamaño de la pantalla
+      placeholder: "1920x1080, 375x667, etc."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 💻 Sistema Operativo
+      description: Sistema operativo donde ocurre
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - iOS
+        - Android
+        - Otro
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: ℹ️ Información Adicional
+      description: Cualquier otra información relevante
+      placeholder: |
+        - Ocurre solo con archivos grandes (>10MB)
+        - Solo en modo incógnito
+        - Relacionado con issue #123
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: workaround
+    attributes:
+      label: 🔧 Workaround
+      description: ¿Existe alguna solución temporal?
+      options:
+        - label: Encontré un workaround (especificar en información adicional)
+        - label: No hay workaround conocido
+
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: 📉 Regresión
+      description: Información sobre cuándo empezó el problema
+      options:
+        - label: Funcionaba en una versión anterior
+        - label: Nunca ha funcionado
+        - label: No estoy seguro

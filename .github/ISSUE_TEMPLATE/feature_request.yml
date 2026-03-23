@@ -1,0 +1,185 @@
+name: ✨ Propuesta de Nueva Funcionalidad Frontend
+description: Sugerir una nueva funcionalidad o mejora para el frontend
+title: "[FEATURE] "
+labels: ["enhancement", "frontend"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Propuesta de Nueva Funcionalidad
+        Ayúdanos a entender tu idea para mejorar el frontend de CodeMio.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Descripción de la Funcionalidad
+      description: Describe claramente qué funcionalidad quieres proponer
+      placeholder: |
+        Implementar un sistema de temas (claro/oscuro) para mejorar la experiencia de usuario...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problema que Resuelve
+      description: ¿Qué problema o necesidad resuelve esta funcionalidad?
+      placeholder: |
+        Los usuarios que trabajan en ambientes con poca luz reportan fatiga visual...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Solución Propuesta
+      description: Describe cómo debería funcionar esta funcionalidad
+      placeholder: |
+        - Agregar toggle en la barra de navegación
+        - Guardar preferencia en localStorage
+        - Aplicar variables CSS según el tema seleccionado
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component_area
+    attributes:
+      label: 🎯 Área Afectada
+      description: ¿Qué parte del frontend se vería afectada?
+      options:
+        - UI/UX Global
+        - Dashboard
+        - Authentication
+        - Project Management
+        - File Upload
+        - Metrics Visualization
+        - Settings
+        - Navigation
+        - Forms
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups o Diseños
+      description: Agrega mockups, wireframes o referencias visuales
+      placeholder: |
+        - Mockup en Figma: [link]
+        - Referencia: Similar a GitHub dark mode
+        - Captura de pantalla de ejemplo
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternativas Consideradas
+      description: Otras soluciones que hayas considerado
+      placeholder: |
+        - Detectar automáticamente el tema del sistema
+        - Usar un selector de múltiples temas (no solo claro/oscuro)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Prioridad Sugerida
+      description: Nivel de prioridad que consideras para esta funcionalidad
+      options:
+        - 🔴 Alta (Crítica para usuarios)
+        - 🟡 Media (Mejora importante)
+        - 🟢 Baja (Nice to have)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: user_impact
+    attributes:
+      label: 👥 Impacto en Usuarios
+      description: ¿Cómo impactaría esta funcionalidad a los usuarios?
+      options:
+        - label: Mejora la accesibilidad
+        - label: Mejora la experiencia de usuario
+        - label: Aumenta la productividad
+        - label: Resuelve un pain point actual
+        - label: Añade valor a la aplicación
+        - label: Diferenciador competitivo
+
+  - type: checkboxes
+    id: technical_impact
+    attributes:
+      label: 🔧 Impacto Técnico
+      description: Consideraciones técnicas de la implementación
+      options:
+        - label: Requiere cambios en el backend
+        - label: Requiere nuevas dependencias
+        - label: Requiere cambios en la base de datos
+        - label: Impacta el performance
+        - label: Requiere migraciones
+        - label: Breaking change
+
+  - type: textarea
+    id: user_stories
+    attributes:
+      label: 📖 User Stories
+      description: Historias de usuario relacionadas
+      placeholder: |
+        - Como usuario, quiero poder cambiar el tema para reducir la fatiga visual
+        - Como desarrollador, quiero trabajar en modo oscuro para mayor comodidad
+      value: |
+        - Como [rol], quiero [acción] para [beneficio]
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: ✅ Criterios de Aceptación
+      description: Criterios que deben cumplirse para considerar implementada la funcionalidad
+      placeholder: |
+        - [ ] Toggle de tema visible y funcional
+        - [ ] Tema se aplica a toda la aplicación
+        - [ ] Preferencia se guarda y persiste
+        - [ ] Transición suave entre temas
+      value: |
+        - [ ] 
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: 🧩 Complejidad Estimada
+      description: Estimación de la complejidad de implementación
+      options:
+        - 🟢 Baja (Cambios menores)
+        - 🟡 Media (Requiere diseño e implementación)
+        - 🔴 Alta (Requiere arquitectura y múltiples cambios)
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: ℹ️ Contexto Adicional
+      description: Enlaces, referencias o información adicional
+      placeholder: |
+        - Artículo sobre temas en React: [link]
+        - Feedback de usuarios: [link]
+        - Análisis de competencia
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: 🙋 Disposición para Contribuir
+      description: ¿Estarías dispuesto a ayudar con la implementación?
+      options:
+        - label: Puedo implementar esta funcionalidad
+        - label: Puedo ayudar con el diseño/mockups
+        - label: Puedo ayudar con testing
+        - label: Solo reporto la idea
