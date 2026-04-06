@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { login } from '../services/authService';
 import logo from '../../../assets/images/codemio-logo-completo.png';
-import './LoginPage.css';
+import '../styles/auth.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -67,26 +67,26 @@ export default function LoginPage() {
   }
 
   function fieldClass(name) {
-    if (!touched[name]) return 'login-input';
-    return errors[name] ? 'login-input login-input--error' : 'login-input login-input--valid';
+    if (!touched[name]) return 'auth-input';
+    return errors[name] ? 'auth-input auth-input--error' : 'auth-input auth-input--valid';
   }
 
   return (
-    <div className="login-page">
-      <form className="login-card" onSubmit={handleSubmit} noValidate>
-        <img src={logo} alt="Codemio" className="login-logo" />
-        <h1 className="login-title">Welcome back</h1>
-        <p className="login-subtitle">Sign in to your Codemio account</p>
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit} noValidate>
+        <img src={logo} alt="Codemio" className="auth-logo" />
+        <h1 className="auth-title">Welcome back</h1>
+        <p className="auth-subtitle">Sign in to your Codemio account</p>
 
         {serverError && (
-          <div className="login-server-error" role="alert">
+          <div className="auth-server-error" role="alert">
             {serverError}
           </div>
         )}
 
         {/* Email */}
-        <div className="login-field">
-          <label htmlFor="email" className="login-label">Email</label>
+        <div className="auth-field">
+          <label htmlFor="email" className="auth-label">Email</label>
           <input
             id="email"
             name="email"
@@ -100,13 +100,13 @@ export default function LoginPage() {
             disabled={loading}
           />
           {touched.email && errors.email && (
-            <span className="login-error-msg" role="alert">{errors.email}</span>
+            <span className="auth-error-msg" role="alert">{errors.email}</span>
           )}
         </div>
 
         {/* Password */}
-        <div className="login-field">
-          <label htmlFor="password" className="login-label">Password</label>
+        <div className="auth-field">
+          <label htmlFor="password" className="auth-label">Password</label>
           <input
             id="password"
             name="password"
@@ -120,17 +120,17 @@ export default function LoginPage() {
             disabled={loading}
           />
           {touched.password && errors.password && (
-            <span className="login-error-msg" role="alert">{errors.password}</span>
+            <span className="auth-error-msg" role="alert">{errors.password}</span>
           )}
         </div>
 
-        <button type="submit" className="login-btn" disabled={loading}>
-          {loading ? <span className="login-spinner" /> : 'Sign in'}
+        <button type="submit" className="auth-btn" disabled={loading}>
+          {loading ? <span className="auth-spinner" /> : 'Sign in'}
         </button>
 
-        <p className="login-footer-text">
+        <p className="auth-footer-text">
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="login-link">Sign up</Link>
+          <Link to="/register" className="auth-link">Sign up</Link>
         </p>
       </form>
     </div>

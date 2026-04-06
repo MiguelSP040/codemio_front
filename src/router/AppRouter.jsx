@@ -6,6 +6,7 @@ import MainLayout from '../components/layout/MainLayout';
 /* --- Pages --- */
 import LandingPage from '../modules/landing/pages/LandingPage';
 import LoginPage from '../modules/auth/pages/LoginPage';
+import RegisterPage from '../modules/auth/pages/RegisterPage';
 
 export default function AppRouter() {
   return (
@@ -18,7 +19,7 @@ export default function AppRouter() {
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
-        {/* <Route path="/register" element={<RegisterPage />} /> */}
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* TODO: Protected routes */}
         {/* <Route element={<ProtectedRoute />}> */}

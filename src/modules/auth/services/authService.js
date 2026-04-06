@@ -8,7 +8,7 @@
  */
 export async function login({ email, password }) {
   // --- Mock implementation (remove when backend is ready) ---
-  void password; // used by real API call below
+  void password;
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
   if (email === 'error@test.com') {
@@ -28,5 +28,34 @@ export async function login({ email, password }) {
   //   headers: { 'Content-Type': 'application/json' },
   // });
   // const { data } = await authApi.post('/auth/login/', { email, password });
+  // return data;
+}
+
+/**
+ * Register a new user.
+ * Currently uses a mock delay — swap with real API call when ready.
+ */
+export async function register({ name, email, password }) {
+  // --- Mock implementation (remove when backend is ready) ---
+  void password;
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  if (email === 'taken@test.com') {
+    const err = new Error('Email already in use');
+    err.response = { status: 409, data: { detail: 'A user with this email already exists.' } };
+    throw err;
+  }
+
+  return {
+    token: 'mock-jwt-token',
+    user: { id: 2, email, name },
+  };
+
+  // --- Real implementation (uncomment when backend is ready) ---
+  // const authApi = axios.create({
+  //   baseURL: API_BASE_URL,
+  //   headers: { 'Content-Type': 'application/json' },
+  // });
+  // const { data } = await authApi.post('/auth/register/', { name, email, password });
   // return data;
 }
