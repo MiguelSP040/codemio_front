@@ -27,9 +27,44 @@
 }
 
 .auth-logo {
-  width: 160px;
+  width: 320px;
   align-self: center;
   margin-bottom: var(--space-xs);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+.auth-brand-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.auth-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-brand-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.auth-brand-tagline {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .auth-title {
