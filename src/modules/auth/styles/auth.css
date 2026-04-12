@@ -223,6 +223,57 @@
   color: var(--color-primary);
 }
 
+/* ===== Divider ===== */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--color-text-light);
+  font-size: 0.8125rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ===== GitHub button ===== */
+.auth-btn-github {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #24292e;
+  border: none;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.auth-btn-github:hover {
+  background: #3b4045;
+}
+
+.auth-btn-github:active {
+  transform: scale(0.98);
+}
+
+.auth-btn-github svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 /* ===== Password input wrapper (for visibility toggle) ===== */
 .auth-input-wrapper {
   position: relative;

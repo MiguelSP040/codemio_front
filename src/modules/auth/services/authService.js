@@ -59,3 +59,14 @@ export async function register({ name, email, password }) {
   // const { data } = await authApi.post('/auth/register/', { name, email, password });
   // return data;
 }
+
+/**
+ * Start GitHub OAuth sign-up flow.
+ * TODO: Replace with real OAuth redirect once the backend
+ *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
+ *       The flow should redirect the user to GitHub's authorize URL
+ *       and handle the callback with the returned code/token.
+ */
+export async function githubAuth() {
+  console.log('[authService] GitHub OAuth not implemented yet');
+}
