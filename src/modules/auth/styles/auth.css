@@ -223,6 +223,50 @@
   color: var(--color-primary);
 }
 
+/* ===== Password input wrapper (for visibility toggle) ===== */
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrapper .auth-input {
+  padding-right: 44px;
+}
+
+.auth-toggle-password {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.auth-toggle-password:hover {
+  color: var(--color-secondary);
+  background-color: rgba(70, 130, 180, 0.08);
+}
+
+.auth-toggle-password:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 1px;
+}
+
+.auth-toggle-password svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 /* ===== Responsive ===== */
 
 /* Tablet */
