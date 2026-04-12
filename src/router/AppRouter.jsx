@@ -1,24 +1,19 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
-/* --- Layouts --- */
-import MainLayout from '../components/layout/MainLayout';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 /* --- Pages --- */
-import LandingPage from '../modules/landing/pages/LandingPage';
 import LoginPage from '../modules/auth/pages/LoginPage';
+import RegisterPage from '../modules/auth/pages/RegisterPage';
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<LandingPage />} />
-        </Route>
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
-        {/* <Route path="/register" element={<RegisterPage />} /> */}
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* TODO: Protected routes */}
         {/* <Route element={<ProtectedRoute />}> */}
