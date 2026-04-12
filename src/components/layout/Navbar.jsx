@@ -6,12 +6,11 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-brand">
+        <Link to="/login" className="navbar-brand">
           <img src={logo} alt="Codemio" className="navbar-logo" />
           <span className="navbar-title">Codemio</span>
         </Link>
         <ul className="navbar-links">
-          <li><Link to="/">Home</Link></li>
           <li><Link to="/login">Login</Link></li>
         </ul>
       </div>
