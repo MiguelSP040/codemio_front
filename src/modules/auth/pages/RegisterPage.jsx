@@ -10,22 +10,22 @@ const HAS_UPPERCASE = /[A-Z]/;
 const HAS_NUMBER = /\d/;
 
 function validate(field, value, form) {
-  if (!value.trim()) return 'This field is required.';
+  if (!value.trim()) return 'Este campo es obligatorio.';
 
   switch (field) {
     case 'name':
-      if (value.trim().length < 2) return 'Name must be at least 2 characters.';
+      if (value.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
       break;
     case 'email':
-      if (!EMAIL_REGEX.test(value)) return 'Enter a valid email address.';
+      if (!EMAIL_REGEX.test(value)) return 'Ingresa un correo electrónico válido.';
       break;
     case 'password':
-      if (value.length < 8) return 'Password must be at least 8 characters.';
-      if (!HAS_UPPERCASE.test(value)) return 'Password must include at least one uppercase letter.';
-      if (!HAS_NUMBER.test(value)) return 'Password must include at least one number.';
+      if (value.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+      if (!HAS_UPPERCASE.test(value)) return 'La contraseña debe incluir al menos una mayúscula.';
+      if (!HAS_NUMBER.test(value)) return 'La contraseña debe incluir al menos un número.';
       break;
     case 'confirmPassword':
-      if (value !== form.password) return 'Passwords do not match.';
+      if (value !== form.password) return 'Las contraseñas no coinciden.';
       break;
   }
 
@@ -42,9 +42,9 @@ function getPasswordStrength(password) {
   if (HAS_NUMBER.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 2) return { level: 'weak', label: 'Weak' };
-  if (score <= 3) return { level: 'medium', label: 'Medium' };
-  return { level: 'strong', label: 'Strong' };
+  if (score <= 2) return { level: 'weak', label: 'Débil' };
+  if (score <= 3) return { level: 'medium', label: 'Media' };
+  return { level: 'strong', label: 'Fuerte' };
 }
 
 const FIELDS = ['name', 'email', 'password', 'confirmPassword'];
@@ -111,7 +111,7 @@ export default function RegisterPage() {
       const msg =
         err.response?.data?.detail ||
         err.response?.data?.message ||
-        'Something went wrong. Please try again.';
+        'Algo salió mal. Inténtalo de nuevo.';
       setServerError(msg);
     } finally {
       setLoading(false);
@@ -127,8 +127,8 @@ export default function RegisterPage() {
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit} noValidate>
         <img src={logo} alt="Codemio" className="auth-logo" />
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-subtitle">Start analyzing your Java code with Codemio</p>
+        <h1 className="auth-title">Crea tu cuenta</h1>
+        <p className="auth-subtitle">Comienza a analizar tu código Java con Codemio</p>
 
         {serverError && (
           <div className="auth-server-error" role="alert">
@@ -136,15 +136,15 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Name */}
+        {/* Nombre */}
         <div className="auth-field">
-          <label htmlFor="name" className="auth-label">Full name</label>
+          <label htmlFor="name" className="auth-label">Nombre completo</label>
           <input
             id="name"
             name="name"
             type="text"
             autoComplete="name"
-            placeholder="Your full name"
+            placeholder="Tu nombre completo"
             className={fieldClass('name')}
             value={form.name}
             onChange={handleChange}
@@ -156,15 +156,15 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Email */}
+        {/* Correo electrónico */}
         <div className="auth-field">
-          <label htmlFor="email" className="auth-label">Email</label>
+          <label htmlFor="email" className="auth-label">Correo electrónico</label>
           <input
             id="email"
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="codemio@gmail.com"
             className={fieldClass('email')}
             value={form.email}
             onChange={handleChange}
@@ -176,16 +176,16 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Password */}
+        {/* Contraseña */}
         <div className="auth-field">
-          <label htmlFor="password" className="auth-label">Password</label>
+          <label htmlFor="password" className="auth-label">Contraseña</label>
           <div className="auth-input-wrapper">
             <input
               id="password"
               name="password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
-              placeholder="Min. 8 chars, 1 uppercase, 1 number"
+              placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número"
               className={fieldClass('password')}
               value={form.password}
               onChange={handleChange}
@@ -196,7 +196,7 @@ export default function RegisterPage() {
               type="button"
               className="auth-toggle-password"
               onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               tabIndex={-1}
             >
               {showPassword ? (
@@ -229,16 +229,16 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Confirm Password */}
+        {/* Confirmar contraseña */}
         <div className="auth-field">
-          <label htmlFor="confirmPassword" className="auth-label">Confirm password</label>
+          <label htmlFor="confirmPassword" className="auth-label">Confirmar contraseña</label>
           <div className="auth-input-wrapper">
             <input
               id="confirmPassword"
               name="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
-              placeholder="Re-enter your password"
+              placeholder="Vuelve a ingresar tu contraseña"
               className={fieldClass('confirmPassword')}
               value={form.confirmPassword}
               onChange={handleChange}
@@ -249,7 +249,7 @@ export default function RegisterPage() {
               type="button"
               className="auth-toggle-password"
               onClick={() => setShowConfirmPassword((v) => !v)}
-              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               tabIndex={-1}
             >
               {showConfirmPassword ? (
@@ -273,23 +273,23 @@ export default function RegisterPage() {
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>
-          {loading ? <span className="auth-spinner" /> : 'Create account'}
+          {loading ? <span className="auth-spinner" /> : 'Crear cuenta'}
         </button>
 
         <div className="auth-divider">
-          <span>or</span>
+          <span>o</span>
         </div>
 
         <button type="button" className="auth-btn-github" onClick={githubAuth}>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
           </svg>
-          Sign up with GitHub
+          Registrarse con GitHub
         </button>
 
         <p className="auth-footer-text">
-          Already have an account?{' '}
-          <Link to="/login" className="auth-link">Sign in</Link>
+          ¿Ya tienes una cuenta?{' '}
+          <Link to="/login" className="auth-link">Inicia sesión</Link>
         </p>
       </form>
     </div>

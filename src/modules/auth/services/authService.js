@@ -13,7 +13,7 @@ export async function login({ email, password }) {
 
   if (email === 'error@test.com') {
     const err = new Error('Invalid credentials');
-    err.response = { status: 401, data: { detail: 'Invalid credentials.' } };
+    err.response = { status: 401, data: { detail: 'Credenciales inválidas.' } };
     throw err;
   }
 
@@ -42,7 +42,7 @@ export async function register({ name, email, password }) {
 
   if (email === 'taken@test.com') {
     const err = new Error('Email already in use');
-    err.response = { status: 409, data: { detail: 'A user with this email already exists.' } };
+    err.response = { status: 409, data: { detail: 'Ya existe un usuario con este correo electrónico.' } };
     throw err;
   }
 
