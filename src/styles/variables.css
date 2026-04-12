@@ -1,0 +1,55 @@
+:root {
+  /* === Codemio Color Palette === */
+  --primary-dark-blue: #1E3A5F;
+  --secondary-medium-blue: #4682B4;
+  --accent-cyan: #00C3D7;
+  --secondary-dark-green: #2E8B57;
+  --accent-bright-green: #32CD32;
+  --accent-warm-orange: #D9A06F;
+  --light-glow-blue: #E0F7FA;
+  --light-bg-grey: #F5F5F5;
+
+  /* === Semantic Colors === */
+  --color-primary: var(--primary-dark-blue);
+  --color-secondary: var(--secondary-medium-blue);
+  --color-accent: var(--accent-cyan);
+  --color-success: var(--accent-bright-green);
+  --color-warning: var(--accent-warm-orange);
+  --color-bg: #ffffff;
+  --color-bg-alt: var(--light-bg-grey);
+  --color-bg-glow: var(--light-glow-blue);
+  --color-text: #333333;
+  --color-text-light: #6b7280;
+  --color-text-inverse: #ffffff;
+  --color-border: #e5e7eb;
+  --color-error: #dc2626;
+
+  /* === Typography === */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* === Spacing === */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* === Border Radius === */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* === Transitions === */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
