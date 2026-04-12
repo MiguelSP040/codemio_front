@@ -7,12 +7,12 @@ export default function LandingPage() {
       <section className="landing-hero">
         <img
           src={logoCompleto}
-          alt="Codemio - Java Code Analysis"
+          alt="Codemio - Análisis de código Java"
           className="landing-logo"
         />
-        <h1>Analyze your Java code with confidence</h1>
+        <h1>Analiza tu código Java con confianza</h1>
         <p className="landing-subtitle">
-          Static analysis tool for Java projects. Upload your code, get insights, and improve quality.
+          Herramienta de análisis estático para proyectos Java. Sube tu código, obtén hallazgos y mejora su calidad.
         </p>
       </section>
     </div>

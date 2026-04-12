@@ -7,9 +7,9 @@ import './LoginPage.css';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validate(field, value) {
-  if (!value.trim()) return 'This field is required.';
-  if (field === 'email' && !EMAIL_REGEX.test(value)) return 'Enter a valid email address.';
-  if (field === 'password' && value.length < 6) return 'Password must be at least 6 characters.';
+  if (!value.trim()) return 'Este campo es obligatorio.';
+  if (field === 'email' && !EMAIL_REGEX.test(value)) return 'Ingresa una dirección de correo válida.';
+  if (field === 'password' && value.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
   return '';
 }
 
@@ -75,8 +75,8 @@ export default function LoginPage() {
     <div className="login-page">
       <form className="login-card" onSubmit={handleSubmit} noValidate>
         <img src={logo} alt="Codemio" className="login-logo" />
-        <h1 className="login-title">Welcome back</h1>
-        <p className="login-subtitle">Sign in to your Codemio account</p>
+        <h1 className="login-title">Bienvenido de nuevo</h1>
+        <p className="login-subtitle">Inicia sesión en tu cuenta de Codemio</p>
 
         {serverError && (
           <div className="login-server-error" role="alert">
@@ -86,13 +86,13 @@ export default function LoginPage() {
 
         {/* Email */}
         <div className="login-field">
-          <label htmlFor="email" className="login-label">Email</label>
+          <label htmlFor="email" className="login-label">Correo electrónico</label>
           <input
             id="email"
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="tu@correo.com"
             className={fieldClass('email')}
             value={form.email}
             onChange={handleChange}
@@ -106,13 +106,13 @@ export default function LoginPage() {
 
         {/* Password */}
         <div className="login-field">
-          <label htmlFor="password" className="login-label">Password</label>
+          <label htmlFor="password" className="login-label">Contraseña</label>
           <input
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
-            placeholder="Enter your password"
+            placeholder="Ingresa tu contraseña"
             className={fieldClass('password')}
             value={form.password}
             onChange={handleChange}
@@ -125,12 +125,12 @@ export default function LoginPage() {
         </div>
 
         <button type="submit" className="login-btn" disabled={loading}>
-          {loading ? <span className="login-spinner" /> : 'Sign in'}
+          {loading ? <span className="login-spinner" /> : 'Ingresar'}
         </button>
 
         <p className="login-footer-text">
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="login-link">Sign up</Link>
+          ¿No tienes una cuenta?{' '}
+          <Link to="/register" className="login-link">Regístrate</Link>
         </p>
       </form>
     </div>

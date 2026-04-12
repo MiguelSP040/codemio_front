@@ -6,6 +6,7 @@ import MainLayout from '../components/layout/MainLayout';
 /* --- Pages --- */
 import LandingPage from '../modules/landing/pages/LandingPage';
 import LoginPage from '../modules/auth/pages/LoginPage';
+import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 
 export default function AppRouter() {
   return (
@@ -14,6 +15,7 @@ export default function AppRouter() {
         {/* Public routes */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
         </Route>
 
         {/* Auth routes */}

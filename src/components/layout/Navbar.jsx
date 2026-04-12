@@ -11,8 +11,9 @@ export default function Navbar() {
           <span className="navbar-title">Codemio</span>
         </Link>
         <ul className="navbar-links">
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/login">Login</Link></li>
+          <li><Link to="/">Inicio</Link></li>
+          <li><Link to="/dashboard">Panel</Link></li>
+          <li><Link to="/login">Ingresar</Link></li>
         </ul>
       </div>
     </nav>
