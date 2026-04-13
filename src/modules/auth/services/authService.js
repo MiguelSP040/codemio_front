@@ -2,7 +2,7 @@
 // import API_BASE_URL from '../../../config/api';
 
 /**
- * Login user with email and password.
+ * Inicia sesión del usuario con correo electrónico y contraseña.
  * Currently uses a mock delay — swap the body of this function
  * with the real API call once the backend endpoint is ready.
  */
@@ -19,7 +19,7 @@ export async function login({ email, password }) {
 
   return {
     token: 'mock-jwt-token',
-    user: { id: 1, email, name: 'Codemio User' },
+    user: { id: 1, email, name: 'Usuario de Codemio' },
   };
 
   // --- Real implementation (uncomment when backend is ready) ---

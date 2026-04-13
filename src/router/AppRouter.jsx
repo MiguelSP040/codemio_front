@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 /* --- Pages --- */
 import LoginPage from '../modules/auth/pages/LoginPage';
+import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import RegisterPage from '../modules/auth/pages/RegisterPage';
 
 export default function AppRouter() {
@@ -13,6 +14,9 @@ export default function AppRouter() {
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Dashboard route (pending protected route) */}
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
         {/* TODO: Protected routes */}
