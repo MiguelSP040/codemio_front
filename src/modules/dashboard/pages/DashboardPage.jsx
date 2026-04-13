@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import './DashboardPage.css';
 
 const projectSummary = {
@@ -42,6 +43,9 @@ function severityClass(severity) {
 }
 
 export default function DashboardPage() {
+  const analysisStatus = 'completed';
+  const lastUpdated = '12/04/2026 10:45';
+
   const [projectName, setProjectName] = useState(projectSummary.name);
   const [draftName, setDraftName] = useState(projectSummary.name);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -140,6 +144,9 @@ export default function DashboardPage() {
           <strong className="dashboard-score-value">{projectSummary.score}</strong>
         </div>
       </section>
+
+      {/* Example usage: replace these mock props with backend data in a next step. */}
+      <AnalysisStatusCard analysisStatus={analysisStatus} lastUpdated={lastUpdated} />
 
       <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
         {summaryCards.map((item) => (
