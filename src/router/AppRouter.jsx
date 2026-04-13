@@ -15,11 +15,13 @@ export default function AppRouter() {
         {/* Public routes */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
         </Route>
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Dashboard route (pending protected route) */}
+        <Route path="/dashboard" element={<DashboardPage />} />
         {/* <Route path="/register" element={<RegisterPage />} /> */}
 
         {/* TODO: Protected routes */}
