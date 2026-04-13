@@ -5,6 +5,7 @@ import LoginPage from '../modules/auth/pages/LoginPage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import RegisterPage from '../modules/auth/pages/RegisterPage';
 import VerifyEmailPage from '../modules/auth/pages/VerifyEmailPage';
+import OnboardingPage from '../modules/auth/pages/OnboardingPage';
 
 export default function AppRouter() {
   return (
@@ -17,6 +18,9 @@ export default function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+        {/* Onboarding (pendiente proteger en rama de integración) */}
+        <Route path="/onboarding" element={<OnboardingPage />} />
 
         {/* Dashboard route (pending protected route) */}
         <Route path="/dashboard" element={<DashboardPage />} />
