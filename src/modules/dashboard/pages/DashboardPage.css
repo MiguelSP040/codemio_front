@@ -34,6 +34,89 @@
   color: var(--color-text-light);
 }
 
+.dashboard-detail-description {
+  margin-top: var(--space-xs);
+  color: var(--color-text-light);
+  max-width: 64ch;
+}
+
+.dashboard-files-section {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.dashboard-files-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.dashboard-file-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-md);
+  text-align: left;
+  display: grid;
+  gap: var(--space-sm);
+  transition: transform var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.dashboard-file-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-file-card--active {
+  border-color: var(--color-secondary);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-file-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.dashboard-file-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.dashboard-file-path {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  word-break: break-word;
+}
+
+.dashboard-file-description {
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.dashboard-file-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.dashboard-file-stat {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .dashboard-title-row {
   display: flex;
   align-items: center;
@@ -238,6 +321,10 @@
   .dashboard-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .dashboard-files-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -257,6 +344,10 @@
 
   .dashboard-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-file-card-top {
+    flex-direction: column;
   }
 
   .dashboard-findings-table th,
