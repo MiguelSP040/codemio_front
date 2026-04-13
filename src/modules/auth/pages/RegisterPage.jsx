@@ -106,7 +106,8 @@ export default function RegisterPage() {
 
     try {
       await register({ name: form.name, email: form.email, password: form.password });
-      navigate('/login', { state: { registered: true } });
+      // Redirige a la verificación de correo con el email en state (no en URL por privacidad)
+      navigate('/verify-email', { state: { email: form.email } });
     } catch (err) {
       const msg =
         err.response?.data?.detail ||

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../modules/auth/pages/LoginPage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import RegisterPage from '../modules/auth/pages/RegisterPage';
+import VerifyEmailPage from '../modules/auth/pages/VerifyEmailPage';
 
 export default function AppRouter() {
   return (
@@ -14,10 +15,11 @@ export default function AppRouter() {
 
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         {/* Dashboard route (pending protected route) */}
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/register" element={<RegisterPage />} />
 
         {/* TODO: Protected routes */}
         {/* <Route element={<ProtectedRoute />}> */}

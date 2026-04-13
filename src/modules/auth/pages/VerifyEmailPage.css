@@ -1,0 +1,117 @@
+/* ===== Verify email page ===== */
+
+.verify-card {
+  max-width: 460px;
+  gap: var(--space-lg);
+}
+
+.verify-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.verify-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-glow);
+  color: var(--color-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.verify-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.verify-email {
+  color: var(--color-primary);
+  word-break: break-all;
+}
+
+/* Informational banner for resend success */
+.verify-info {
+  background: var(--color-bg-glow);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 195, 215, 0.25);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.verify-code-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.verify-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+.verify-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-top-color: var(--color-secondary);
+  border-color: rgba(70, 130, 180, 0.25);
+  border-top-color: var(--color-secondary);
+}
+
+/* ===== Resend row ===== */
+.verify-resend {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+.verify-resend-timer {
+  color: var(--color-text);
+}
+
+.verify-resend-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.verify-resend-btn:hover:not(:disabled) {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.verify-resend-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .verify-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .verify-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+}
