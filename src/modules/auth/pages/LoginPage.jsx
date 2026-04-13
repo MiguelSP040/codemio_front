@@ -55,7 +55,7 @@ export default function LoginPage() {
     try {
       const data = await login(form);
       console.log('Login success:', data);
-      navigate('/dashboard');
+      navigate('/projects');
     } catch (err) {
       const msg =
         err.response?.data?.detail ||

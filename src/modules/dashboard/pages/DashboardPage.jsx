@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
+import ProjectDrawer from '../components/ProjectDrawer';
 import './DashboardPage.css';
 
 const analysisFiles = [
@@ -257,6 +259,12 @@ const analysisFiles = [
   },
 ];
 
+const projectsCatalog = {
+  'auditoria-java': 'servicio-de-auditoria-estatica-java',
+  'api-clientes': 'servicio-api-clientes-java',
+  'motor-reglas': 'motor-reglas-empresariales-java',
+};
+
 function severityClass(severity) {
   if (severity === 'Crítico') return 'dashboard-badge dashboard-badge--critical';
   if (severity === 'Advertencia') return 'dashboard-badge dashboard-badge--warning';
@@ -280,121 +288,108 @@ function analysisStatusLabel(analysisStatus) {
 }
 
 export default function DashboardPage() {
-  const [selectedFileId, setSelectedFileId] = useState(analysisFiles[0].id);
+  const { projectId } = useParams();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const repositoryName = projectsCatalog[projectId] || analysisFiles[0].repositoryName;
+
+  const projectFiles = useMemo(
+    () =>
+      analysisFiles.map((fileItem) => ({
+        ...fileItem,
+        repositoryName,
+      })),
+    [repositoryName],
+  );
+
+  const [selectedFileId, setSelectedFileId] = useState(projectFiles[0].id);
+
+  useEffect(() => {
+    setSelectedFileId(projectFiles[0].id);
+  }, [projectFiles]);
+
   const selectedAnalysis =
-    analysisFiles.find((analysis) => analysis.id === selectedFileId) ?? analysisFiles[0];
+    projectFiles.find((analysis) => analysis.id === selectedFileId) ?? projectFiles[0];
 
   return (
     <div className="dashboard-page">
-      <section className="dashboard-files-section">
-        <header className="dashboard-section-header">
-          <p className="dashboard-eyebrow">Análisis detallado por archivo</p>
-          <h2>Archivos disponibles</h2>
-          <p>Selecciona una card para mostrar el dashboard detallado de ese archivo.</p>
-        </header>
-
-        <div className="dashboard-files-grid">
-          {analysisFiles.map((analysis) => {
-            const isSelected = analysis.id === selectedFileId;
-
-            return (
-              <button
-                key={analysis.id}
-                type="button"
-                className={`dashboard-file-card${isSelected ? ' dashboard-file-card--active' : ''}`}
-                onClick={() => setSelectedFileId(analysis.id)}
-                aria-pressed={isSelected}
-              >
-                <div className="dashboard-file-card-top">
-                  <span className="dashboard-file-name">{analysis.fileName}</span>
-                  <span
-                    className={`analysis-status-badge ${analysisStatusClass(analysis.analysisStatus)}`}
-                  >
-                    {analysisStatusLabel(analysis.analysisStatus)}
-                  </span>
-                </div>
-                <p className="dashboard-file-path">{analysis.filePath}</p>
-                <p className="dashboard-file-description">{analysis.shortDescription}</p>
-                <div className="dashboard-file-stats">
-                  <span className="dashboard-file-stat">Score {analysis.score}</span>
-                  <span className="dashboard-file-stat">
-                    {analysis.summaryCards[0].value} críticos
-                  </span>
-                  <span className="dashboard-file-stat">
-                    {analysis.summaryCards[1].value} advertencias
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="dashboard-header">
-        <div>
-          <p className="dashboard-eyebrow">Repositorio {selectedAnalysis.repositoryName}</p>
-          <div className="dashboard-title-row">
-            <h1>{selectedAnalysis.fileName}</h1>
-            <span
-              className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
-            >
-              {analysisStatusLabel(selectedAnalysis.analysisStatus)}
-            </span>
-          </div>
-          <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
-          <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
-        </div>
-        <div className="dashboard-score-card">
-          <span className="dashboard-score-label">Score del archivo</span>
-          <strong className="dashboard-score-value">{selectedAnalysis.score}</strong>
-        </div>
-      </section>
-
-      <AnalysisStatusCard
-        analysisStatus={selectedAnalysis.analysisStatus}
-        lastUpdated={selectedAnalysis.lastUpdated}
+      <ProjectDrawer
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen((currentValue) => !currentValue)}
+        onClose={() => setIsSidebarOpen(false)}
+        analysisFiles={projectFiles}
+        selectedFileId={selectedFileId}
+        onSelectFile={setSelectedFileId}
+        getStatusClass={analysisStatusClass}
+        getStatusLabel={analysisStatusLabel}
       />
 
-      <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
-        {selectedAnalysis.summaryCards.map((item) => (
-          <article className="dashboard-summary-card" key={item.label}>
-            <p className="dashboard-summary-label">{item.label}</p>
-            <p className="dashboard-summary-value">{item.value}</p>
-          </article>
-        ))}
-      </section>
+      <main className="dashboard-main">
+        <section className="dashboard-header">
+          <div>
+            <p className="dashboard-eyebrow">Repositorio {selectedAnalysis.repositoryName}</p>
+            <div className="dashboard-title-row">
+              <h1>{selectedAnalysis.fileName}</h1>
+              <span
+                className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
+              >
+                {analysisStatusLabel(selectedAnalysis.analysisStatus)}
+              </span>
+            </div>
+            <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
+            <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
+          </div>
+          <div className="dashboard-score-card">
+            <span className="dashboard-score-label">Score del archivo</span>
+            <strong className="dashboard-score-value">{selectedAnalysis.score}</strong>
+          </div>
+        </section>
 
-      <section className="dashboard-findings" aria-label="Hallazgos del análisis">
-        <header className="dashboard-section-header">
-          <h2>Hallazgos</h2>
-          <p>Resultados automáticos del análisis estático para el archivo seleccionado.</p>
-        </header>
+        <AnalysisStatusCard
+          analysisStatus={selectedAnalysis.analysisStatus}
+          lastUpdated={selectedAnalysis.lastUpdated}
+        />
 
-        <div className="dashboard-findings-table-wrap">
-          <table className="dashboard-findings-table">
-            <thead>
-              <tr>
-                <th>Severidad</th>
-                <th>Archivo</th>
-                <th>Regla</th>
-                <th>Recomendación</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedAnalysis.findings.map((finding, index) => (
-                <tr key={`${finding.file}-${index}`}>
-                  <td>
-                    <span className={severityClass(finding.severity)}>{finding.severity}</span>
-                  </td>
-                  <td>{finding.file}</td>
-                  <td>{finding.rule}</td>
-                  <td>{finding.recommendation}</td>
+        <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
+          {selectedAnalysis.summaryCards.map((item) => (
+            <article className="dashboard-summary-card" key={item.label}>
+              <p className="dashboard-summary-label">{item.label}</p>
+              <p className="dashboard-summary-value">{item.value}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="dashboard-findings" aria-label="Hallazgos del análisis">
+          <header className="dashboard-section-header">
+            <h2>Hallazgos</h2>
+            <p>Resultados automáticos del análisis estático para el archivo seleccionado.</p>
+          </header>
+
+          <div className="dashboard-findings-table-wrap">
+            <table className="dashboard-findings-table">
+              <thead>
+                <tr>
+                  <th>Severidad</th>
+                  <th>Archivo</th>
+                  <th>Regla</th>
+                  <th>Recomendación</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {selectedAnalysis.findings.map((finding, index) => (
+                  <tr key={`${finding.file}-${index}`}>
+                    <td>
+                      <span className={severityClass(finding.severity)}>{finding.severity}</span>
+                    </td>
+                    <td>{finding.file}</td>
+                    <td>{finding.rule}</td>
+                    <td>{finding.recommendation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
