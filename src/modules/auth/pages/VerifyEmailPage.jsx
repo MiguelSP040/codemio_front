@@ -13,6 +13,8 @@ export default function VerifyEmailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email ?? '';
+  const flow = location.state?.flow ?? 'register'; // 'register' | 'recovery'
+  const isRecovery = flow === 'recovery';
 
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -22,10 +24,10 @@ export default function VerifyEmailPage() {
   const [resending, setResending] = useState(false);
   const codeInputKey = useRef(0);
 
-  // Si no viene email en state, devolvemos al registro (no hay cómo validar)
+  // Si no viene email en state, devolvemos al paso anterior
   useEffect(() => {
-    if (!email) navigate('/register', { replace: true });
-  }, [email, navigate]);
+    if (!email) navigate(isRecovery ? '/forgot-password' : '/register', { replace: true });
+  }, [email, navigate, isRecovery]);
 
   // Cooldown para reenviar código
   useEffect(() => {
@@ -47,13 +49,11 @@ export default function VerifyEmailPage() {
 
     try {
       await validateOtp({ email, otp: fullCode });
-      // UI-only: encadenamos directamente al onboarding para mostrar el flujo completo.
-      // En la rama de integración el orden real del backend es:
-      //   /auth/validate/ → /auth/register/ (password) → /auth/login/ (tokens) →
-      //   si usuario.onboarding_completed === false → /onboarding
-      navigate('/onboarding', {
+      // Redirige según el flujo: registro → crear contraseña, recovery → nueva contraseña
+      const nextRoute = isRecovery ? '/reset-password' : '/create-password';
+      navigate(nextRoute, {
         replace: true,
-        state: { verified: true, email },
+        state: { email },
       });
     } catch (err) {
       const msg =
@@ -167,7 +167,9 @@ export default function VerifyEmailPage() {
 
         <p className="auth-footer-text">
           ¿Correo incorrecto?{' '}
-          <Link to="/register" className="auth-link">Volver al registro</Link>
+          <Link to={isRecovery ? '/forgot-password' : '/register'} className="auth-link">
+            {isRecovery ? 'Volver a recuperación' : 'Volver al registro'}
+          </Link>
         </p>
       </div>
     </div>

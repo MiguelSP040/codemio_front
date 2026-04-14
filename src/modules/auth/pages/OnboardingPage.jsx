@@ -181,7 +181,7 @@ export default function OnboardingPage() {
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>
-          {loading ? <span className="auth-spinner" /> : 'Completar perfil'}
+          {loading ? <span className="auth-spinner" /> : 'Crear cuenta'}
         </button>
       </form>
     </div>

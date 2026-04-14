@@ -5,7 +5,10 @@ import LoginPage from '../modules/auth/pages/LoginPage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import RegisterPage from '../modules/auth/pages/RegisterPage';
 import VerifyEmailPage from '../modules/auth/pages/VerifyEmailPage';
+import CreatePasswordPage from '../modules/auth/pages/CreatePasswordPage';
 import OnboardingPage from '../modules/auth/pages/OnboardingPage';
+import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
 
 export default function AppRouter() {
   return (
@@ -18,9 +21,14 @@ export default function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/create-password" element={<CreatePasswordPage />} />
 
         {/* Onboarding (pendiente proteger en rama de integración) */}
         <Route path="/onboarding" element={<OnboardingPage />} />
+
+        {/* Password recovery */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Dashboard route (pending protected route) */}
         <Route path="/dashboard" element={<DashboardPage />} />
