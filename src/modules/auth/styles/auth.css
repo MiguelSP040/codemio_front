@@ -223,6 +223,11 @@
   color: var(--color-primary);
 }
 
+.auth-forgot-link {
+  align-self: flex-end;
+  font-size: 0.8125rem;
+}
+
 /* ===== Divider ===== */
 .auth-divider {
   display: flex;

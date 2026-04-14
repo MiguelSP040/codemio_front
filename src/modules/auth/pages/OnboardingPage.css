@@ -1,0 +1,43 @@
+/* ===== Onboarding page — small overrides on top of auth.css ===== */
+
+.onboarding-card {
+  max-width: 460px;
+}
+
+.onboarding-optional {
+  font-weight: 400;
+  color: var(--color-text-light);
+  font-size: 0.8125rem;
+}
+
+/* GitHub input with inline icon */
+.onboarding-input-icon {
+  position: absolute;
+  left: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  pointer-events: none;
+}
+
+.onboarding-input-icon svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.onboarding-github-input {
+  padding-left: 44px;
+}
+
+/* Remove spinner arrows on number input for cleaner look */
+.auth-input[type='number']::-webkit-outer-spin-button,
+.auth-input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.auth-input[type='number'] {
+  -moz-appearance: textfield;
+}
