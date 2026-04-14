@@ -16,7 +16,12 @@ export function AuthProvider({ children }) {
   });
 
   function loginAuth(data) {
-    const next = { user: data.user, token: data.token, refreshToken: data.refreshToken || null };
+    /* Support both backend shape ({ tokens, usuario }) and flat shape ({ token, user }) */
+    const token = data?.tokens?.access_token || data?.token || null;
+    const refreshToken = data?.tokens?.refresh_token || data?.refreshToken || null;
+    const user = data?.usuario || data?.user || null;
+
+    const next = { user, token, refreshToken };
     setAuth(next);
     localStorage.setItem('auth', JSON.stringify(next));
   }
