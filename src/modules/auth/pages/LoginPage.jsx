@@ -149,6 +149,9 @@ export default function LoginPage() {
           {touched.password && errors.password && (
             <span className="auth-error-msg" role="alert">{errors.password}</span>
           )}
+          <Link to="/forgot-password" className="auth-link auth-forgot-link">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>

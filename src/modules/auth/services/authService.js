@@ -1,5 +1,28 @@
-// import axios from 'axios';
-// import API_BASE_URL from '../../../config/api';
+import axios from 'axios';
+import API_BASE_URL from '../../../config/api';
+
+const AUTH_STORAGE_KEY = 'codemio_auth';
+
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+function saveSession(payload) {
+  const tokens = payload?.tokens;
+  if (!tokens?.access_token) return;
+
+  localStorage.setItem(
+    AUTH_STORAGE_KEY,
+    JSON.stringify({
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token || null,
+      tokenType: tokens.token_type || 'Bearer',
+      expiresIn: tokens.expires_in ?? null,
+      user: payload?.usuario || null,
+    }),
+  );
+}
 
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
@@ -7,28 +30,13 @@
  * with the real API call once the backend endpoint is ready.
  */
 export async function login({ email, password }) {
-  // --- Mock implementation (remove when backend is ready) ---
-  void password;
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  if (email === 'error@test.com') {
-    const err = new Error('Invalid credentials');
-    err.response = { status: 401, data: { detail: 'Credenciales inválidas.' } };
-    throw err;
-  }
-
-  return {
-    token: 'mock-jwt-token',
-    user: { id: 1, email, name: 'Usuario de Codemio' },
-  };
-
-  // --- Real implementation (uncomment when backend is ready) ---
-  // const authApi = axios.create({
-  //   baseURL: API_BASE_URL,
-  //   headers: { 'Content-Type': 'application/json' },
-  // });
-  // const { data } = await authApi.post('/auth/login/', { email, password });
-  // return data;
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data } = await authApi.post('/auth/login/', {
+    email: normalizedEmail,
+    password,
+  });
+  saveSession(data);
+  return data;
 }
 
 /**
@@ -36,28 +44,14 @@ export async function login({ email, password }) {
  * Currently uses a mock delay — swap with real API call when ready.
  */
 export async function register({ name, email, password }) {
-  // --- Mock implementation (remove when backend is ready) ---
-  void password;
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  void name;
+  const normalizedEmail = email.trim().toLowerCase();
+  await authApi.post('/auth/register/', {
+    email: normalizedEmail,
+    password,
+  });
 
-  if (email === 'taken@test.com') {
-    const err = new Error('Email already in use');
-    err.response = { status: 409, data: { detail: 'Ya existe un usuario con este correo electrónico.' } };
-    throw err;
-  }
-
-  return {
-    token: 'mock-jwt-token',
-    user: { id: 2, email, name },
-  };
-
-  // --- Real implementation (uncomment when backend is ready) ---
-  // const authApi = axios.create({
-  //   baseURL: API_BASE_URL,
-  //   headers: { 'Content-Type': 'application/json' },
-  // });
-  // const { data } = await authApi.post('/auth/register/', { name, email, password });
-  // return data;
+  return login({ email: normalizedEmail, password });
 }
 
 /**
@@ -69,4 +63,57 @@ export async function register({ name, email, password }) {
  */
 export async function githubAuth() {
   console.log('[authService] GitHub OAuth not implemented yet');
+}
+
+/**
+ * Fase B — Registra la cuenta (set password) después de verificar el correo.
+ * TODO: Reemplazar mock con llamada real:
+ *   POST /auth/register/  body: { email, password }
+ *   → 201 { detail, already_registered, correo, sub_cognito }
+ *   Errores: 400 password inválido · 403 correo no verificado · 404 sin cuenta Cognito · 409 conflicto sub
+ */
+export async function registerAccount({ email, password }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  await authApi.post('/auth/register/', {
+    email: normalizedEmail,
+    password,
+  });
+
+  return login({ email: normalizedEmail, password });
+}
+
+/**
+ * Recuperación de contraseña — paso 1: solicitar código de restablecimiento.
+ * TODO: El backend NO tiene este endpoint todavía.
+ *   Cuando se implemente en Cognito, será algo como:
+ *   POST /auth/forgot-password/  body: { email }
+ *   → 200 { detail, email }
+ *   Cognito usa ForgotPassword API (envía código al correo).
+ */
+export async function forgotPassword({ email }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data } = await authApi.post('/auth/forgot-password/', {
+    email: normalizedEmail,
+  });
+  return data;
+}
+
+/**
+ * Recuperación de contraseña — paso 2: confirmar nueva contraseña.
+ * TODO: El backend NO tiene este endpoint todavía.
+ *   Cuando se implemente en Cognito, será algo como:
+ *   POST /auth/reset-password/  body: { email, code, password }
+ *   → 200 { detail }
+ *   Cognito usa ConfirmForgotPassword API.
+ *   NOTA: Probablemente se necesitará un paso intermedio de código OTP
+ *   entre forgot-password y reset-password. Por ahora el mock va directo.
+ */
+export async function resetPassword({ email, code, password }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data } = await authApi.post('/auth/confirm-forgot-password/', {
+    email: normalizedEmail,
+    code: (code || '').trim(),
+    new_password: password,
+  });
+  return data;
 }

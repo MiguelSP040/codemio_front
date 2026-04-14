@@ -8,21 +8,32 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 /* --- Auth Pages --- */
 import LoginPage from '../modules/auth/pages/LoginPage';
 import RegisterPage from '../modules/auth/pages/RegisterPage';
+import VerifyEmailPage from '../modules/auth/pages/VerifyEmailPage';
+import CreatePasswordPage from '../modules/auth/pages/CreatePasswordPage';
+import OnboardingPage from '../modules/auth/pages/OnboardingPage';
+import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
 
 /* --- App Pages --- */
 import DashboardHomePage from '../modules/dashboard/pages/DashboardHomePage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import ProjectsPage from '../modules/dashboard/pages/ProjectsPage';
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes — Navbar + Footer */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Auth routes (standalone, no layout wrapper) */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/create-password" element={<CreatePasswordPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected routes — Sidebar layout */}
         <Route element={<ProtectedRoute />}>

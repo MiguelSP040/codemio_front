@@ -1,0 +1,86 @@
+/* ===== CodeInput — casillas de dígitos para OTP ===== */
+
+.code-input {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.code-input__box {
+  width: 48px;
+  height: 56px;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  caret-color: var(--color-secondary);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.code-input__box:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.18);
+  transform: translateY(-1px);
+}
+
+.code-input__box--filled {
+  border-color: var(--color-secondary);
+  background: var(--color-bg-glow);
+}
+
+.code-input__box:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--color-bg-alt);
+}
+
+/* Estado de error — aplica a todas las casillas vía contenedor */
+.code-input--error .code-input__box {
+  border-color: var(--color-error);
+  background: #fef2f2;
+  animation: code-shake 0.35s ease;
+}
+
+.code-input--error .code-input__box:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+@keyframes code-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .code-input {
+    gap: 6px;
+  }
+
+  .code-input__box {
+    width: 42px;
+    height: 52px;
+    font-size: 1.375rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .code-input__box {
+    width: 38px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+}
