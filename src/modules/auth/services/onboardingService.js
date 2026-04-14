@@ -1,5 +1,6 @@
 import axios from 'axios';
 import API_BASE_URL from '../../../config/api';
+import { encryptProfilePayload } from './payloadCrypto';
 
 /**
  * Servicios del flujo de onboarding de Codemio.
@@ -94,13 +95,22 @@ export async function completeProfile({ nombre, edad, perfil_github }) {
     throw err;
   }
 
-  const { data } = await authApi.patch(
-    '/users/me/',
+  const { data: publicKeyPayload } = await authApi.get('/auth/payload-public-key/', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const encryptedPayload = await encryptProfilePayload(
     {
       nombre,
       edad,
       perfil_github: perfil_github || null,
     },
+    publicKeyPayload,
+  );
+
+  const { data } = await authApi.patch(
+    '/users/me/',
+    encryptedPayload,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     },
