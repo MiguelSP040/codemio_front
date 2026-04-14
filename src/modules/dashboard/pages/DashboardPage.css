@@ -186,6 +186,43 @@
   margin-bottom: var(--space-xs);
 }
 
+.dashboard-repo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.dashboard-repo-row .dashboard-eyebrow {
+  margin-bottom: 0;
+}
+
+.dashboard-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.dashboard-edit-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.dashboard-edit-btn:hover {
+  background: rgba(70, 130, 180, 0.1);
+  color: var(--color-secondary);
+}
+
 .dashboard-subtitle {
   color: var(--color-text-light);
 }

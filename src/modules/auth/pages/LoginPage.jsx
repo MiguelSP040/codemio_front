@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { login, githubAuth } from '../services/authService';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
@@ -15,6 +16,7 @@ function validate(field, value) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { loginAuth } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [touched, setTouched] = useState({ email: false, password: false });
@@ -55,8 +57,8 @@ export default function LoginPage() {
 
     try {
       const data = await login(form);
-      console.log('Login success:', data);
-      navigate('/projects');
+      loginAuth(data);
+      navigate('/dashboard');
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
