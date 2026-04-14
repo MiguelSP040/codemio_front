@@ -158,7 +158,6 @@
   border-radius: var(--radius-lg);
   background: var(--color-bg);
   box-shadow: var(--shadow-sm);
-  text-decoration: none;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
@@ -183,6 +182,12 @@
   font-weight: 600;
   color: var(--color-primary);
   word-break: break-word;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.dash-project-name:hover {
+  color: var(--color-secondary);
 }
 
 .dash-project-score {
@@ -221,6 +226,248 @@
   height: 3px;
   border-radius: 50%;
   background: var(--color-text-light);
+}
+
+/* ===== Project actions ===== */
+.dash-project-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.dash-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-light);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.dash-action-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.dash-action-btn--open:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(30, 58, 95, 0.05);
+}
+
+.dash-action-btn--edit:hover {
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  background: rgba(70, 130, 180, 0.06);
+}
+
+.dash-action-btn--delete:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+  background: #fef2f2;
+}
+
+/* ===== Inline edit ===== */
+.dash-edit-inline {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dash-edit-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.15);
+}
+
+.dash-edit-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.dash-edit-save,
+.dash-edit-cancel {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.dash-edit-save {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.dash-edit-save:hover:not(:disabled) {
+  background: var(--color-secondary);
+}
+
+.dash-edit-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dash-edit-cancel {
+  background: var(--color-bg-alt);
+  color: var(--color-text-light);
+}
+
+.dash-edit-cancel:hover {
+  color: var(--color-text);
+}
+
+/* ===== Delete confirmation modal ===== */
+.dash-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  animation: dash-fade-in 150ms ease-out;
+}
+
+.dash-modal {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+  animation: dash-scale-in 200ms ease-out;
+}
+
+.dash-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: var(--color-error);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-modal-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.dash-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dash-modal-text {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  line-height: 1.5;
+}
+
+.dash-modal-text strong {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.dash-modal-actions {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.dash-modal-btn {
+  flex: 1;
+  padding: 10px var(--space-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.dash-modal-btn:active {
+  transform: scale(0.97);
+}
+
+.dash-modal-btn--cancel {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.dash-modal-btn--cancel:hover {
+  background: var(--color-bg);
+  border-color: var(--color-text-light);
+}
+
+.dash-modal-btn--delete {
+  background: var(--color-error);
+  color: #ffffff;
+}
+
+.dash-modal-btn--delete:hover {
+  background: #b91c1c;
+}
+
+@keyframes dash-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dash-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ===== Responsive ===== */

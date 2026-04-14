@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import './DashboardHomePage.css';
@@ -54,7 +55,7 @@ const mockStats = [
   },
 ];
 
-const mockRecentProjects = [
+const initialProjects = [
   {
     id: 'auditoria-java',
     name: 'servicio-de-auditoria-estatica-java',
@@ -94,6 +95,48 @@ function scoreClass(score) {
 export default function DashboardHomePage() {
   const { user } = useAuth();
   const displayName = user?.nombre || user?.name || 'Usuario';
+
+  const [projects, setProjects] = useState(initialProjects);
+
+  /* Inline edit state */
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+
+  /* Delete confirmation state */
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  function startEdit(project) {
+    setEditingId(project.id);
+    setEditName(project.name);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName('');
+  }
+
+  function saveEdit(projectId) {
+    const trimmed = editName.trim();
+    if (trimmed.length < 3) return;
+    /* --- Real: PATCH /projects/:id --- */
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, name: trimmed } : p)),
+    );
+    setEditingId(null);
+    setEditName('');
+  }
+
+  function handleEditKeyDown(e, projectId) {
+    if (e.key === 'Enter') saveEdit(projectId);
+    if (e.key === 'Escape') cancelEdit();
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    /* --- Real: DELETE /projects/:id --- */
+    setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  }
 
   return (
     <div className="dash-home">
@@ -141,14 +184,37 @@ export default function DashboardHomePage() {
         </header>
 
         <div className="dash-recent-grid">
-          {mockRecentProjects.map((project) => (
-            <Link
-              to={`/projects/${project.id}/dashboard`}
-              className="dash-project-card"
-              key={project.id}
-            >
+          {projects.map((project) => (
+            <article className="dash-project-card" key={project.id}>
               <div className="dash-project-top">
-                <h3 className="dash-project-name">{project.name}</h3>
+                {editingId === project.id ? (
+                  <div className="dash-edit-inline">
+                    <input
+                      className="dash-edit-input"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => handleEditKeyDown(e, project.id)}
+                      autoFocus
+                    />
+                    <div className="dash-edit-actions">
+                      <button
+                        type="button"
+                        className="dash-edit-save"
+                        onClick={() => saveEdit(project.id)}
+                        disabled={editName.trim().length < 3}
+                      >
+                        Guardar
+                      </button>
+                      <button type="button" className="dash-edit-cancel" onClick={cancelEdit}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
+                    {project.name}
+                  </Link>
+                )}
                 <span className={`dash-project-score ${scoreClass(project.score)}`}>
                   {project.score}
                 </span>
@@ -158,10 +224,79 @@ export default function DashboardHomePage() {
                 <span className="dash-project-dot" aria-hidden="true" />
                 <span>{project.lastActivity}</span>
               </div>
-            </Link>
+              <div className="dash-project-actions">
+                <Link to={`/projects/${project.id}/dashboard`} className="dash-action-btn dash-action-btn--open">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                  Abrir
+                </Link>
+                <button
+                  type="button"
+                  className="dash-action-btn dash-action-btn--edit"
+                  aria-label="Editar proyecto"
+                  onClick={() => startEdit(project)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="dash-action-btn dash-action-btn--delete"
+                  aria-label="Eliminar proyecto"
+                  onClick={() => setDeleteTarget(project)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Eliminar
+                </button>
+              </div>
+            </article>
           ))}
         </div>
       </section>
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="dash-modal-backdrop" onClick={() => setDeleteTarget(null)}>
+          <div className="dash-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="dash-modal-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </div>
+            <h3 className="dash-modal-title">Eliminar proyecto</h3>
+            <p className="dash-modal-text">
+              Estas seguro de que quieres eliminar{' '}
+              <strong>{deleteTarget.name}</strong>? Esta accion no se puede deshacer.
+            </p>
+            <div className="dash-modal-actions">
+              <button
+                type="button"
+                className="dash-modal-btn dash-modal-btn--cancel"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="dash-modal-btn dash-modal-btn--delete"
+                onClick={confirmDelete}
+              >
+                Si, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
