@@ -1,0 +1,301 @@
+/* ===== Create Project — polished single-field form ===== */
+
+.new-project-page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.new-project-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl) var(--space-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+/* Icon container */
+.new-project-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--primary-dark-blue) 0%, var(--secondary-medium-blue) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(30, 58, 95, 0.25);
+}
+
+.new-project-icon svg {
+  width: 36px;
+  height: 36px;
+  color: #ffffff;
+}
+
+/* Header */
+.new-project-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.new-project-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.new-project-subtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-light);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Server error */
+.new-project-error {
+  width: 100%;
+  background: #fef2f2;
+  color: var(--color-error);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Form area */
+.new-project-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.new-project-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.new-project-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.new-project-input {
+  width: 100%;
+  padding: 12px var(--space-md);
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.new-project-input::placeholder {
+  color: var(--color-text-light);
+  opacity: 0.6;
+}
+
+.new-project-input:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.15);
+}
+
+.new-project-input--error {
+  border-color: var(--color-error);
+}
+
+.new-project-input--error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.new-project-input--valid {
+  border-color: var(--color-success);
+}
+
+.new-project-input--valid:focus {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.12);
+}
+
+.new-project-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.new-project-field-error {
+  font-size: 0.8125rem;
+  color: var(--color-error);
+}
+
+.new-project-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+}
+
+/* Submit button */
+.new-project-submit {
+  width: 100%;
+  padding: 12px var(--space-md);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-inverse);
+  background: linear-gradient(135deg, var(--primary-dark-blue) 0%, var(--secondary-medium-blue) 100%);
+  border: none;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 46px;
+  cursor: pointer;
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(30, 58, 95, 0.2);
+}
+
+.new-project-submit:hover:not(:disabled) {
+  opacity: 0.92;
+  box-shadow: 0 4px 14px rgba(30, 58, 95, 0.3);
+}
+
+.new-project-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.new-project-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.new-project-submit svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Spinner */
+.new-project-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--color-text-inverse);
+  border-radius: 50%;
+  animation: np-spin 0.6s linear infinite;
+}
+
+@keyframes np-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Back link / text button */
+.new-project-back {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-sans);
+  transition: color var(--transition-fast);
+}
+
+.new-project-back:hover {
+  color: var(--color-secondary);
+}
+
+/* Success state */
+.new-project-success {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.new-project-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--secondary-dark-green) 0%, var(--accent-bright-green) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(46, 139, 87, 0.25);
+}
+
+.new-project-success-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+}
+
+.new-project-success-text {
+  font-size: 1rem;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.new-project-success-name {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.new-project-success-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .new-project-page {
+    padding: var(--space-md) 0;
+  }
+
+  .new-project-card {
+    padding: var(--space-xl) var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .new-project-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .new-project-icon svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .new-project-title {
+    font-size: 1.25rem;
+  }
+}
