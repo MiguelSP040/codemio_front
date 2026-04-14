@@ -49,6 +49,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email ?? '';
+  const code = location.state?.code ?? '';
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState(INITIAL_ERRORS);
@@ -61,8 +62,8 @@ export default function ResetPasswordPage() {
   const strength = getPasswordStrength(form.password);
 
   useEffect(() => {
-    if (!email) navigate('/forgot-password', { replace: true });
-  }, [email, navigate]);
+    if (!email || !code) navigate('/forgot-password', { replace: true });
+  }, [email, code, navigate]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -104,10 +105,7 @@ export default function ResetPasswordPage() {
     setServerError('');
 
     try {
-      // TODO: Cuando el backend implemente password recovery, este flujo probablemente
-      // incluirá un código OTP entre forgot-password y reset-password.
-      // Por ahora va directo (mock).
-      await resetPassword({ email, password: form.password });
+      await resetPassword({ email, code, password: form.password });
       navigate('/login', {
         replace: true,
         state: { passwordReset: true },

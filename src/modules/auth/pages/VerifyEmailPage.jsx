@@ -48,12 +48,12 @@ export default function VerifyEmailPage() {
     setInfo('');
 
     try {
-      await validateOtp({ email, otp: fullCode });
+      await validateOtp({ email, otp: fullCode, flow });
       // Redirige según el flujo: registro → crear contraseña, recovery → nueva contraseña
       const nextRoute = isRecovery ? '/reset-password' : '/create-password';
       navigate(nextRoute, {
         replace: true,
-        state: { email },
+        state: isRecovery ? { email, code: fullCode } : { email },
       });
     } catch (err) {
       const msg =

@@ -1,5 +1,5 @@
-// import axios from 'axios';
-// import API_BASE_URL from '../../../config/api';
+import axios from 'axios';
+import API_BASE_URL from '../../../config/api';
 
 /**
  * Servicios del flujo de onboarding de Codemio.
@@ -14,36 +14,33 @@
  *                                                   header: Authorization: Bearer <access_token>
  */
 
-const MOCK_DELAY_MS = 900;
+const AUTH_STORAGE_KEY = 'codemio_auth';
+
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+function getAccessToken() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const session = JSON.parse(raw);
+    return session?.accessToken || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Fase A.1 — Envía (o reenvía) el código OTP al correo del usuario.
  * Swagger: POST /auth/send/  { email }  → 201 { detail, email, cognito_sub, otp_flow }
  */
 export async function sendVerificationCode({ email }) {
-  // --- Mock ---
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
-
-  if (!email) {
-    const err = new Error('Missing email');
-    err.response = { status: 400, data: { detail: 'El correo es obligatorio.' } };
-    throw err;
-  }
-
-  return {
-    detail: 'Código de verificación enviado.',
-    email,
-    cognito_sub: 'mock-sub-cognito',
-    otp_flow: 'initial',
-  };
-
-  // --- Real (descomentar al integrar) ---
-  // const authApi = axios.create({
-  //   baseURL: API_BASE_URL,
-  //   headers: { 'Content-Type': 'application/json' },
-  // });
-  // const { data } = await authApi.post('/auth/send/', { email });
-  // return data;
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data } = await authApi.post('/auth/send/', { email: normalizedEmail });
+  return data;
 }
 
 /**
@@ -53,17 +50,7 @@ export async function sendVerificationCode({ email }) {
  * Swagger: POST /auth/send/  { email }
  */
 export async function resendVerificationCode({ email }) {
-  // --- Mock ---
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
-  return {
-    detail: 'Código reenviado. Revisa tu bandeja de entrada.',
-    email,
-    cognito_sub: 'mock-sub-cognito',
-    otp_flow: 'resent',
-  };
-
-  // --- Real ---
-  // return sendVerificationCode({ email });
+  return sendVerificationCode({ email });
 }
 
 /**
@@ -71,45 +58,22 @@ export async function resendVerificationCode({ email }) {
  * Swagger: POST /auth/validate/  { email, otp }  → 200 { detail, email, already_verified }
  *          Errores: 400 OTP inválido · 404 no existe cuenta · 429 rate limit.
  */
-export async function validateOtp({ email, otp }) {
-  // --- Mock ---
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+export async function validateOtp({ email, otp, flow = 'register' }) {
+  const normalizedEmail = email.trim().toLowerCase();
 
-  // Códigos mock para probar UX:
-  //   "000000" → inválido
-  //   "111111" → expirado
-  //   cualquier otro de 6 dígitos → éxito
-  if (otp === '000000') {
-    const err = new Error('Invalid OTP');
-    err.response = {
-      status: 400,
-      data: { code: 'CodeMismatchException', detail: 'El código ingresado no es válido.' },
-    };
-    throw err;
+  if (flow === 'recovery') {
+    const { data } = await authApi.post('/auth/forgot-password/validate-code/', {
+      email: normalizedEmail,
+      code: otp,
+    });
+    return data;
   }
 
-  if (otp === '111111') {
-    const err = new Error('Expired OTP');
-    err.response = {
-      status: 400,
-      data: { code: 'ExpiredCodeException', detail: 'El código expiró. Solicita uno nuevo.' },
-    };
-    throw err;
-  }
-
-  return {
-    detail: 'Correo verificado correctamente.',
-    email,
-    already_verified: false,
-  };
-
-  // --- Real ---
-  // const authApi = axios.create({
-  //   baseURL: API_BASE_URL,
-  //   headers: { 'Content-Type': 'application/json' },
-  // });
-  // const { data } = await authApi.post('/auth/validate/', { email, otp });
-  // return data;
+  const { data } = await authApi.post('/auth/validate/', {
+    email: normalizedEmail,
+    otp,
+  });
+  return data;
 }
 
 /**
@@ -119,25 +83,28 @@ export async function validateOtp({ email, otp }) {
  *          El backend calcula onboarding_completed = (nombre !== null && edad !== null).
  */
 export async function completeProfile({ nombre, edad, perfil_github }) {
-  // --- Mock ---
-  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+  const accessToken = getAccessToken();
 
-  return {
-    correo: 'mock@codemio.com',
-    rol: 'estudiante',
-    nombre: nombre ?? null,
-    edad: edad ?? null,
-    perfil_github: perfil_github ?? null,
-    fecha_registro: new Date().toISOString(),
-    sub_cognito: 'mock-sub-cognito',
-    onboarding_completed: Boolean(nombre) && edad !== null && edad !== undefined,
-  };
+  if (!accessToken) {
+    const err = new Error('Missing access token');
+    err.response = {
+      status: 401,
+      data: { detail: 'No hay sesión activa. Inicia sesión para completar tu perfil.' },
+    };
+    throw err;
+  }
 
-  // --- Real (usar httpClient autenticado) ---
-  // const { data } = await httpClient.patch('/users/me/', {
-  //   nombre,
-  //   edad,
-  //   perfil_github: perfil_github || null,
-  // });
-  // return data;
+  const { data } = await authApi.patch(
+    '/users/me/',
+    {
+      nombre,
+      edad,
+      perfil_github: perfil_github || null,
+    },
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+
+  return data;
 }
