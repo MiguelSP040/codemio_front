@@ -1,8 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/images/codemio-logo.png';
 import './Navbar.css';
 
 export default function Navbar() {
+  const location = useLocation();
+  const isProjectArea = location.pathname.startsWith('/projects');
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -12,7 +15,14 @@ export default function Navbar() {
         </Link>
         <ul className="navbar-links">
           <li><Link to="/">Inicio</Link></li>
-          <li><Link to="/login">Iniciar sesión</Link></li>
+          {isProjectArea ? (
+            <li><Link to="/projects">Proyectos</Link></li>
+          ) : (
+            <>
+              <li><Link to="/login">Ingresar</Link></li>
+              <li><Link to="/register">Registro</Link></li>
+            </>
+          )}
         </ul>
       </div>
     </nav>
