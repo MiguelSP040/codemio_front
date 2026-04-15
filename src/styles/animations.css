@@ -1,0 +1,60 @@
+/* ===== Shared UI animations =====
+   Reusable keyframes and helper classes used across components
+   (FileUpload list items, ConfirmModal, ProjectsPage panel transitions, etc.).
+*/
+
+@keyframes cm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes cm-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes cm-slide-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cm-slide-out-down {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes cm-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes cm-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+
+/* Helper classes */
+.cm-fade-in {
+  animation: cm-fade-in var(--transition-base) ease both;
+}
+
+.cm-fade-out {
+  animation: cm-fade-out var(--transition-base) ease both;
+}
+
+.cm-slide-in-up {
+  animation: cm-slide-in-up var(--transition-base) ease both;
+}
+
+.cm-slide-out-down {
+  animation: cm-slide-out-down var(--transition-base) ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-fade-in,
+  .cm-fade-out,
+  .cm-slide-in-up,
+  .cm-slide-out-down {
+    animation-duration: 0.01ms;
+  }
+}

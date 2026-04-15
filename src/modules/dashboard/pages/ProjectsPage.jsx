@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createProject } from '../../projects/services/projectService';
+import FileUpload from '../../../components/forms/FileUpload/FileUpload';
+import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
+import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
 /* --- Mock data (TODO: Real API) --- */
@@ -10,18 +13,21 @@ const initialProjects = [
     name: 'servicio-de-auditoria-estatica-java',
     description: 'Proyecto principal de analisis estatico para Java.',
     lastAnalysis: 'Ultimo analisis: hace 2 h',
+    createdAt: '2026-04-12',
   },
   {
     id: 'api-clientes',
     name: 'servicio-api-clientes-java',
     description: 'API de clientes con reglas de validacion y seguridad.',
     lastAnalysis: 'Ultimo analisis: hace 5 h',
+    createdAt: '2026-04-10',
   },
   {
     id: 'motor-reglas',
     name: 'motor-reglas-empresariales-java',
     description: 'Motor de reglas para flujos de evaluacion automatica.',
     lastAnalysis: 'Ultimo analisis: ayer',
+    createdAt: '2026-04-03',
   },
 ];
 
@@ -34,7 +40,10 @@ function validate(value) {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState(initialProjects);
-  const [showForm, setShowForm] = useState(false);
+
+  /* Panel state: 'default' | 'create' | 'detail' */
+  const [mode, setMode] = useState('default');
+  const [selectedId, setSelectedId] = useState(null);
 
   /* Create-form state */
   const [name, setName] = useState('');
@@ -42,7 +51,99 @@ export default function ProjectsPage() {
   const [touched, setTouched] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(null);
+
+  /* Inline edit state (per-card) */
+  const [editingId, setEditingId] = useState(null);
+  const [draftName, setDraftName] = useState('');
+  const [nameError, setNameError] = useState('');
+
+  /* Delete state */
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const selectedProject = projects.find((p) => p.id === selectedId) || null;
+
+  function resetForm() {
+    setName('');
+    setTouched(false);
+    setError('');
+    setServerError('');
+  }
+
+  function resetEditName() {
+    setEditingId(null);
+    setDraftName('');
+    setNameError('');
+  }
+
+  function openCreate() {
+    resetForm();
+    resetEditName();
+    setSelectedId(null);
+    setMode('create');
+  }
+
+  function openDetail(project) {
+    setSelectedId(project.id);
+    setMode('detail');
+  }
+
+  function closePanel() {
+    resetForm();
+    setSelectedId(null);
+    setMode('default');
+  }
+
+  function startEditName(project) {
+    setEditingId(project.id);
+    setDraftName(project.name);
+    setNameError('');
+  }
+
+  function cancelEditName() {
+    resetEditName();
+  }
+
+  function saveProjectName(projectId) {
+    const normalized = draftName.trim();
+    if (normalized.length < 3) {
+      setNameError('El nombre debe tener al menos 3 caracteres.');
+      return;
+    }
+    if (normalized.length > 100) {
+      setNameError('El nombre no puede exceder 100 caracteres.');
+      return;
+    }
+    /* --- Real: PATCH /projects/:id --- */
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, name: normalized } : p)),
+    );
+    resetEditName();
+    toast.success('Nombre del proyecto actualizado');
+  }
+
+  function handleNameKeyDown(e, projectId) {
+    if (e.key === 'Enter') { e.preventDefault(); saveProjectName(projectId); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEditName(); }
+  }
+
+  function requestDelete(project) {
+    setDeleteTarget(project);
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    const deletedName = deleteTarget.name;
+    const deletedId = deleteTarget.id;
+    /* --- Real: DELETE /projects/:id --- */
+    setProjects((prev) => prev.filter((p) => p.id !== deletedId));
+    setDeleteTarget(null);
+    if (editingId === deletedId) resetEditName();
+    if (selectedId === deletedId) {
+      setSelectedId(null);
+      setMode('default');
+    }
+    toast.success(`Proyecto "${deletedName}" eliminado`);
+  }
 
   function handleChange(e) {
     setName(e.target.value);
@@ -55,7 +156,7 @@ export default function ProjectsPage() {
     setError(validate(name));
   }
 
-  async function handleSubmit(e) {
+  async function handleCreateSubmit(e) {
     e.preventDefault();
     const err = validate(name);
     setError(err);
@@ -67,11 +168,18 @@ export default function ProjectsPage() {
 
     try {
       const project = await createProject({ name: name.trim() });
-      setCreated(project);
-      setProjects((prev) => [
-        { id: String(project.id), name: project.name, description: '', lastAnalysis: 'Recien creado' },
-        ...prev,
-      ]);
+      const newProject = {
+        id: String(project.id),
+        name: project.name,
+        description: '',
+        lastAnalysis: 'Recien creado',
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+      setProjects((prev) => [newProject, ...prev]);
+      resetForm();
+      // Transition straight into detail mode so the user can upload right away
+      setSelectedId(newProject.id);
+      setMode('detail');
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
@@ -83,27 +191,27 @@ export default function ProjectsPage() {
     }
   }
 
-  function resetForm() {
-    setCreated(null);
-    setName('');
-    setTouched(false);
-    setError('');
-    setServerError('');
-  }
-
-  function closePanel() {
-    resetForm();
-    setShowForm(false);
-  }
-
   function inputClass() {
     if (!touched) return 'pj-input';
     return error ? 'pj-input pj-input--error' : 'pj-input pj-input--valid';
   }
 
+  function handleCardClick(project, e) {
+    // Ignore clicks on the inner "Abrir dashboard" link (it navigates away)
+    if (e.target.closest('a')) return;
+    openDetail(project);
+  }
+
+  function handleCardKey(project, e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.target.closest('a')) return;
+      e.preventDefault();
+      openDetail(project);
+    }
+  }
+
   return (
     <div className="projects-page">
-      {/* Header */}
       <header className="projects-header">
         <div className="projects-header-top">
           <div>
@@ -111,87 +219,182 @@ export default function ProjectsPage() {
             <h1>Proyectos disponibles</h1>
             <p>Selecciona un proyecto para abrir su dashboard y revisar archivos analizados.</p>
           </div>
-          {!showForm && (
-            <button type="button" className="projects-create-btn" onClick={() => setShowForm(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Nuevo proyecto
-            </button>
-          )}
+          <button type="button" className="projects-create-btn" onClick={openCreate}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nuevo proyecto
+          </button>
         </div>
       </header>
 
-      {/* Split layout: list + form panel */}
-      <div className={`projects-split${showForm ? ' projects-split--open' : ''}`}>
+      <div className="projects-split projects-split--open">
         {/* Left: project list */}
         <section className="projects-list" aria-label="Lista de proyectos">
-          {projects.map((project) => (
-            <article className="projects-card" key={project.id}>
-              <h2>{project.name}</h2>
-              {project.description && <p>{project.description}</p>}
-              <p className="projects-analysis-time">{project.lastAnalysis}</p>
-              <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
-                Abrir dashboard
-              </Link>
-            </article>
-          ))}
+          {projects.map((project) => {
+            const isSelected = selectedId === project.id;
+            const isEditing = editingId === project.id;
+            return (
+              <article
+                className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
+                key={project.id}
+                onClick={(e) => {
+                  if (isEditing) return;
+                  handleCardClick(project, e);
+                }}
+                onKeyDown={(e) => {
+                  if (isEditing) return;
+                  handleCardKey(project, e);
+                }}
+                role={isEditing ? undefined : 'button'}
+                tabIndex={isEditing ? -1 : 0}
+                aria-pressed={!isEditing && isSelected}
+              >
+                {isEditing ? (
+                  <div
+                    className="projects-card-edit"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
+                      Nombre del proyecto
+                    </label>
+                    <input
+                      id={`pj-edit-${project.id}`}
+                      type="text"
+                      className="pj-input"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onKeyDown={(e) => handleNameKeyDown(e, project.id)}
+                      autoFocus
+                    />
+                    {nameError ? (
+                      <span className="pj-field-error" role="alert">{nameError}</span>
+                    ) : (
+                      <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+                    )}
+                    <div className="projects-card-edit-actions">
+                      <button
+                        type="button"
+                        className="pj-btn pj-btn--primary"
+                        onClick={() => saveProjectName(project.id)}
+                        disabled={draftName.trim().length < 3}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        className="pj-btn pj-btn--ghost"
+                        onClick={cancelEditName}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h2>{project.name}</h2>
+                    {project.description && <p>{project.description}</p>}
+                    <p className="projects-analysis-time">{project.lastAnalysis}</p>
+                  </>
+                )}
+                {!isEditing && (
+                  <div className="projects-card-actions">
+                    <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
+                      Abrir dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      className="projects-card-btn projects-card-btn--edit"
+                      onClick={(e) => { e.stopPropagation(); startEditName(project); }}
+                      aria-label={`Editar nombre de ${project.name}`}
+                      title="Editar nombre"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="projects-card-btn projects-card-btn--delete"
+                      onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
+                      aria-label={`Eliminar proyecto ${project.name}`}
+                      title="Eliminar proyecto"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
 
           {projects.length === 0 && (
             <div className="projects-empty">
               <p>No tienes proyectos aun.</p>
-              <button type="button" className="projects-create-btn" onClick={() => setShowForm(true)}>
+              <button type="button" className="projects-create-btn" onClick={openCreate}>
                 Crear tu primer proyecto
               </button>
             </div>
           )}
         </section>
 
-        {/* Right: create panel */}
-        {showForm && (
-          <aside className="projects-panel" aria-label="Crear proyecto">
-            <div className="pj-panel-header">
-              <div className="pj-panel-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                  <line x1="12" y1="11" x2="12" y2="17" />
-                  <line x1="9" y1="14" x2="15" y2="14" />
+        {/* Right: contextual panel (always visible) */}
+        <aside className="projects-panel" aria-label="Panel de contexto">
+          {mode === 'default' && (
+            <div className="pj-mode pj-default" key="default">
+              <div className="pj-default-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <div>
-                <h2 className="pj-panel-title">Nuevo proyecto</h2>
-                <p className="pj-panel-subtitle">Crea un proyecto para analizar tu codigo Java</p>
-              </div>
-              <button type="button" className="pj-panel-close" onClick={closePanel} aria-label="Cerrar panel">
+              <h2 className="pj-default-title">Selecciona un proyecto</h2>
+              <p className="pj-default-sub">
+                Elige un proyecto de la lista para ver su detalle y subir archivos,
+                o crea uno nuevo.
+              </p>
+              <button type="button" className="pj-btn pj-btn--primary" onClick={openCreate}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
+                Nuevo proyecto
               </button>
             </div>
+          )}
 
-            {created ? (
-              <div className="pj-success">
-                <div className="pj-success-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
+          {mode === 'create' && (
+            <div className="pj-mode" key="create">
+              <div className="pj-panel-header">
+                <div className="pj-panel-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    <line x1="12" y1="11" x2="12" y2="17" />
+                    <line x1="9" y1="14" x2="15" y2="14" />
                   </svg>
                 </div>
-                <p className="pj-success-text">
-                  Proyecto <strong>{created.name}</strong> creado exitosamente
-                </p>
-                <div className="pj-success-actions">
-                  <Link to={`/projects/${created.id}/dashboard`} className="pj-btn pj-btn--primary">
-                    Abrir dashboard
-                  </Link>
-                  <button type="button" className="pj-btn pj-btn--ghost" onClick={resetForm}>
-                    Crear otro proyecto
-                  </button>
+                <div>
+                  <h2 className="pj-panel-title">Nuevo proyecto</h2>
+                  <p className="pj-panel-subtitle">Crea un proyecto para analizar tu codigo Java</p>
                 </div>
+                <button type="button" className="pj-panel-close" onClick={closePanel} aria-label="Cerrar panel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
               </div>
-            ) : (
-              <form className="pj-form" onSubmit={handleSubmit} noValidate>
+
+              <form className="pj-form" onSubmit={handleCreateSubmit} noValidate>
                 {serverError && (
                   <div className="pj-server-error" role="alert">{serverError}</div>
                 )}
@@ -230,10 +433,78 @@ export default function ProjectsPage() {
                   )}
                 </button>
               </form>
-            )}
-          </aside>
-        )}
+            </div>
+          )}
+
+          {mode === 'detail' && selectedProject && (
+            <div className="pj-mode" key={`detail-${selectedProject.id}`}>
+              <div className="pj-panel-header">
+                <div className="pj-panel-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div className="pj-panel-heading-text">
+                  <h2 className="pj-panel-title" title={selectedProject.name}>
+                    {selectedProject.name}
+                  </h2>
+                  <p className="pj-panel-subtitle">
+                    {selectedProject.createdAt
+                      ? `Creado el ${selectedProject.createdAt}`
+                      : selectedProject.lastAnalysis}
+                  </p>
+                </div>
+                <button type="button" className="pj-panel-close" onClick={closePanel} aria-label="Cerrar panel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              {selectedProject.description && (
+                <p className="pj-detail-description">{selectedProject.description}</p>
+              )}
+
+              <div className="pj-detail-actions">
+                <Link
+                  to={`/projects/${selectedProject.id}/dashboard`}
+                  className="pj-btn pj-btn--ghost pj-btn--full"
+                >
+                  Abrir dashboard
+                </Link>
+              </div>
+
+              <div className="pj-upload-section">
+                <h3 className="pj-upload-title">Subir archivos para analizar</h3>
+                <p className="pj-upload-sub">
+                  Archivos .java individuales o un .zip con tu proyecto.
+                </p>
+                <FileUpload projectName={selectedProject.name} />
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        variant="danger"
+        title="Eliminar proyecto"
+        message={
+          deleteTarget ? (
+            <>
+              Estas seguro de que quieres eliminar{' '}
+              <strong>{deleteTarget.name}</strong>? Esta accion no se puede deshacer.
+            </>
+          ) : ''
+        }
+        confirmText="Si, eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
