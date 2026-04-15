@@ -42,3 +42,14 @@ export async function getProjectById(projectId) {
   const { data } = await authApi.get(`/projects/${projectId}/`);
   return data;
 }
+
+export async function updateProject(projectId, payload) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.patch(`/projects/${projectId}/`, payload);
+  return data;
+}
+
+export async function deleteProject(projectId) {
+  const authApi = getAuthApi();
+  await authApi.delete(`/projects/${projectId}/`);
+}

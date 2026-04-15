@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
-import { getProjectById } from '../../projects/services/projectService';
+import { getProjectById, updateProject } from '../../projects/services/projectService';
 import './DashboardPage.css';
 
 const analysisFiles = [
@@ -290,6 +290,7 @@ export default function DashboardPage() {
   const [draftName, setDraftName] = useState(defaultRepoName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [projectLoading, setProjectLoading] = useState(true);
   const [projectError, setProjectError] = useState('');
 
@@ -329,15 +330,35 @@ export default function DashboardPage() {
     setIsEditingName(false);
   }
 
-  function saveProjectName() {
+  async function saveProjectName() {
     const normalized = draftName.trim();
-    if (!normalized) {
-      setNameError('El nombre del proyecto no puede estar vacio.');
+    if (normalized.length < 3) {
+      setNameError('El nombre del proyecto debe tener al menos 3 caracteres.');
       return;
     }
-    setRepositoryName(normalized);
-    setNameError('');
-    setIsEditingName(false);
+    if (normalized.length > 100) {
+      setNameError('El nombre del proyecto no puede exceder 100 caracteres.');
+      return;
+    }
+    setSavingName(true);
+    try {
+      const updated = await updateProject(projectId, { name: normalized });
+      setRepositoryName(updated?.name || normalized);
+      setDraftName(updated?.name || normalized);
+      setNameError('');
+      setProjectError('');
+      setIsEditingName(false);
+    } catch (err) {
+      const data = err.response?.data;
+      const msg =
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
+        'No se pudo actualizar el proyecto.';
+      setNameError(msg);
+    } finally {
+      setSavingName(false);
+    }
   }
 
   function handleNameKeyDown(e) {
@@ -407,19 +428,22 @@ export default function DashboardPage() {
                     value={draftName}
                     onChange={(e) => setDraftName(e.target.value)}
                     onKeyDown={handleNameKeyDown}
+                    maxLength={100}
                     autoFocus
                   />
                   <button
                     type="button"
                     className="dashboard-btn dashboard-btn--primary"
                     onClick={saveProjectName}
+                    disabled={savingName}
                   >
-                    Guardar
+                    {savingName ? 'Guardando...' : 'Guardar'}
                   </button>
                   <button
                     type="button"
                     className="dashboard-btn dashboard-btn--ghost"
                     onClick={cancelEditName}
+                    disabled={savingName}
                   >
                     Cancelar
                   </button>
