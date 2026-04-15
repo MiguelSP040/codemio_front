@@ -1,29 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createProject } from '../../projects/services/projectService';
+import { createProject, getProjects } from '../../projects/services/projectService';
 import './ProjectsPage.css';
 
-/* --- Mock data (TODO: Real API) --- */
-const initialProjects = [
-  {
-    id: 'auditoria-java',
-    name: 'servicio-de-auditoria-estatica-java',
-    description: 'Proyecto principal de analisis estatico para Java.',
-    lastAnalysis: 'Ultimo analisis: hace 2 h',
-  },
-  {
-    id: 'api-clientes',
-    name: 'servicio-api-clientes-java',
-    description: 'API de clientes con reglas de validacion y seguridad.',
-    lastAnalysis: 'Ultimo analisis: hace 5 h',
-  },
-  {
-    id: 'motor-reglas',
-    name: 'motor-reglas-empresariales-java',
-    description: 'Motor de reglas para flujos de evaluacion automatica.',
-    lastAnalysis: 'Ultimo analisis: ayer',
-  },
-];
+function mapProjectToCard(project) {
+  const createdDate = project.created_at
+    ? new Date(project.created_at).toLocaleString('es-MX')
+    : '';
+  return {
+    id: String(project.id),
+    name: project.name,
+    description: '',
+    lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin analisis',
+  };
+}
 
 function validate(value) {
   if (!value.trim()) return 'Este campo es obligatorio.';
@@ -33,16 +23,42 @@ function validate(value) {
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [loadingList, setLoadingList] = useState(true);
 
-  /* Create-form state */
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [touched, setTouched] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      try {
+        const response = await getProjects();
+        if (!isMounted) return;
+        const items = Array.isArray(response?.results) ? response.results : [];
+        setProjects(items.map(mapProjectToCard));
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg =
+          data?.detail ||
+          data?.message ||
+          'No se pudieron cargar tus proyectos.';
+        setServerError(msg);
+      } finally {
+        if (isMounted) setLoadingList(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function handleChange(e) {
     setName(e.target.value);
@@ -69,13 +85,15 @@ export default function ProjectsPage() {
       const project = await createProject({ name: name.trim() });
       setCreated(project);
       setProjects((prev) => [
-        { id: String(project.id), name: project.name, description: '', lastAnalysis: 'Recien creado' },
+        mapProjectToCard(project),
         ...prev,
       ]);
     } catch (err) {
+      const data = err.response?.data;
       const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
         'Algo salio mal. Intentalo de nuevo.';
       setServerError(msg);
     } finally {
@@ -127,6 +145,10 @@ export default function ProjectsPage() {
       <div className={`projects-split${showForm ? ' projects-split--open' : ''}`}>
         {/* Left: project list */}
         <section className="projects-list" aria-label="Lista de proyectos">
+          {serverError && !showForm && (
+            <div className="pj-server-error" role="alert">{serverError}</div>
+          )}
+          {loadingList && <p className="projects-analysis-time">Cargando proyectos...</p>}
           {projects.map((project) => (
             <article className="projects-card" key={project.id}>
               <h2>{project.name}</h2>

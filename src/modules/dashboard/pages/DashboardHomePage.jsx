@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { deleteProject, getProjects, updateProject } from '../../projects/services/projectService';
 import './DashboardHomePage.css';
 
-const mockStats = [
+const staticStats = [
   {
     label: 'Proyectos',
-    value: 3,
+    value: 0,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -55,30 +56,6 @@ const mockStats = [
   },
 ];
 
-const initialProjects = [
-  {
-    id: 'auditoria-java',
-    name: 'servicio-de-auditoria-estatica-java',
-    filesCount: 7,
-    score: 84,
-    lastActivity: 'Hace 2 horas',
-  },
-  {
-    id: 'api-clientes',
-    name: 'servicio-api-clientes-java',
-    filesCount: 4,
-    score: 76,
-    lastActivity: 'Hace 5 horas',
-  },
-  {
-    id: 'motor-reglas',
-    name: 'motor-reglas-empresariales-java',
-    filesCount: 3,
-    score: 91,
-    lastActivity: 'Ayer',
-  },
-];
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Buenos dias';
@@ -92,18 +69,68 @@ function scoreClass(score) {
   return 'dash-score--critical';
 }
 
+function formatLastActivity(value) {
+  if (!value) return 'Sin actividad reciente';
+  return new Date(value).toLocaleString('es-MX');
+}
+
 export default function DashboardHomePage() {
   const { user } = useAuth();
   const displayName = user?.nombre || user?.name || 'Usuario';
 
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
+  const [projectCount, setProjectCount] = useState(0);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [projectsError, setProjectsError] = useState('');
+  const [editingLoading, setEditingLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  /* Inline edit state */
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
 
-  /* Delete confirmation state */
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const stats = useMemo(
+    () =>
+      staticStats.map((stat) =>
+        stat.label === 'Proyectos'
+          ? { ...stat, value: projectCount }
+          : stat,
+      ),
+    [projectCount],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      try {
+        const response = await getProjects();
+        if (!isMounted) return;
+        const items = Array.isArray(response?.results) ? response.results : [];
+        setProjects(
+          items.map((project) => ({
+            id: String(project.id),
+            name: project.name,
+            filesCount: 0,
+            score: 0,
+            lastActivity: formatLastActivity(project.updated_at || project.created_at),
+          })),
+        );
+        setProjectCount(response?.count ?? items.length);
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg = data?.detail || data?.message || 'No se pudieron cargar los proyectos.';
+        setProjectsError(msg);
+      } finally {
+        if (isMounted) setLoadingProjects(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function startEdit(project) {
     setEditingId(project.id);
@@ -115,15 +142,36 @@ export default function DashboardHomePage() {
     setEditName('');
   }
 
-  function saveEdit(projectId) {
+  async function saveEdit(projectId) {
     const trimmed = editName.trim();
-    if (trimmed.length < 3) return;
-    /* --- Real: PATCH /projects/:id --- */
-    setProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, name: trimmed } : p)),
-    );
-    setEditingId(null);
-    setEditName('');
+    if (trimmed.length < 3) {
+      setProjectsError('El nombre del proyecto debe tener al menos 3 caracteres.');
+      return;
+    }
+    if (trimmed.length > 100) {
+      setProjectsError('El nombre del proyecto no puede exceder 100 caracteres.');
+      return;
+    }
+    setEditingLoading(true);
+    try {
+      const updated = await updateProject(projectId, { name: trimmed });
+      setProjects((prev) =>
+        prev.map((p) => (p.id === String(updated.id) ? { ...p, name: updated.name } : p)),
+      );
+      setProjectsError('');
+      setEditingId(null);
+      setEditName('');
+    } catch (err) {
+      const data = err.response?.data;
+      const msg =
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
+        'No se pudo actualizar el proyecto.';
+      setProjectsError(msg);
+    } finally {
+      setEditingLoading(false);
+    }
   }
 
   function handleEditKeyDown(e, projectId) {
@@ -131,11 +179,22 @@ export default function DashboardHomePage() {
     if (e.key === 'Escape') cancelEdit();
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
-    /* --- Real: DELETE /projects/:id --- */
-    setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    setDeleteLoading(true);
+    try {
+      await deleteProject(deleteTarget.id);
+      setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setProjectCount((prev) => Math.max(prev - 1, 0));
+      setDeleteTarget(null);
+    } catch (err) {
+      const data = err.response?.data;
+      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto.';
+      setProjectsError(msg);
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   return (
@@ -161,7 +220,7 @@ export default function DashboardHomePage() {
 
       {/* Stats */}
       <section className="dash-stats" aria-label="Estadisticas generales">
-        {mockStats.map((stat) => (
+        {stats.map((stat) => (
           <article className="dash-stat-card" key={stat.label}>
             <div className="dash-stat-icon" style={{ background: stat.bg, color: stat.color }}>
               {stat.icon}
@@ -183,7 +242,13 @@ export default function DashboardHomePage() {
           </Link>
         </header>
 
-        <div className="dash-recent-grid">
+        {projectsError && (
+          <p className="dash-welcome-sub">{projectsError}</p>
+        )}
+        {loadingProjects ? (
+          <p className="dash-welcome-sub">Cargando proyectos...</p>
+        ) : (
+          <div className="dash-recent-grid">
           {projects.map((project) => (
             <article className="dash-project-card" key={project.id}>
               <div className="dash-project-top">
@@ -194,6 +259,7 @@ export default function DashboardHomePage() {
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => handleEditKeyDown(e, project.id)}
+                      maxLength={100}
                       autoFocus
                     />
                     <div className="dash-edit-actions">
@@ -201,9 +267,13 @@ export default function DashboardHomePage() {
                         type="button"
                         className="dash-edit-save"
                         onClick={() => saveEdit(project.id)}
-                        disabled={editName.trim().length < 3}
+                        disabled={
+                          editName.trim().length < 3 ||
+                          editName.trim().length > 100 ||
+                          editingLoading
+                        }
                       >
-                        Guardar
+                        {editingLoading ? 'Guardando...' : 'Guardar'}
                       </button>
                       <button type="button" className="dash-edit-cancel" onClick={cancelEdit}>
                         Cancelar
@@ -260,7 +330,8 @@ export default function DashboardHomePage() {
               </div>
             </article>
           ))}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Delete confirmation modal */}
@@ -290,8 +361,9 @@ export default function DashboardHomePage() {
                 type="button"
                 className="dash-modal-btn dash-modal-btn--delete"
                 onClick={confirmDelete}
+                disabled={deleteLoading}
               >
-                Si, eliminar
+                {deleteLoading ? 'Eliminando...' : 'Si, eliminar'}
               </button>
             </div>
           </div>

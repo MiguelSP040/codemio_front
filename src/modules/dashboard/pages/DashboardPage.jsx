@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
+import { getProjectById, updateProject } from '../../projects/services/projectService';
 import './DashboardPage.css';
 
 const analysisFiles = [
@@ -259,12 +260,6 @@ const analysisFiles = [
   },
 ];
 
-const projectsCatalog = {
-  'auditoria-java': 'servicio-de-auditoria-estatica-java',
-  'api-clientes': 'servicio-api-clientes-java',
-  'motor-reglas': 'motor-reglas-empresariales-java',
-};
-
 function severityClass(severity) {
   if (severity === 'Crítico') return 'dashboard-badge dashboard-badge--critical';
   if (severity === 'Advertencia') return 'dashboard-badge dashboard-badge--warning';
@@ -290,11 +285,38 @@ function analysisStatusLabel(analysisStatus) {
 export default function DashboardPage() {
   const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const defaultRepoName = projectsCatalog[projectId] || analysisFiles[0].repositoryName;
+  const defaultRepoName = analysisFiles[0].repositoryName;
   const [repositoryName, setRepositoryName] = useState(defaultRepoName);
   const [draftName, setDraftName] = useState(defaultRepoName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [projectLoading, setProjectLoading] = useState(true);
+  const [projectError, setProjectError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProject() {
+      try {
+        const project = await getProjectById(projectId);
+        if (!isMounted) return;
+        const projectName = project?.name || defaultRepoName;
+        setRepositoryName(projectName);
+        setDraftName(projectName);
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg = data?.detail || data?.message || 'No se pudo cargar el proyecto.';
+        setProjectError(msg);
+      } finally {
+        if (isMounted) setProjectLoading(false);
+      }
+    }
+    loadProject();
+    return () => {
+      isMounted = false;
+    };
+  }, [defaultRepoName, projectId]);
 
   function startEditName() {
     setDraftName(repositoryName);
@@ -308,15 +330,35 @@ export default function DashboardPage() {
     setIsEditingName(false);
   }
 
-  function saveProjectName() {
+  async function saveProjectName() {
     const normalized = draftName.trim();
-    if (!normalized) {
-      setNameError('El nombre del proyecto no puede estar vacio.');
+    if (normalized.length < 3) {
+      setNameError('El nombre del proyecto debe tener al menos 3 caracteres.');
       return;
     }
-    setRepositoryName(normalized);
-    setNameError('');
-    setIsEditingName(false);
+    if (normalized.length > 100) {
+      setNameError('El nombre del proyecto no puede exceder 100 caracteres.');
+      return;
+    }
+    setSavingName(true);
+    try {
+      const updated = await updateProject(projectId, { name: normalized });
+      setRepositoryName(updated?.name || normalized);
+      setDraftName(updated?.name || normalized);
+      setNameError('');
+      setProjectError('');
+      setIsEditingName(false);
+    } catch (err) {
+      const data = err.response?.data;
+      const msg =
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
+        'No se pudo actualizar el proyecto.';
+      setNameError(msg);
+    } finally {
+      setSavingName(false);
+    }
   }
 
   function handleNameKeyDown(e) {
@@ -386,19 +428,22 @@ export default function DashboardPage() {
                     value={draftName}
                     onChange={(e) => setDraftName(e.target.value)}
                     onKeyDown={handleNameKeyDown}
+                    maxLength={100}
                     autoFocus
                   />
                   <button
                     type="button"
                     className="dashboard-btn dashboard-btn--primary"
                     onClick={saveProjectName}
+                    disabled={savingName}
                   >
-                    Guardar
+                    {savingName ? 'Guardando...' : 'Guardar'}
                   </button>
                   <button
                     type="button"
                     className="dashboard-btn dashboard-btn--ghost"
                     onClick={cancelEditName}
+                    disabled={savingName}
                   >
                     Cancelar
                   </button>
@@ -406,6 +451,8 @@ export default function DashboardPage() {
                 {nameError && <p className="dashboard-name-error">{nameError}</p>}
               </div>
             )}
+            {projectLoading && <p className="dashboard-subtitle">Cargando proyecto...</p>}
+            {projectError && <p className="dashboard-subtitle">{projectError}</p>}
             <div className="dashboard-title-row">
               <h1>{selectedAnalysis.fileName}</h1>
               <span
