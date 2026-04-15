@@ -1,35 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createProject } from '../../projects/services/projectService';
+import {
+  createProject,
+  deleteProject,
+  getProjects,
+  updateProject,
+} from '../../projects/services/projectService';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
-/* --- Mock data (TODO: Real API) --- */
-const initialProjects = [
-  {
-    id: 'auditoria-java',
-    name: 'servicio-de-auditoria-estatica-java',
-    description: 'Proyecto principal de analisis estatico para Java.',
-    lastAnalysis: 'Ultimo analisis: hace 2 h',
-    createdAt: '2026-04-12',
-  },
-  {
-    id: 'api-clientes',
-    name: 'servicio-api-clientes-java',
-    description: 'API de clientes con reglas de validacion y seguridad.',
-    lastAnalysis: 'Ultimo analisis: hace 5 h',
-    createdAt: '2026-04-10',
-  },
-  {
-    id: 'motor-reglas',
-    name: 'motor-reglas-empresariales-java',
-    description: 'Motor de reglas para flujos de evaluacion automatica.',
-    lastAnalysis: 'Ultimo analisis: ayer',
-    createdAt: '2026-04-03',
-  },
-];
+function mapProjectToCard(project) {
+  const createdDate = project.created_at
+    ? new Date(project.created_at).toLocaleString('es-MX')
+    : '';
+  return {
+    id: String(project.id),
+    name: project.name,
+    description: '',
+    lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin analisis',
+    createdAt: project.created_at ? new Date(project.created_at).toISOString().slice(0, 10) : '',
+  };
+}
 
 function validate(value) {
   if (!value.trim()) return 'Este campo es obligatorio.';
@@ -39,7 +32,9 @@ function validate(value) {
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState('');
 
   /* Panel state: 'default' | 'create' | 'detail' */
   const [mode, setMode] = useState('default');
@@ -56,11 +51,39 @@ export default function ProjectsPage() {
   const [editingId, setEditingId] = useState(null);
   const [draftName, setDraftName] = useState('');
   const [nameError, setNameError] = useState('');
+  const [editingLoading, setEditingLoading] = useState(false);
 
   /* Delete state */
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      try {
+        const response = await getProjects();
+        if (!isMounted) return;
+        const items = Array.isArray(response?.results) ? response.results : [];
+        setProjects(items.map(mapProjectToCard));
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg =
+          data?.detail ||
+          data?.message ||
+          'No se pudieron cargar tus proyectos.';
+        setListError(msg);
+      } finally {
+        if (isMounted) setLoadingList(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function resetForm() {
     setName('');
@@ -103,7 +126,7 @@ export default function ProjectsPage() {
     resetEditName();
   }
 
-  function saveProjectName(projectId) {
+  async function saveProjectName(projectId) {
     const normalized = draftName.trim();
     if (normalized.length < 3) {
       setNameError('El nombre debe tener al menos 3 caracteres.');
@@ -113,12 +136,25 @@ export default function ProjectsPage() {
       setNameError('El nombre no puede exceder 100 caracteres.');
       return;
     }
-    /* --- Real: PATCH /projects/:id --- */
-    setProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, name: normalized } : p)),
-    );
-    resetEditName();
-    toast.success('Nombre del proyecto actualizado');
+    setEditingLoading(true);
+    try {
+      const updated = await updateProject(projectId, { name: normalized });
+      setProjects((prev) =>
+        prev.map((p) => (p.id === String(updated.id) ? { ...p, name: updated.name } : p)),
+      );
+      resetEditName();
+      toast.success('Nombre del proyecto actualizado');
+    } catch (err) {
+      const data = err.response?.data;
+      const msg =
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
+        'No se pudo actualizar el proyecto.';
+      setNameError(msg);
+    } finally {
+      setEditingLoading(false);
+    }
   }
 
   function handleNameKeyDown(e, projectId) {
@@ -130,19 +166,29 @@ export default function ProjectsPage() {
     setDeleteTarget(project);
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
     const deletedName = deleteTarget.name;
     const deletedId = deleteTarget.id;
-    /* --- Real: DELETE /projects/:id --- */
-    setProjects((prev) => prev.filter((p) => p.id !== deletedId));
-    setDeleteTarget(null);
-    if (editingId === deletedId) resetEditName();
-    if (selectedId === deletedId) {
-      setSelectedId(null);
-      setMode('default');
+    setDeleteLoading(true);
+    try {
+      await deleteProject(deletedId);
+      setProjects((prev) => prev.filter((p) => p.id !== deletedId));
+      setDeleteTarget(null);
+      if (editingId === deletedId) resetEditName();
+      if (selectedId === deletedId) {
+        setSelectedId(null);
+        setMode('default');
+      }
+      toast.success(`Proyecto "${deletedName}" eliminado`);
+    } catch (err) {
+      const data = err.response?.data;
+      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto.';
+      toast.error(msg);
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
     }
-    toast.success(`Proyecto "${deletedName}" eliminado`);
   }
 
   function handleChange(e) {
@@ -168,22 +214,19 @@ export default function ProjectsPage() {
 
     try {
       const project = await createProject({ name: name.trim() });
-      const newProject = {
-        id: String(project.id),
-        name: project.name,
-        description: '',
-        lastAnalysis: 'Recien creado',
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
+      const newProject = mapProjectToCard(project);
       setProjects((prev) => [newProject, ...prev]);
       resetForm();
       // Transition straight into detail mode so the user can upload right away
       setSelectedId(newProject.id);
       setMode('detail');
+      toast.success('Proyecto creado');
     } catch (err) {
+      const data = err.response?.data;
       const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
         'Algo salio mal. Intentalo de nuevo.';
       setServerError(msg);
     } finally {
@@ -232,117 +275,124 @@ export default function ProjectsPage() {
       <div className="projects-split projects-split--open">
         {/* Left: project list */}
         <section className="projects-list" aria-label="Lista de proyectos">
-          {projects.map((project) => {
-            const isSelected = selectedId === project.id;
-            const isEditing = editingId === project.id;
-            return (
-              <article
-                className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
-                key={project.id}
-                onClick={(e) => {
-                  if (isEditing) return;
-                  handleCardClick(project, e);
-                }}
-                onKeyDown={(e) => {
-                  if (isEditing) return;
-                  handleCardKey(project, e);
-                }}
-                role={isEditing ? undefined : 'button'}
-                tabIndex={isEditing ? -1 : 0}
-                aria-pressed={!isEditing && isSelected}
-              >
-                {isEditing ? (
-                  <div
-                    className="projects-card-edit"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
-                      Nombre del proyecto
-                    </label>
-                    <input
-                      id={`pj-edit-${project.id}`}
-                      type="text"
-                      className="pj-input"
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      onKeyDown={(e) => handleNameKeyDown(e, project.id)}
-                      autoFocus
-                    />
-                    {nameError ? (
-                      <span className="pj-field-error" role="alert">{nameError}</span>
-                    ) : (
-                      <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
-                    )}
-                    <div className="projects-card-edit-actions">
-                      <button
-                        type="button"
-                        className="pj-btn pj-btn--primary"
-                        onClick={() => saveProjectName(project.id)}
-                        disabled={draftName.trim().length < 3}
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        type="button"
-                        className="pj-btn pj-btn--ghost"
-                        onClick={cancelEditName}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h2>{project.name}</h2>
-                    {project.description && <p>{project.description}</p>}
-                    <p className="projects-analysis-time">{project.lastAnalysis}</p>
-                  </>
-                )}
-                {!isEditing && (
-                  <div className="projects-card-actions">
-                    <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
-                      Abrir dashboard
-                    </Link>
-                    <button
-                      type="button"
-                      className="projects-card-btn projects-card-btn--edit"
-                      onClick={(e) => { e.stopPropagation(); startEditName(project); }}
-                      aria-label={`Editar nombre de ${project.name}`}
-                      title="Editar nombre"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="projects-card-btn projects-card-btn--delete"
-                      onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
-                      aria-label={`Eliminar proyecto ${project.name}`}
-                      title="Eliminar proyecto"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Eliminar
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-
-          {projects.length === 0 && (
+          {loadingList ? (
+            <p className="projects-analysis-time">Cargando proyectos...</p>
+          ) : listError ? (
+            <p className="projects-analysis-time">{listError}</p>
+          ) : projects.length === 0 ? (
             <div className="projects-empty">
               <p>No tienes proyectos aun.</p>
               <button type="button" className="projects-create-btn" onClick={openCreate}>
                 Crear tu primer proyecto
               </button>
             </div>
+          ) : (
+            projects.map((project) => {
+              const isSelected = selectedId === project.id;
+              const isEditing = editingId === project.id;
+              return (
+                <article
+                  className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
+                  key={project.id}
+                  onClick={(e) => {
+                    if (isEditing) return;
+                    handleCardClick(project, e);
+                  }}
+                  onKeyDown={(e) => {
+                    if (isEditing) return;
+                    handleCardKey(project, e);
+                  }}
+                  role={isEditing ? undefined : 'button'}
+                  tabIndex={isEditing ? -1 : 0}
+                  aria-pressed={!isEditing && isSelected}
+                >
+                  {isEditing ? (
+                    <div
+                      className="projects-card-edit"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
+                        Nombre del proyecto
+                      </label>
+                      <input
+                        id={`pj-edit-${project.id}`}
+                        type="text"
+                        className="pj-input"
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        onKeyDown={(e) => handleNameKeyDown(e, project.id)}
+                        maxLength={100}
+                        disabled={editingLoading}
+                        autoFocus
+                      />
+                      {nameError ? (
+                        <span className="pj-field-error" role="alert">{nameError}</span>
+                      ) : (
+                        <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+                      )}
+                      <div className="projects-card-edit-actions">
+                        <button
+                          type="button"
+                          className="pj-btn pj-btn--primary"
+                          onClick={() => saveProjectName(project.id)}
+                          disabled={draftName.trim().length < 3 || editingLoading}
+                        >
+                          {editingLoading ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          className="pj-btn pj-btn--ghost"
+                          onClick={cancelEditName}
+                          disabled={editingLoading}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h2>{project.name}</h2>
+                      {project.description && <p>{project.description}</p>}
+                      <p className="projects-analysis-time">{project.lastAnalysis}</p>
+                    </>
+                  )}
+                  {!isEditing && (
+                    <div className="projects-card-actions">
+                      <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
+                        Abrir dashboard
+                      </Link>
+                      <button
+                        type="button"
+                        className="projects-card-btn projects-card-btn--edit"
+                        onClick={(e) => { e.stopPropagation(); startEditName(project); }}
+                        aria-label={`Editar nombre de ${project.name}`}
+                        title="Editar nombre"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="projects-card-btn projects-card-btn--delete"
+                        onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
+                        aria-label={`Eliminar proyecto ${project.name}`}
+                        title="Eliminar proyecto"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })
           )}
         </section>
 
@@ -410,6 +460,7 @@ export default function ProjectsPage() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     disabled={loading}
+                    maxLength={100}
                     autoFocus
                   />
                   {touched && error ? (
@@ -500,8 +551,9 @@ export default function ProjectsPage() {
             </>
           ) : ''
         }
-        confirmText="Si, eliminar"
+        confirmText={deleteLoading ? 'Eliminando...' : 'Si, eliminar'}
         cancelText="Cancelar"
+        busy={deleteLoading}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />

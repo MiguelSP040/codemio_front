@@ -1,36 +1,55 @@
-// import axios from 'axios';
-// import API_BASE_URL from '../../../config/api';
+import axios from 'axios';
+import API_BASE_URL from '../../../config/api';
 
-/**
- * Crear un nuevo proyecto.
- * TODO: Reemplazar con la llamada real al endpoint POST /api/projects/
- *       cuando el backend esté listo.
- */
-export async function createProject({ name }) {
-  // --- Mock (eliminar cuando el backend esté listo) ---
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+const AUTH_STORAGE_KEY = 'codemio_auth';
 
-  if (name.toLowerCase() === 'error') {
-    const err = new Error('Error de validación');
-    err.response = { status: 400, data: { detail: 'Ya existe un proyecto con ese nombre.' } };
-    throw err;
+function getAccessToken() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.accessToken || null;
+  } catch {
+    return null;
   }
+}
 
-  return {
-    id: Date.now(),
-    name,
-    owner: { id: 1, email: 'codemio@gmail.com' },
-    created_at: new Date().toISOString(),
-  };
+function getAuthApi() {
+  const token = getAccessToken();
+  return axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+}
 
-  // --- Implementación real (descomentar cuando el backend esté listo) ---
-  // const authApi = axios.create({
-  //   baseURL: API_BASE_URL,
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  // });
-  // const { data } = await authApi.post('/projects/', { name });
-  // return data;
+export async function createProject({ name }) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.post('/projects/', { name });
+  return data;
+}
+
+export async function getProjects({ page = 1 } = {}) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.get('/projects/', { params: { page } });
+  return data;
+}
+
+export async function getProjectById(projectId) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.get(`/projects/${projectId}/`);
+  return data;
+}
+
+export async function updateProject(projectId, payload) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.patch(`/projects/${projectId}/`, payload);
+  return data;
+}
+
+export async function deleteProject(projectId) {
+  const authApi = getAuthApi();
+  await authApi.delete(`/projects/${projectId}/`);
 }

@@ -1,11 +1,13 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { getProjects } from '../../projects/services/projectService';
 import './DashboardHomePage.css';
 
-const mockStats = [
+const staticStats = [
   {
     label: 'Proyectos',
-    value: 3,
+    value: 0,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -54,30 +56,6 @@ const mockStats = [
   },
 ];
 
-const initialProjects = [
-  {
-    id: 'auditoria-java',
-    name: 'servicio-de-auditoria-estatica-java',
-    filesCount: 7,
-    score: 84,
-    lastActivity: 'Hace 2 horas',
-  },
-  {
-    id: 'api-clientes',
-    name: 'servicio-api-clientes-java',
-    filesCount: 4,
-    score: 76,
-    lastActivity: 'Hace 5 horas',
-  },
-  {
-    id: 'motor-reglas',
-    name: 'motor-reglas-empresariales-java',
-    filesCount: 3,
-    score: 91,
-    lastActivity: 'Ayer',
-  },
-];
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Buenos dias';
@@ -91,11 +69,61 @@ function scoreClass(score) {
   return 'dash-score--critical';
 }
 
+function formatLastActivity(value) {
+  if (!value) return 'Sin actividad reciente';
+  return new Date(value).toLocaleString('es-MX');
+}
+
 export default function DashboardHomePage() {
   const { user } = useAuth();
   const displayName = user?.nombre || user?.name || 'Usuario';
 
-  const projects = initialProjects;
+  const [projects, setProjects] = useState([]);
+  const [projectCount, setProjectCount] = useState(0);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [projectsError, setProjectsError] = useState('');
+
+  const stats = useMemo(
+    () =>
+      staticStats.map((stat) =>
+        stat.label === 'Proyectos'
+          ? { ...stat, value: projectCount }
+          : stat,
+      ),
+    [projectCount],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      try {
+        const response = await getProjects();
+        if (!isMounted) return;
+        const items = Array.isArray(response?.results) ? response.results : [];
+        setProjects(
+          items.map((project) => ({
+            id: String(project.id),
+            name: project.name,
+            filesCount: 0,
+            score: 0,
+            lastActivity: formatLastActivity(project.updated_at || project.created_at),
+          })),
+        );
+        setProjectCount(response?.count ?? items.length);
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg = data?.detail || data?.message || 'No se pudieron cargar los proyectos.';
+        setProjectsError(msg);
+      } finally {
+        if (isMounted) setLoadingProjects(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="dash-home">
@@ -113,7 +141,7 @@ export default function DashboardHomePage() {
 
       {/* Stats */}
       <section className="dash-stats" aria-label="Estadisticas generales">
-        {mockStats.map((stat) => (
+        {stats.map((stat) => (
           <article className="dash-stat-card" key={stat.label}>
             <div className="dash-stat-icon" style={{ background: stat.bg, color: stat.color }}>
               {stat.icon}
@@ -135,35 +163,43 @@ export default function DashboardHomePage() {
           </Link>
         </header>
 
-        <div className="dash-recent-grid">
-          {projects.map((project) => (
-            <article className="dash-project-card" key={project.id}>
-              <div className="dash-project-top">
-                <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
-                  {project.name}
-                </Link>
-                <span className={`dash-project-score ${scoreClass(project.score)}`}>
-                  {project.score}
-                </span>
-              </div>
-              <div className="dash-project-meta">
-                <span>{project.filesCount} archivos</span>
-                <span className="dash-project-dot" aria-hidden="true" />
-                <span>{project.lastActivity}</span>
-              </div>
-              <div className="dash-project-actions">
-                <Link to={`/projects/${project.id}/dashboard`} className="dash-action-btn dash-action-btn--open">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  Abrir
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
+        {projectsError && <p className="dash-welcome-sub">{projectsError}</p>}
+        {loadingProjects ? (
+          <p className="dash-welcome-sub">Cargando proyectos...</p>
+        ) : (
+          <div className="dash-recent-grid">
+            {projects.map((project) => (
+              <article className="dash-project-card" key={project.id}>
+                <div className="dash-project-top">
+                  <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
+                    {project.name}
+                  </Link>
+                  <span className={`dash-project-score ${scoreClass(project.score)}`}>
+                    {project.score}
+                  </span>
+                </div>
+                <div className="dash-project-meta">
+                  <span>{project.filesCount} archivos</span>
+                  <span className="dash-project-dot" aria-hidden="true" />
+                  <span>{project.lastActivity}</span>
+                </div>
+                <div className="dash-project-actions">
+                  <Link
+                    to={`/projects/${project.id}/dashboard`}
+                    className="dash-action-btn dash-action-btn--open"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    Abrir
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
