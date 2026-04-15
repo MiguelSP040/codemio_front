@@ -14,15 +14,31 @@ function getAccessToken() {
   }
 }
 
-export async function createProject({ name }) {
+function getAuthApi() {
   const token = getAccessToken();
-  const authApi = axios.create({
+  return axios.create({
     baseURL: API_BASE_URL,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+}
+
+export async function createProject({ name }) {
+  const authApi = getAuthApi();
   const { data } = await authApi.post('/projects/', { name });
+  return data;
+}
+
+export async function getProjects({ page = 1 } = {}) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.get('/projects/', { params: { page } });
+  return data;
+}
+
+export async function getProjectById(projectId) {
+  const authApi = getAuthApi();
+  const { data } = await authApi.get(`/projects/${projectId}/`);
   return data;
 }

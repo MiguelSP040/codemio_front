@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
+import { getProjectById } from '../../projects/services/projectService';
 import './DashboardPage.css';
 
 const analysisFiles = [
@@ -259,12 +260,6 @@ const analysisFiles = [
   },
 ];
 
-const projectsCatalog = {
-  'auditoria-java': 'servicio-de-auditoria-estatica-java',
-  'api-clientes': 'servicio-api-clientes-java',
-  'motor-reglas': 'motor-reglas-empresariales-java',
-};
-
 function severityClass(severity) {
   if (severity === 'Crítico') return 'dashboard-badge dashboard-badge--critical';
   if (severity === 'Advertencia') return 'dashboard-badge dashboard-badge--warning';
@@ -290,11 +285,37 @@ function analysisStatusLabel(analysisStatus) {
 export default function DashboardPage() {
   const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const defaultRepoName = projectsCatalog[projectId] || analysisFiles[0].repositoryName;
+  const defaultRepoName = analysisFiles[0].repositoryName;
   const [repositoryName, setRepositoryName] = useState(defaultRepoName);
   const [draftName, setDraftName] = useState(defaultRepoName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [projectLoading, setProjectLoading] = useState(true);
+  const [projectError, setProjectError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProject() {
+      try {
+        const project = await getProjectById(projectId);
+        if (!isMounted) return;
+        const projectName = project?.name || defaultRepoName;
+        setRepositoryName(projectName);
+        setDraftName(projectName);
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg = data?.detail || data?.message || 'No se pudo cargar el proyecto.';
+        setProjectError(msg);
+      } finally {
+        if (isMounted) setProjectLoading(false);
+      }
+    }
+    loadProject();
+    return () => {
+      isMounted = false;
+    };
+  }, [defaultRepoName, projectId]);
 
   function startEditName() {
     setDraftName(repositoryName);
@@ -406,6 +427,8 @@ export default function DashboardPage() {
                 {nameError && <p className="dashboard-name-error">{nameError}</p>}
               </div>
             )}
+            {projectLoading && <p className="dashboard-subtitle">Cargando proyecto...</p>}
+            {projectError && <p className="dashboard-subtitle">{projectError}</p>}
             <div className="dashboard-title-row">
               <h1>{selectedAnalysis.fileName}</h1>
               <span
