@@ -73,9 +73,11 @@ export default function ProjectsPage() {
         ...prev,
       ]);
     } catch (err) {
+      const data = err.response?.data;
       const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.name) ? data.name[0] : null) ||
         'Algo salio mal. Intentalo de nuevo.';
       setServerError(msg);
     } finally {
