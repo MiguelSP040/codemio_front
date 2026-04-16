@@ -1,0 +1,510 @@
+/* ===== FileUpload — drag & drop with file list ===== */
+
+.fu-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.fu-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== Dropzone ===== */
+.fu-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-lg);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-alt);
+  color: var(--color-text-light);
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.fu-dropzone:hover:not(.fu-dropzone--disabled) {
+  border-color: var(--color-secondary);
+  background: var(--color-bg-glow);
+  color: var(--color-text);
+}
+
+.fu-dropzone:focus-visible {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.18);
+}
+
+.fu-dropzone--active {
+  border-color: var(--color-secondary);
+  border-style: solid;
+  background: var(--color-bg-glow);
+  color: var(--color-primary);
+  transform: scale(1.01);
+  box-shadow: 0 0 0 4px rgba(70, 130, 180, 0.14);
+}
+
+.fu-dropzone--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fu-dropzone-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-dark-blue) 0%, var(--secondary-medium-blue) 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(30, 58, 95, 0.18);
+}
+
+.fu-dropzone-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fu-dropzone-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: var(--space-xs);
+}
+
+.fu-dropzone-sub {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+.fu-dropzone-link {
+  color: var(--color-secondary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fu-dropzone-project {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  background: var(--color-bg-glow);
+  border: 1px solid rgba(70, 130, 180, 0.25);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-top: var(--space-xs);
+}
+
+.fu-dropzone-project strong {
+  color: var(--color-primary);
+}
+
+.fu-dropzone-rules {
+  margin-top: var(--space-sm);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+}
+
+.fu-dropzone-rules li {
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+
+/* Compact mode (shown above the file list) */
+.fu-dropzone--compact {
+  flex-direction: row;
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+  min-height: 52px;
+}
+
+.fu-dropzone-compact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+
+.fu-dropzone-compact-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fu-dropzone-compact-text {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ===== File list ===== */
+.fu-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fu-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.fu-list-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.fu-list-count-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: rgba(46, 139, 87, 0.12);
+  color: var(--secondary-dark-green);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.fu-list-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  margin-top: 2px;
+}
+
+.fu-list-sub--over {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.fu-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.fu-clear-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fu-clear-btn:hover:not(:disabled) {
+  color: var(--color-error);
+  border-color: var(--color-error);
+  background: #fef2f2;
+}
+
+.fu-clear-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fu-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.fu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.fu-item--entering {
+  animation: cm-slide-in-up 220ms ease both;
+}
+
+.fu-item--removing {
+  animation: cm-slide-out-down 220ms ease both;
+  pointer-events: none;
+}
+
+.fu-item:hover {
+  border-color: var(--color-secondary);
+  background: var(--color-bg-glow);
+}
+
+.fu-item--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.fu-item--error:hover {
+  border-color: var(--color-error);
+  background: #fee2e2;
+}
+
+.fu-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(70, 130, 180, 0.1);
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+
+.fu-item-icon--zip {
+  background: rgba(217, 160, 111, 0.14);
+  color: var(--accent-warm-orange);
+}
+
+.fu-item-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fu-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fu-item-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fu-item-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  flex-wrap: wrap;
+}
+
+.fu-item-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--secondary-dark-green);
+  font-weight: 600;
+}
+
+.fu-item-ok svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fu-item-error {
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.fu-item-remove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.fu-item-remove svg {
+  width: 15px;
+  height: 15px;
+}
+
+.fu-item-remove:hover:not(:disabled) {
+  background: #fef2f2;
+  color: var(--color-error);
+}
+
+.fu-item-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fu-add-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.fu-add-more svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fu-add-more:hover:not(:disabled) {
+  background: var(--color-bg-glow);
+  border-color: var(--color-secondary);
+}
+
+.fu-add-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Submit button ===== */
+.fu-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: 12px var(--space-md);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-dark-blue) 0%, var(--secondary-medium-blue) 100%);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(30, 58, 95, 0.18);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast);
+  margin-top: var(--space-xs);
+}
+
+.fu-submit svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fu-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(30, 58, 95, 0.24);
+  filter: brightness(1.05);
+}
+
+.fu-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
+}
+
+.fu-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.35);
+}
+
+.fu-submit:disabled {
+  background: var(--color-bg-alt);
+  color: var(--color-text-light);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.fu-submit-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 560px) {
+  .fu-dropzone {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .fu-dropzone-rules {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fu-list-header {
+    flex-wrap: wrap;
+  }
+}
