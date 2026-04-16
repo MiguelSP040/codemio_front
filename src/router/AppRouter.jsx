@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 /* --- Layouts --- */
 import MainLayout from '../components/layout/MainLayout';
 import AuthenticatedLayout from '../components/layout/AuthenticatedLayout';
+import AdminRoute from '../components/layout/AdminRoute';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
 
 /* --- Auth Pages --- */
@@ -18,6 +19,10 @@ import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
 import DashboardHomePage from '../modules/dashboard/pages/DashboardHomePage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import ProjectsPage from '../modules/dashboard/pages/ProjectsPage';
+
+/* --- Admin Pages --- */
+import AdminUsersListPage from '../modules/adminUsers/pages/AdminUsersListPage';
+import AdminUserDetailPage from '../modules/adminUsers/pages/AdminUserDetailPage';
 
 export default function AppRouter() {
   return (
@@ -41,6 +46,12 @@ export default function AppRouter() {
             <Route path="/dashboard" element={<DashboardHomePage />} />
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:projectId/dashboard" element={<DashboardPage />} />
+
+            {/* Admin-only */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/users" element={<AdminUsersListPage />} />
+              <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
