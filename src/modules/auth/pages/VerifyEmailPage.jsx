@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CodeInput from '../../../components/forms/CodeInput';
 import { resendVerificationCode, validateOtp } from '../services/onboardingService';
+import { isValidOtp } from '../../../utils/validation';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './VerifyEmailPage.css';
@@ -43,6 +44,11 @@ export default function VerifyEmailPage() {
 
   async function handleComplete(fullCode) {
     if (loading) return;
+    if (!isValidOtp(fullCode)) {
+      setError('El código debe tener exactamente 6 dígitos y solo números.');
+      resetCodeInput();
+      return;
+    }
     setLoading(true);
     setError('');
     setInfo('');

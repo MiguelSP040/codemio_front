@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
+import {
+  sanitizePlainText,
+  validateEdad,
+  validateNombre,
+  validatePerfilGithub,
+} from '../../../utils/validation';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -16,17 +22,12 @@ function formatDate(value) {
 function validate(field, value) {
   switch (field) {
     case 'nombre':
-      if (value === null || value === undefined) return '';
-      if (!String(value).trim()) return 'El nombre no puede estar vacío.';
-      if (String(value).trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
-      break;
+      return validateNombre(value, { required: true });
     case 'edad':
-      if (value === null || value === undefined || value === '') return '';
-      if (isNaN(value) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
-      if (Number(value) < 0) return 'La edad no puede ser negativa.';
-      break;
+      return validateEdad(value, { required: false });
     case 'perfil_github':
-      if (value === null || value === undefined || value === '') return '';
+      return validatePerfilGithub(value, { required: false });
+    default:
       return '';
   }
   return '';
@@ -114,9 +115,9 @@ export default function AdminUserDetailPage() {
     setServerError('');
     try {
       const payload = {
-        nombre: String(form.nombre).trim(),
+        nombre: sanitizePlainText(form.nombre),
         edad: form.edad === '' ? null : Number(form.edad),
-        perfil_github: String(form.perfil_github).trim() || null,
+        perfil_github: sanitizePlainText(form.perfil_github) || null,
       };
       const updated = await updateUser(user.id, payload);
       setUser(updated);

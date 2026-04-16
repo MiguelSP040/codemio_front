@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { completeProfile } from '../services/onboardingService';
+import {
+  sanitizePlainText,
+  validateEdad,
+  validateNombre,
+  validatePerfilGithub,
+} from '../../../utils/validation';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './OnboardingPage.css';
@@ -8,20 +14,11 @@ import './OnboardingPage.css';
 function validate(field, value) {
   switch (field) {
     case 'nombre':
-      if (!value.trim()) return 'Este campo es obligatorio.';
-      if (value.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
-      break;
+      return validateNombre(value, { required: true });
     case 'edad':
-      if (!value && value !== 0) return 'Este campo es obligatorio.';
-      if (isNaN(value) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
-      if (Number(value) < 13) return 'Debes tener al menos 13 años.';
-      if (Number(value) > 120) return 'Ingresa una edad válida.';
-      break;
+      return validateEdad(value, { required: true });
     case 'perfil_github':
-      if (value && value.trim() && !/^https:\/\/github\.com\/[\w.-]+\/?$/.test(value.trim())) {
-        return 'Ingresa una URL válida (ej: https://github.com/usuario)';
-      }
-      break;
+      return validatePerfilGithub(value, { required: false });
   }
   return '';
 }
@@ -72,9 +69,9 @@ export default function OnboardingPage() {
 
     try {
       await completeProfile({
-        nombre: form.nombre.trim(),
+        nombre: sanitizePlainText(form.nombre),
         edad: Number(form.edad),
-        perfil_github: form.perfil_github.trim() || null,
+        perfil_github: sanitizePlainText(form.perfil_github) || null,
       });
       // TODO (rama de integración): actualizar AuthContext con `onboarding_completed: true`
       navigate('/dashboard', { replace: true });
