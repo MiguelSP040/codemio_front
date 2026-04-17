@@ -411,7 +411,6 @@ export default function ProjectsPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-    const deletedName = deleteTarget.name;
     const deletedId = deleteTarget.id;
     setDeleteLoading(true);
     try {
@@ -423,10 +422,10 @@ export default function ProjectsPage() {
         setSelectedId(null);
         setMode('default');
       }
-      toast.success(`Proyecto "${deletedName}" eliminado`);
+      toast.success('Proyecto eliminado');
     } catch (err) {
       const data = err.response?.data;
-      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto.';
+      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto';
       toast.error(msg);
       setDeleteTarget(null);
     } finally {
@@ -756,7 +755,7 @@ export default function ProjectsPage() {
       <ConfirmModal
         open={Boolean(deleteTarget)}
         variant="danger"
-        title="Eliminar proyecto"
+        title="¿Eliminar proyecto?"
         message={
           deleteTarget ? (
             <>
