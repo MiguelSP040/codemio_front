@@ -26,15 +26,38 @@ export function AuthProvider({ children }) {
     localStorage.setItem('auth', JSON.stringify(next));
   }
 
+  function setUser(nextUser) {
+    setAuth((prev) => {
+      const next = { ...prev, user: nextUser };
+      localStorage.setItem('auth', JSON.stringify(next));
+      /* Mirror the updated user into the `codemio_auth` session so modules
+         reading via sessionService/apiClient see refreshed flags (e.g. onboarding_completed). */
+      try {
+        const rawCodemio = localStorage.getItem('codemio_auth');
+        if (rawCodemio) {
+          const parsed = JSON.parse(rawCodemio);
+          localStorage.setItem(
+            'codemio_auth',
+            JSON.stringify({ ...parsed, user: nextUser }),
+          );
+        }
+      } catch {
+        /* Secondary mirror is best-effort — primary store is the `auth` key. */
+      }
+      return next;
+    });
+  }
+
   function logout() {
     setAuth({ user: null, token: null, refreshToken: null });
     localStorage.removeItem('auth');
   }
 
   const isAuthenticated = !!auth.token;
+  const onboardingCompleted = auth.user?.onboarding_completed === true;
   const contextValue = useMemo(
-    () => ({ ...auth, isAuthenticated, loginAuth, logout }),
-    [auth, isAuthenticated],
+    () => ({ ...auth, isAuthenticated, onboardingCompleted, loginAuth, logout, setUser }),
+    [auth, isAuthenticated, onboardingCompleted],
   );
 
   return (
