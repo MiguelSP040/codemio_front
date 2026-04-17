@@ -1,48 +1,20 @@
-import axios from 'axios';
-import API_BASE_URL from '../../../config/api';
-
-function getAccessToken() {
-  const raw = localStorage.getItem('auth');
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed?.token || null;
-  } catch {
-    return null;
-  }
-}
-
-function getAuthApi() {
-  const token = getAccessToken();
-  return axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-}
+import httpClient from '../../../config/httpClient';
 
 export async function listUsers() {
-  const api = getAuthApi();
-  const { data } = await api.get('/users/');
+  const { data } = await httpClient.get('/users/');
   return data;
 }
 
 export async function getUserById(userId) {
-  const api = getAuthApi();
-  const { data } = await api.get(`/users/${userId}/`);
+  const { data } = await httpClient.get(`/users/${userId}/`);
   return data;
 }
 
 export async function updateUser(userId, payload) {
-  const api = getAuthApi();
-  const { data } = await api.patch(`/users/${userId}/`, payload);
+  const { data } = await httpClient.patch(`/users/${userId}/`, payload);
   return data;
 }
 
 export async function deleteUser(userId) {
-  const api = getAuthApi();
-  await api.delete(`/users/${userId}/`);
+  await httpClient.delete(`/users/${userId}/`);
 }
-
