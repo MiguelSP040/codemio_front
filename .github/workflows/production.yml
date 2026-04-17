@@ -27,6 +27,9 @@ jobs:
     - name: Run linting
       run: npm run lint
 
+    - name: Run frontend tests
+      run: npm run test
+
     - name: Build application
       run: npm run build
       env:
