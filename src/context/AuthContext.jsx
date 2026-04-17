@@ -109,11 +109,13 @@ export function AuthProvider({ children }) {
 
   const user = authState?.usuario ?? null;
   const isAuthenticated = !!authState?.access_token;
+  const onboardingCompleted = user?.onboarding_completed === true;
 
   const value = useMemo(
     () => ({
       user,
       isAuthenticated,
+      onboardingCompleted,
       loginAuth,
       logout,
       clearAuth,
@@ -128,7 +130,7 @@ export function AuthProvider({ children }) {
     // only their captured closures over refs/setters matter; re-memoizing on state changes is
     // cheap and keeps the value object stable for the current snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, isAuthenticated],
+    [user, isAuthenticated, onboardingCompleted],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

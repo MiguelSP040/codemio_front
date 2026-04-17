@@ -58,7 +58,8 @@ export default function LoginPage() {
     try {
       const data = await login(form);
       loginAuth(data);
-      navigate('/dashboard');
+      const completed = data?.usuario?.onboarding_completed === true;
+      navigate(completed ? '/dashboard' : '/onboarding', { replace: true });
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
