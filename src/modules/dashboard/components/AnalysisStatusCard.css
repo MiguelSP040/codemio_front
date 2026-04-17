@@ -1,0 +1,137 @@
+.analysis-status-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.analysis-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.analysis-status-header h2 {
+  margin: 0;
+}
+
+.analysis-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.analysis-status-message {
+  color: var(--color-text);
+}
+
+.analysis-status-updated {
+  margin-top: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+.analysis-status-progress {
+  margin-top: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.analysis-status-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(70, 130, 180, 0.25);
+  border-top-color: var(--color-secondary);
+  animation: analysis-status-spin 0.7s linear infinite;
+}
+
+.analysis-status-progress-track {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.analysis-status-progress-bar {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-accent));
+  animation: analysis-status-pulse 1.2s ease-in-out infinite;
+}
+
+.analysis-status-badge--idle {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.analysis-status-badge--queued {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.analysis-status-badge--processing {
+  color: #0e7490;
+  background: #cffafe;
+}
+
+.analysis-status-badge--completed {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.analysis-status-badge--error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.analysis-status-card--queued {
+  border-left: 4px solid #60a5fa;
+}
+
+.analysis-status-card--processing {
+  border-left: 4px solid var(--color-secondary);
+}
+
+.analysis-status-card--completed {
+  border-left: 4px solid #22c55e;
+}
+
+.analysis-status-card--error {
+  border-left: 4px solid var(--color-error);
+}
+
+@keyframes analysis-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes analysis-status-pulse {
+  0% {
+    transform: translateX(-80%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@media (max-width: 560px) {
+  .analysis-status-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
