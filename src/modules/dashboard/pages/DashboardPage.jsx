@@ -427,7 +427,7 @@ export default function DashboardPage() {
                   <th>Severidad</th>
                   <th>Archivo</th>
                   <th>Regla</th>
-                  <th>Recomendación</th>
+                  <th>Mensaje</th>
                 </tr>
               </thead>
               <tbody>
