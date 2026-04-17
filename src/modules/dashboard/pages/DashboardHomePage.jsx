@@ -542,7 +542,7 @@ export default function DashboardHomePage() {
           }}
         >
           <label htmlFor="dash-date-from">
-            Desde
+            <span>Desde</span>
             <input
               id="dash-date-from"
               type="date"
@@ -551,7 +551,7 @@ export default function DashboardHomePage() {
             />
           </label>
           <label htmlFor="dash-date-to">
-            Hasta
+            <span>Hasta</span>
             <input
               id="dash-date-to"
               type="date"

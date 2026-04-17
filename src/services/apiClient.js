@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       clearSession();
-      if (typeof globalThis.window !== 'undefined') {
+      if (globalThis.window !== undefined) {
         globalThis.window.dispatchEvent(new Event('codemio:auth-expired'));
       }
       throw refreshError;

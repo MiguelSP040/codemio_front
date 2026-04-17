@@ -148,21 +148,21 @@
 }
 
 .projects-quality--good {
-  color: #07512f;
+  color: #064e2b;
   border-color: rgba(10, 79, 49, 0.45);
-  background: rgba(10, 79, 49, 0.08);
+  background: rgba(10, 79, 49, 0.04);
 }
 
 .projects-quality--warning {
-  color: #5a3700;
+  color: #4a2c00;
   border-color: rgba(107, 67, 0, 0.45);
-  background: rgba(107, 67, 0, 0.1);
+  background: rgba(107, 67, 0, 0.04);
 }
 
 .projects-quality--critical {
-  color: #7f1d1d;
+  color: #7a1717;
   border-color: rgba(143, 29, 20, 0.45);
-  background: rgba(143, 29, 20, 0.08);
+  background: rgba(143, 29, 20, 0.04);
 }
 
 .projects-quality--neutral {
@@ -191,27 +191,27 @@
 }
 
 .projects-severity-chip--critical {
-  color: #7f1d1d;
+  color: #7a1717;
   border-color: rgba(143, 29, 20, 0.4);
-  background: rgba(143, 29, 20, 0.08);
+  background: rgba(143, 29, 20, 0.04);
 }
 
 .projects-severity-chip--high {
-  color: #7c2d12;
+  color: #6b240f;
   border-color: rgba(147, 55, 13, 0.4);
-  background: rgba(147, 55, 13, 0.08);
+  background: rgba(147, 55, 13, 0.04);
 }
 
 .projects-severity-chip--medium {
-  color: #5a3700;
+  color: #4a2c00;
   border-color: rgba(107, 67, 0, 0.4);
-  background: rgba(107, 67, 0, 0.1);
+  background: rgba(107, 67, 0, 0.04);
 }
 
 .projects-severity-chip--low {
   color: #1e3a8a;
   border-color: rgba(20, 71, 194, 0.38);
-  background: rgba(20, 71, 194, 0.07);
+  background: rgba(20, 71, 194, 0.03);
 }
 
 .projects-severity-total {
