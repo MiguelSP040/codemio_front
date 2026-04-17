@@ -12,6 +12,7 @@ import { createAnalysisRun } from '../../analysis/services/analysisService';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
@@ -123,7 +124,7 @@ function renderProjectsListContent({
   currentUserEmail,
 }) {
   if (loadingList) {
-    return <p className="projects-analysis-time">Cargando proyectos...</p>;
+    return <LoadingState variant="skeleton" count={3} label="Cargando proyectos..." />;
   }
   if (listError) {
     return <p className="projects-analysis-time">{listError}</p>;

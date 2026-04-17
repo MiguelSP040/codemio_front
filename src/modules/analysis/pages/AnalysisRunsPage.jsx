@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import { listAnalysisRuns } from '../services/analysisService';
 import './AnalysisRunsPage.css';
 
@@ -99,7 +100,7 @@ export default function AnalysisRunsPage() {
 
   let tableContent = null;
   if (loading) {
-    tableContent = <p className="analysis-runs-empty">Cargando analisis...</p>;
+    tableContent = <LoadingState label="Cargando analisis..." />;
   } else if (visibleRuns.length === 0) {
     tableContent = <p className="analysis-runs-empty">No hay ejecuciones para el filtro seleccionado.</p>;
   } else {

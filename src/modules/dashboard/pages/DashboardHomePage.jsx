@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getProjects } from '../../projects/services/projectService';
 import { listAnalysisRuns } from '../../analysis/services/analysisService';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import './DashboardHomePage.css';
 
 const RUN_STATUS_LABELS = {
@@ -472,7 +473,7 @@ export default function DashboardHomePage() {
     ['Bajos', severityDistribution.low, '#10b981'],
   ];
   const donutContent = (() => {
-    if (runsLoading) return <p className="dash-welcome-sub">Cargando grafica...</p>;
+    if (runsLoading) return <LoadingState label="Cargando grafica..." />;
     if (donutData.total === 0) return <p className="dash-welcome-sub">No hay analisis en el rango seleccionado.</p>;
     return (
       <svg className="dash-donut-chart" viewBox="0 0 180 180" aria-label="Distribucion de estados de analisis">
@@ -497,7 +498,7 @@ export default function DashboardHomePage() {
     );
   })();
   const trendContent = (() => {
-    if (runsLoading) return <p className="dash-welcome-sub">Cargando tendencia...</p>;
+    if (runsLoading) return <LoadingState label="Cargando tendencia..." />;
     if (runsTimeline.length === 0) return <p className="dash-welcome-sub">No hay puntos para la tendencia.</p>;
     return (
       <svg className="dash-line-chart" viewBox="0 0 460 180" aria-label="Tendencia de analisis por dia">
@@ -660,7 +661,7 @@ export default function DashboardHomePage() {
 
         {projectsError && <p className="dash-welcome-sub">{projectsError}</p>}
         {loadingProjects ? (
-          <p className="dash-welcome-sub">Cargando proyectos...</p>
+          <LoadingState variant="skeleton" count={3} label="Cargando proyectos..." />
         ) : (
           <div className="dash-recent-grid">
             {projects.map((project) => (

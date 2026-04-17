@@ -5,6 +5,7 @@ import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
 import { listAnalysisRuns } from '../../analysis/services/analysisService';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import './DashboardPage.css';
 
 const DEFAULT_REPO_NAME = 'Proyecto';
@@ -384,7 +385,7 @@ export default function DashboardPage() {
                 {nameError && <p className="dashboard-name-error">{nameError}</p>}
               </div>
             )}
-            {projectLoading && <p className="dashboard-subtitle">Cargando proyecto...</p>}
+            {projectLoading && <LoadingState inline label="Cargando proyecto..." />}
             {projectError && <p className="dashboard-subtitle">{projectError}</p>}
             {runsRefreshError && <p className="dashboard-subtitle">{runsRefreshError}</p>}
             {selectedAnalysis ? (
