@@ -3,273 +3,50 @@ import { useParams } from 'react-router-dom';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
+import { listAnalysisRuns } from '../../analysis/services/analysisService';
 import './DashboardPage.css';
 
-const analysisFiles = [
-  {
-    id: 'auth-service',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'AuthService.java',
-    filePath: 'src/main/java/com/codemio/AuthService.java',
-    shortDescription: 'Archivo con foco en validaciones de usuario y riesgos de null handling.',
-    score: 84,
-    analysisStatus: 'completed',
-    lastUpdated: '12/04/2026 10:45',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 2 },
-      { label: 'Advertencias', value: 11 },
-      { label: 'Reglas aprobadas', value: 47 },
-      { label: 'Sugerencias', value: 9 },
-    ],
-    findings: [
-      {
-        severity: 'Crítico',
-        file: 'src/main/java/com/codemio/AuthService.java',
-        rule: 'Posible NullPointerException',
-        recommendation: 'Agrega una validación nula antes de usar el resultado de userRepository.findByEmail.',
-      },
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/AuthService.java',
-        rule: 'Validación duplicada',
-        recommendation: 'Consolida las validaciones repetidas para reducir ruido y mejorar mantenibilidad.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/AuthService.java',
-        rule: 'Buen manejo de excepciones',
-        recommendation: 'Mantén la estrategia actual de try-catch y registra más contexto.',
-      },
-    ],
-  },
-  {
-    id: 'report-controller',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'ReportController.java',
-    filePath: 'src/main/java/com/codemio/ReportController.java',
-    shortDescription: 'Controlador con más advertencias por tamaño y responsabilidad mezclada.',
-    score: 76,
-    analysisStatus: 'processing',
-    lastUpdated: '12/04/2026 10:18',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 1 },
-      { label: 'Advertencias', value: 8 },
-      { label: 'Reglas aprobadas', value: 39 },
-      { label: 'Sugerencias', value: 6 },
-    ],
-    findings: [
-      {
-        severity: 'Crítico',
-        file: 'src/main/java/com/codemio/ReportController.java',
-        rule: 'Método demasiado largo',
-        recommendation: 'Divide el método en funciones más pequeñas según su responsabilidad.',
-      },
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/ReportController.java',
-        rule: 'Complejidad ciclomática alta',
-        recommendation: 'Extrae bloques condicionales a funciones auxiliares para simplificar el flujo.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/ReportController.java',
-        rule: 'Buena documentación',
-        recommendation: 'Mantén los comentarios actuales para facilitar el mantenimiento.',
-      },
-    ],
-  },
-  {
-    id: 'codescanner',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'CodeScanner.java',
-    filePath: 'src/main/java/com/codemio/CodeScanner.java',
-    shortDescription: 'Archivo con mayor estabilidad y menor densidad de hallazgos.',
-    score: 91,
-    analysisStatus: 'completed',
-    lastUpdated: '12/04/2026 09:52',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 0 },
-      { label: 'Advertencias', value: 3 },
-      { label: 'Reglas aprobadas', value: 60 },
-      { label: 'Sugerencias', value: 2 },
-    ],
-    findings: [
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/CodeScanner.java',
-        rule: 'Buen manejo de excepciones',
-        recommendation: 'Mantén la estrategia actual de try-catch y registra más contexto.',
-      },
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/CodeScanner.java',
-        rule: 'Nombre de variable poco descriptivo',
-        recommendation: 'Usa nombres más específicos para mejorar la lectura del flujo.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/CodeScanner.java',
-        rule: 'Cobertura aceptable',
-        recommendation: 'El archivo se mantiene estable y listo para integrarse con el backend.',
-      },
-    ],
-  },
-  {
-    id: 'project-service',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'ProjectService.java',
-    filePath: 'src/main/java/com/codemio/ProjectService.java',
-    shortDescription: 'Servicio de proyectos con deuda técnica moderada en validaciones de entrada.',
-    score: 79,
-    analysisStatus: 'queued',
-    lastUpdated: '12/04/2026 09:38',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 1 },
-      { label: 'Advertencias', value: 6 },
-      { label: 'Reglas aprobadas', value: 45 },
-      { label: 'Sugerencias', value: 7 },
-    ],
-    findings: [
-      {
-        severity: 'Crítico',
-        file: 'src/main/java/com/codemio/ProjectService.java',
-        rule: 'Posible acceso nulo',
-        recommendation: 'Valida objetos de entrada antes de invocar métodos encadenados.',
-      },
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/ProjectService.java',
-        rule: 'Método con demasiados parámetros',
-        recommendation: 'Agrupa parámetros en un DTO para reducir complejidad.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/ProjectService.java',
-        rule: 'Buen uso de transacciones',
-        recommendation: 'Mantén la delimitación actual de transacciones por caso de uso.',
-      },
-    ],
-  },
-  {
-    id: 'analysis-runner',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'AnalysisRunner.java',
-    filePath: 'src/main/java/com/codemio/AnalysisRunner.java',
-    shortDescription: 'Orquestador de ejecución con oportunidades de simplificación del flujo.',
-    score: 73,
-    analysisStatus: 'processing',
-    lastUpdated: '12/04/2026 09:31',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 2 },
-      { label: 'Advertencias', value: 9 },
-      { label: 'Reglas aprobadas', value: 34 },
-      { label: 'Sugerencias', value: 8 },
-    ],
-    findings: [
-      {
-        severity: 'Crítico',
-        file: 'src/main/java/com/codemio/AnalysisRunner.java',
-        rule: 'Bloque catch demasiado genérico',
-        recommendation: 'Captura excepciones específicas para mejorar el diagnóstico.',
-      },
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/AnalysisRunner.java',
-        rule: 'Complejidad ciclomática alta',
-        recommendation: 'Divide el flujo por etapas de análisis para facilitar pruebas.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/AnalysisRunner.java',
-        rule: 'Métricas consistentes',
-        recommendation: 'Conserva la estructura de métricas actual para comparaciones históricas.',
-      },
-    ],
-  },
-  {
-    id: 'rules-engine',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'RulesEngine.java',
-    filePath: 'src/main/java/com/codemio/RulesEngine.java',
-    shortDescription: 'Motor de reglas con buena cobertura y algunos puntos de optimización.',
-    score: 88,
-    analysisStatus: 'completed',
-    lastUpdated: '12/04/2026 09:20',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 0 },
-      { label: 'Advertencias', value: 4 },
-      { label: 'Reglas aprobadas', value: 58 },
-      { label: 'Sugerencias', value: 3 },
-    ],
-    findings: [
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/RulesEngine.java',
-        rule: 'Duplicación de lógica de validación',
-        recommendation: 'Extrae utilidades comunes para minimizar repetición.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/RulesEngine.java',
-        rule: 'Cobertura de reglas alta',
-        recommendation: 'Mantén la trazabilidad por regla para debugging rápido.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/RulesEngine.java',
-        rule: 'Diseño extensible',
-        recommendation: 'La arquitectura permite añadir reglas sin acoplamiento fuerte.',
-      },
-    ],
-  },
-  {
-    id: 'scan-report-mapper',
-    repositoryName: 'servicio-de-auditoria-estatica-java',
-    fileName: 'ScanReportMapper.java',
-    filePath: 'src/main/java/com/codemio/ScanReportMapper.java',
-    shortDescription: 'Mapeador de resultados con hallazgos bajos y comportamiento estable.',
-    score: 93,
-    analysisStatus: 'completed',
-    lastUpdated: '12/04/2026 09:12',
-    summaryCards: [
-      { label: 'Problemas críticos', value: 0 },
-      { label: 'Advertencias', value: 2 },
-      { label: 'Reglas aprobadas', value: 64 },
-      { label: 'Sugerencias', value: 1 },
-    ],
-    findings: [
-      {
-        severity: 'Advertencia',
-        file: 'src/main/java/com/codemio/ScanReportMapper.java',
-        rule: 'Conversión repetida',
-        recommendation: 'Centraliza conversiones en un helper reutilizable.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/ScanReportMapper.java',
-        rule: 'Nombres de método claros',
-        recommendation: 'Mantén convención de nombres actual.',
-      },
-      {
-        severity: 'Informativo',
-        file: 'src/main/java/com/codemio/ScanReportMapper.java',
-        rule: 'Baja deuda técnica',
-        recommendation: 'Archivo listo para pasar a integración con datos reales.',
-      },
-    ],
-  },
-];
+const DEFAULT_REPO_NAME = 'Proyecto';
+const RUNS_POLL_INTERVAL_MS = 4000;
+
+function formatDateLabel(raw) {
+  if (!raw) return '';
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return String(raw);
+  return date.toLocaleString('es-MX');
+}
+
+function formatPercent(value) {
+  if (!Number.isFinite(value)) return 'N/A';
+  return `${Number(value).toFixed(1)}%`;
+}
+
+function normalizeQualityGateLabel(status) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'OK' || normalized === 'PASSED') return 'Aprobado';
+  if (normalized === 'WARN' || normalized === 'WARNING') return 'Con observaciones';
+  if (normalized === 'ERROR' || normalized === 'FAILED') return 'Fallido';
+  if (normalized) return normalized;
+  return 'N/A';
+}
 
 function severityClass(severity) {
-  if (severity === 'Crítico') return 'dashboard-badge dashboard-badge--critical';
-  if (severity === 'Advertencia') return 'dashboard-badge dashboard-badge--warning';
+  const normalized = String(severity || '').toUpperCase();
+  if (severity === 'Crítico' || normalized === 'CRITICAL' || normalized === 'HIGH') {
+    return 'dashboard-badge dashboard-badge--critical';
+  }
+  if (severity === 'Advertencia' || normalized === 'MEDIUM') {
+    return 'dashboard-badge dashboard-badge--warning';
+  }
   return 'dashboard-badge dashboard-badge--info';
 }
 
 function analysisStatusClass(analysisStatus) {
   if (analysisStatus === 'queued') return 'analysis-status-badge--queued';
   if (analysisStatus === 'processing') return 'analysis-status-badge--processing';
+  if (analysisStatus === 'completed_with_warnings') return 'analysis-status-badge--completed';
   if (analysisStatus === 'completed') return 'analysis-status-badge--completed';
+  if (analysisStatus === 'canceled') return 'analysis-status-badge--error';
   if (analysisStatus === 'error') return 'analysis-status-badge--error';
   return 'analysis-status-badge--idle';
 }
@@ -277,32 +54,110 @@ function analysisStatusClass(analysisStatus) {
 function analysisStatusLabel(analysisStatus) {
   if (analysisStatus === 'queued') return 'En cola';
   if (analysisStatus === 'processing') return 'En proceso';
+  if (analysisStatus === 'completed_with_warnings') return 'Completado con observaciones';
   if (analysisStatus === 'completed') return 'Completado';
+  if (analysisStatus === 'canceled') return 'Cancelado';
   if (analysisStatus === 'error') return 'Error';
   return 'Sin iniciar';
+}
+
+function mapRunToFile(run) {
+  const findings = Array.isArray(run?.findings) ? run.findings : [];
+  const metrics = run?.metrics || {};
+  const bugs = Number(run?.bugs ?? metrics?.bugs ?? 0);
+  const vulnerabilities = Number(run?.vulnerabilities ?? metrics?.vulnerabilities ?? 0);
+  const codeSmells = Number(run?.code_smells ?? metrics?.code_smells ?? 0);
+  const complexity = Number(run?.complexity ?? metrics?.complexity ?? 0);
+  const coverage = Number(run?.coverage ?? metrics?.coverage ?? 0);
+  const duplicatedDensity = Number(
+    run?.duplicated_lines_density ?? metrics?.duplicated_lines_density ?? 0,
+  );
+  const qualityGate = run?.quality_gate_status || metrics?.quality_gate_status || '';
+  const normalizedQualityGate = String(qualityGate || '').toUpperCase();
+  const qualityGateFailed = normalizedQualityGate === 'FAILED' || normalizedQualityGate === 'ERROR';
+  const qualityGateWarn = normalizedQualityGate === 'WARN' || normalizedQualityGate === 'WARNING';
+  const failedMessageRaw =
+    run?.status === 'FAILED'
+      ? String(run?.error_summary || run?.error_detail || '').trim()
+      : '';
+  const failedMessage = failedMessageRaw ? failedMessageRaw.split('\n')[0] : '';
+  const canceledMessage = run?.status === 'CANCELED' ? 'El análisis fue cancelado.' : '';
+  const qualityGateMessage =
+    run?.status === 'DONE' && qualityGateFailed
+      ? 'El análisis terminó, pero no pasó el Quality Gate.'
+      : run?.status === 'DONE' && qualityGateWarn
+        ? 'El análisis terminó con observaciones de calidad.'
+      : '';
+  const statusMessage = failedMessage || canceledMessage || qualityGateMessage;
+  const shortDescription = statusMessage
+    ? `Estado: ${run.status}. ${statusMessage}`
+    : `Estado: ${run.status}. Quality gate: ${normalizeQualityGateLabel(qualityGate)}.`;
+
+  return {
+    id: `run-${run.id}`,
+    repositoryName: run.original_filename || DEFAULT_REPO_NAME,
+    fileName: run.original_filename || `Run ${run.id}`,
+    filePath: run.original_filename || '',
+    shortDescription,
+    score: Math.max(0, 100 - bugs - vulnerabilities - codeSmells),
+    analysisStatus:
+      run.status === 'DONE'
+        ? (qualityGateFailed || qualityGateWarn ? 'completed_with_warnings' : 'completed')
+        : run.status === 'RUNNING'
+          ? 'processing'
+          : run.status === 'CANCELED'
+            ? 'canceled'
+          : run.status === 'FAILED'
+            ? 'error'
+            : 'queued',
+    lastUpdated: run.finished_at || run.started_at || run.created_at || '',
+    failureMessage: statusMessage,
+    summaryCards: [
+      { label: 'Quality Gate', value: normalizeQualityGateLabel(qualityGate) },
+      { label: 'Bugs', value: bugs },
+      { label: 'Vulnerabilidades', value: vulnerabilities },
+      { label: 'Code smells', value: codeSmells },
+      { label: 'Complejidad', value: complexity },
+      { label: 'Cobertura', value: formatPercent(coverage) },
+      { label: 'Duplicacion', value: formatPercent(duplicatedDensity) },
+    ],
+    findings: findings.map((finding) => ({
+      severity: finding.severity || 'LOW',
+      file: finding.file_path || run.original_filename || '',
+      rule: finding.rule || finding.finding_type || 'N/A',
+      recommendation: finding.message_es || finding.message || 'Sin detalle',
+    })),
+  };
 }
 
 export default function DashboardPage() {
   const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const defaultRepoName = analysisFiles[0].repositoryName;
-  const [repositoryName, setRepositoryName] = useState(defaultRepoName);
-  const [draftName, setDraftName] = useState(defaultRepoName);
+  const [repositoryName, setRepositoryName] = useState(DEFAULT_REPO_NAME);
+  const [draftName, setDraftName] = useState(DEFAULT_REPO_NAME);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameError, setNameError] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [projectLoading, setProjectLoading] = useState(true);
   const [projectError, setProjectError] = useState('');
+  const [runsRefreshError, setRunsRefreshError] = useState('');
+  const [runs, setRuns] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
-    async function loadProject() {
+    async function loadProjectAndRuns() {
       try {
-        const project = await getProjectById(projectId);
+        const [project, runsResponse] = await Promise.all([
+          getProjectById(projectId),
+          listAnalysisRuns({ projectId }),
+        ]);
         if (!isMounted) return;
-        const projectName = project?.name || defaultRepoName;
+        const projectName = project?.name || DEFAULT_REPO_NAME;
         setRepositoryName(projectName);
         setDraftName(projectName);
+        const runItems = Array.isArray(runsResponse?.results) ? runsResponse.results : [];
+        setRuns(runItems);
+        setRunsRefreshError('');
       } catch (err) {
         if (!isMounted) return;
         const data = err.response?.data;
@@ -312,11 +167,41 @@ export default function DashboardPage() {
         if (isMounted) setProjectLoading(false);
       }
     }
-    loadProject();
+    loadProjectAndRuns();
     return () => {
       isMounted = false;
     };
-  }, [defaultRepoName, projectId]);
+  }, [projectId]);
+
+  const hasInProgressRuns = useMemo(
+    () => runs.some((run) => run?.status === 'PENDING' || run?.status === 'RUNNING'),
+    [runs],
+  );
+
+  useEffect(() => {
+    if (!projectId || !hasInProgressRuns) return undefined;
+    let isMounted = true;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const runsResponse = await listAnalysisRuns({ projectId });
+        if (!isMounted) return;
+        const runItems = Array.isArray(runsResponse?.results) ? runsResponse.results : [];
+        setRuns(runItems);
+        setRunsRefreshError('');
+      } catch (err) {
+        if (!isMounted) return;
+        const data = err.response?.data;
+        const msg = data?.detail || data?.message || 'No se pudo refrescar el estado del análisis.';
+        setRunsRefreshError(msg);
+      }
+    }, RUNS_POLL_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [projectId, hasInProgressRuns]);
 
   function startEditName() {
     setDraftName(repositoryName);
@@ -366,23 +251,26 @@ export default function DashboardPage() {
     if (e.key === 'Escape') { e.preventDefault(); cancelEditName(); }
   }
 
+  const runtimeFiles = useMemo(() => runs.map(mapRunToFile), [runs]);
   const projectFiles = useMemo(
     () =>
-      analysisFiles.map((fileItem) => ({
+      runtimeFiles.map((fileItem) => ({
         ...fileItem,
         repositoryName,
       })),
-    [repositoryName],
+    [repositoryName, runtimeFiles],
   );
 
-  const [selectedFileId, setSelectedFileId] = useState(projectFiles[0].id);
+  const [selectedFileId, setSelectedFileId] = useState(null);
 
   useEffect(() => {
-    setSelectedFileId(projectFiles[0].id);
+    setSelectedFileId(projectFiles[0]?.id || null);
   }, [projectFiles]);
 
-  const selectedAnalysis =
-    projectFiles.find((analysis) => analysis.id === selectedFileId) ?? projectFiles[0];
+  const selectedAnalysis = useMemo(
+    () => projectFiles.find((analysis) => analysis.id === selectedFileId) ?? projectFiles[0] ?? null,
+    [projectFiles, selectedFileId],
+  );
 
   return (
     <div className="dashboard-page">
@@ -453,68 +341,97 @@ export default function DashboardPage() {
             )}
             {projectLoading && <p className="dashboard-subtitle">Cargando proyecto...</p>}
             {projectError && <p className="dashboard-subtitle">{projectError}</p>}
-            <div className="dashboard-title-row">
-              <h1>{selectedAnalysis.fileName}</h1>
-              <span
-                className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
-              >
-                {analysisStatusLabel(selectedAnalysis.analysisStatus)}
-              </span>
-            </div>
-            <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
-            <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
+            {runsRefreshError && <p className="dashboard-subtitle">{runsRefreshError}</p>}
+            {selectedAnalysis ? (
+              <>
+                <div className="dashboard-title-row">
+                  <h1>{selectedAnalysis.fileName}</h1>
+                  <span
+                    className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
+                  >
+                    {analysisStatusLabel(selectedAnalysis.analysisStatus)}
+                  </span>
+                </div>
+                <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
+                <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
+                {selectedAnalysis.failureMessage ? (
+                  <p className="dashboard-subtitle">{selectedAnalysis.failureMessage}</p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="dashboard-title-row">
+                  <h1>Sin analisis todavia</h1>
+                </div>
+                <p className="dashboard-subtitle">
+                  Sube archivos .java o .zip desde el panel de proyectos para ver resultados Sonar aqui.
+                </p>
+              </>
+            )}
           </div>
           <div className="dashboard-score-card">
             <span className="dashboard-score-label">Score del archivo</span>
-            <strong className="dashboard-score-value">{selectedAnalysis.score}</strong>
+            <strong className="dashboard-score-value">
+              {selectedAnalysis ? selectedAnalysis.score : 'N/A'}
+            </strong>
           </div>
         </section>
 
-        <AnalysisStatusCard
-          analysisStatus={selectedAnalysis.analysisStatus}
-          lastUpdated={selectedAnalysis.lastUpdated}
-        />
+        {selectedAnalysis ? (
+          <>
+            <AnalysisStatusCard
+              analysisStatus={selectedAnalysis.analysisStatus}
+              lastUpdated={formatDateLabel(selectedAnalysis.lastUpdated)}
+            />
 
-        <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
-          {selectedAnalysis.summaryCards.map((item) => (
-            <article className="dashboard-summary-card" key={item.label}>
-              <p className="dashboard-summary-label">{item.label}</p>
-              <p className="dashboard-summary-value">{item.value}</p>
-            </article>
-          ))}
-        </section>
+            <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
+              {selectedAnalysis.summaryCards.map((item) => (
+                <article className="dashboard-summary-card" key={item.label}>
+                  <p className="dashboard-summary-label">{item.label}</p>
+                  <p className="dashboard-summary-value">{item.value}</p>
+                </article>
+              ))}
+            </section>
 
-        <section className="dashboard-findings" aria-label="Hallazgos del análisis">
-          <header className="dashboard-section-header">
-            <h2>Hallazgos</h2>
-            <p>Resultados automáticos del análisis estático para el archivo seleccionado.</p>
-          </header>
+            <section className="dashboard-findings" aria-label="Hallazgos del análisis">
+              <header className="dashboard-section-header">
+                <h2>Hallazgos</h2>
+                <p>Resultados automáticos del análisis Sonar para el archivo seleccionado.</p>
+              </header>
 
-          <div className="dashboard-findings-table-wrap">
-            <table className="dashboard-findings-table">
-              <thead>
-                <tr>
-                  <th>Severidad</th>
-                  <th>Archivo</th>
-                  <th>Regla</th>
-                  <th>Recomendación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedAnalysis.findings.map((finding, index) => (
-                  <tr key={`${finding.file}-${index}`}>
-                    <td>
-                      <span className={severityClass(finding.severity)}>{finding.severity}</span>
-                    </td>
-                    <td>{finding.file}</td>
-                    <td>{finding.rule}</td>
-                    <td>{finding.recommendation}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              {selectedAnalysis.findings.length === 0 ? (
+                <p className="dashboard-subtitle">
+                  No hay hallazgos para este análisis.
+                </p>
+              ) : (
+                <div className="dashboard-findings-table-wrap">
+                  <table className="dashboard-findings-table">
+                    <thead>
+                      <tr>
+                        <th>Severidad</th>
+                        <th>Archivo</th>
+                        <th>Regla</th>
+                        <th>Recomendación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedAnalysis.findings.map((finding, index) => (
+                        <tr key={`${finding.file}-${index}`}>
+                          <td>
+                            <span className={severityClass(finding.severity)}>{finding.severity}</span>
+                          </td>
+                          <td>{finding.file}</td>
+                          <td>{finding.rule}</td>
+                          <td>{finding.recommendation}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </>
+        ) : null}
       </main>
     </div>
   );

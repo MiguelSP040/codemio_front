@@ -80,6 +80,8 @@ export default function DashboardHomePage() {
 
   const [projects, setProjects] = useState([]);
   const [projectCount, setProjectCount] = useState(0);
+  const [totalIssues, setTotalIssues] = useState(0);
+  const [averageScore, setAverageScore] = useState(0);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectsError, setProjectsError] = useState('');
 
@@ -88,9 +90,13 @@ export default function DashboardHomePage() {
       staticStats.map((stat) =>
         stat.label === 'Proyectos'
           ? { ...stat, value: projectCount }
-          : stat,
+          : stat.label === 'Problemas detectados'
+            ? { ...stat, value: totalIssues }
+            : stat.label === 'Score promedio'
+              ? { ...stat, value: averageScore }
+              : stat,
       ),
-    [projectCount],
+    [projectCount, totalIssues, averageScore],
   );
 
   useEffect(() => {
@@ -104,12 +110,24 @@ export default function DashboardHomePage() {
           items.map((project) => ({
             id: String(project.id),
             name: project.name,
-            filesCount: 0,
-            score: 0,
+            filesCount: Number(project?.severity_summary?.total || 0),
+            score: Number.isFinite(project?.quality_score) ? project.quality_score : 0,
             lastActivity: formatLastActivity(project.updated_at || project.created_at),
           })),
         );
         setProjectCount(response?.count ?? items.length);
+        const issues = items.reduce(
+          (acc, project) => acc + Number(project?.severity_summary?.total || 0),
+          0,
+        );
+        const scores = items
+          .map((project) => Number(project?.quality_score))
+          .filter((score) => Number.isFinite(score));
+        const avg = scores.length > 0
+          ? Math.round(scores.reduce((acc, score) => acc + score, 0) / scores.length)
+          : 0;
+        setTotalIssues(issues);
+        setAverageScore(avg);
       } catch (err) {
         if (!isMounted) return;
         const data = err.response?.data;

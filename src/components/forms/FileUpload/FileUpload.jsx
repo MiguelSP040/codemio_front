@@ -5,9 +5,9 @@ import './FileUpload.css';
 
 const DEFAULTS = {
   acceptedExtensions: ['.java', '.zip'],
-  maxFileSizeMB: 5,
-  maxZipSizeMB: 50,
-  maxTotalSizeMB: 50,
+  maxFileSizeMB: 10,
+  maxZipSizeMB: 10,
+  maxTotalSizeMB: 30,
   allowMixed: false,
   multiple: true,
 };

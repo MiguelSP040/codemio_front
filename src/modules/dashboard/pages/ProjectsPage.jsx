@@ -6,23 +6,44 @@ import {
   getProjects,
   updateProject,
 } from '../../projects/services/projectService';
+import { createAnalysisRun } from '../../analysis/services/analysisService';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
+const UPLOAD_ALLOWED_EXTENSIONS = ['.java', '.zip'];
+const MAX_UPLOAD_SIZE_MB = 10;
+const MAX_UPLOAD_TOTAL_MB = 30;
+
 function mapProjectToCard(project) {
   const createdDate = project.created_at
     ? new Date(project.created_at).toLocaleString('es-MX')
     : '';
+  const summary = project?.severity_summary || {};
   return {
     id: String(project.id),
     name: project.name,
     description: '',
     lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin analisis',
     createdAt: project.created_at ? new Date(project.created_at).toISOString().slice(0, 10) : '',
+    qualityScore: Number.isFinite(project?.quality_score) ? project.quality_score : null,
+    severitySummary: {
+      critical: Number(summary?.critical || 0),
+      high: Number(summary?.high || 0),
+      medium: Number(summary?.medium || 0),
+      low: Number(summary?.low || 0),
+      total: Number(summary?.total || 0),
+    },
   };
+}
+
+function qualityTone(score) {
+  if (score === null || score === undefined) return 'projects-quality--neutral';
+  if (score >= 85) return 'projects-quality--good';
+  if (score >= 70) return 'projects-quality--warning';
+  return 'projects-quality--critical';
 }
 
 function validate(value) {
@@ -30,6 +51,60 @@ function validate(value) {
   if (value.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres.';
   if (value.trim().length > 100) return 'El nombre no puede exceder 100 caracteres.';
   return '';
+}
+
+function getFileExtension(fileName) {
+  const idx = String(fileName || '').lastIndexOf('.');
+  return idx >= 0 ? fileName.slice(idx).toLowerCase() : '';
+}
+
+function validateUploadBatch(filesToUpload) {
+  const errors = [];
+  let totalBytes = 0;
+  let zipCount = 0;
+  let javaCount = 0;
+
+  for (const file of filesToUpload) {
+    const ext = getFileExtension(file?.name);
+    totalBytes += Number(file?.size || 0);
+
+    if (!UPLOAD_ALLOWED_EXTENSIONS.includes(ext)) {
+      errors.push(`"${file.name}" no tiene una extension permitida.`);
+      continue;
+    }
+
+    if (ext === '.zip') zipCount += 1;
+    if (ext === '.java') javaCount += 1;
+
+    if (!file.size || file.size <= 0) {
+      errors.push(`"${file.name}" esta vacio.`);
+      continue;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
+      errors.push(`"${file.name}" excede ${MAX_UPLOAD_SIZE_MB} MB.`);
+    }
+  }
+
+  if (zipCount > 1) {
+    errors.push('Solo puedes subir un archivo .zip a la vez.');
+  }
+  if (zipCount > 0 && javaCount > 0) {
+    errors.push('No puedes mezclar archivos .java con un .zip en la misma carga.');
+  }
+  if (totalBytes > MAX_UPLOAD_TOTAL_MB * 1024 * 1024) {
+    errors.push(`El total de archivos supera ${MAX_UPLOAD_TOTAL_MB} MB.`);
+  }
+  return errors;
+}
+
+async function hasValidZipSignature(file) {
+  try {
+    const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    return header[0] === 0x50 && header[1] === 0x4b;
+  } catch {
+    return false;
+  }
 }
 
 export default function ProjectsPage() {
@@ -57,6 +132,7 @@ export default function ProjectsPage() {
   /* Delete state */
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [uploadingAnalysis, setUploadingAnalysis] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
 
@@ -254,6 +330,40 @@ export default function ProjectsPage() {
     }
   }
 
+  async function handleUploadFiles(filesToUpload) {
+    if (!selectedProject || !Array.isArray(filesToUpload) || filesToUpload.length === 0) return;
+    const uploadErrors = validateUploadBatch(filesToUpload);
+    for (const file of filesToUpload) {
+      if (getFileExtension(file?.name) !== '.zip') continue;
+      const isZipValid = await hasValidZipSignature(file);
+      if (!isZipValid) uploadErrors.push(`"${file.name}" no tiene una firma ZIP valida.`);
+    }
+    if (uploadErrors.length > 0) {
+      toast.error(uploadErrors[0]);
+      return;
+    }
+    setUploadingAnalysis(true);
+    try {
+      for (const sourceFile of filesToUpload) {
+        await createAnalysisRun({
+          projectId: selectedProject.id,
+          sourceFile,
+        });
+      }
+      toast.success(
+        filesToUpload.length === 1
+          ? 'Analisis en cola para 1 archivo. Se actualizara automaticamente en el dashboard.'
+          : `Analisis en cola para ${filesToUpload.length} archivos. Se actualizaran automaticamente en el dashboard.`,
+      );
+    } catch (err) {
+      const data = err.response?.data;
+      const msg = data?.detail || data?.message || 'No se pudo iniciar el analisis.';
+      toast.error(msg);
+    } finally {
+      setUploadingAnalysis(false);
+    }
+  }
+
   return (
     <div className="projects-page">
       <PageHeader
@@ -351,9 +461,31 @@ export default function ProjectsPage() {
                     </div>
                   ) : (
                     <>
-                      <h2>{project.name}</h2>
+                      <div className="projects-card-heading">
+                        <h2>{project.name}</h2>
+                        <span className={`projects-quality ${qualityTone(project.qualityScore)}`}>
+                          {project.qualityScore === null ? 'Sin score' : `Score ${project.qualityScore}`}
+                        </span>
+                      </div>
                       {project.description && <p>{project.description}</p>}
                       <p className="projects-analysis-time">{project.lastAnalysis}</p>
+                      <div className="projects-severity-row" aria-label={`Resumen de severidad de ${project.name}`}>
+                        <span className="projects-severity-chip projects-severity-chip--critical">
+                          C {project.severitySummary.critical}
+                        </span>
+                        <span className="projects-severity-chip projects-severity-chip--high">
+                          A {project.severitySummary.high}
+                        </span>
+                        <span className="projects-severity-chip projects-severity-chip--medium">
+                          M {project.severitySummary.medium}
+                        </span>
+                        <span className="projects-severity-chip projects-severity-chip--low">
+                          B {project.severitySummary.low}
+                        </span>
+                        <span className="projects-severity-total">
+                          Total {project.severitySummary.total}
+                        </span>
+                      </div>
                     </>
                   )}
                   {!isEditing && (
@@ -517,6 +649,35 @@ export default function ProjectsPage() {
                 <p className="pj-detail-description">{selectedProject.description}</p>
               )}
 
+              <section className="pj-metrics" aria-label="Metricas del proyecto">
+                <header className="pj-metrics-header">
+                  <h3>Resumen de calidad</h3>
+                  <span className={`projects-quality ${qualityTone(selectedProject.qualityScore)}`}>
+                    {selectedProject.qualityScore === null
+                      ? 'Sin score'
+                      : `Score ${selectedProject.qualityScore}`}
+                  </span>
+                </header>
+                <div className="pj-metrics-grid">
+                  <article className="pj-metric-card">
+                    <p>Criticos</p>
+                    <strong>{selectedProject.severitySummary.critical}</strong>
+                  </article>
+                  <article className="pj-metric-card">
+                    <p>Altos</p>
+                    <strong>{selectedProject.severitySummary.high}</strong>
+                  </article>
+                  <article className="pj-metric-card">
+                    <p>Medios</p>
+                    <strong>{selectedProject.severitySummary.medium}</strong>
+                  </article>
+                  <article className="pj-metric-card">
+                    <p>Bajos</p>
+                    <strong>{selectedProject.severitySummary.low}</strong>
+                  </article>
+                </div>
+              </section>
+
               <div className="pj-detail-actions">
                 <Link
                   to={`/projects/${selectedProject.id}/dashboard`}
@@ -531,7 +692,16 @@ export default function ProjectsPage() {
                 <p className="pj-upload-sub">
                   Archivos .java individuales o un .zip con tu proyecto.
                 </p>
-                <FileUpload projectName={selectedProject.name} />
+                <FileUpload
+                  projectName={selectedProject.name}
+                  disabled={uploadingAnalysis}
+                  acceptedExtensions={UPLOAD_ALLOWED_EXTENSIONS}
+                  maxFileSizeMB={MAX_UPLOAD_SIZE_MB}
+                  maxZipSizeMB={MAX_UPLOAD_SIZE_MB}
+                  maxTotalSizeMB={MAX_UPLOAD_TOTAL_MB}
+                  submitLabel={uploadingAnalysis ? 'Enviando...' : 'Subir archivos'}
+                  onSubmit={handleUploadFiles}
+                />
               </div>
             </div>
           )}
