@@ -535,11 +535,20 @@ export default function ProjectsPage() {
     }
     setUploadingAnalysis(true);
     try {
+      let overwriteCount = 0;
       for (const sourceFile of filesToUpload) {
-        await createAnalysisRun({
+        const run = await createAnalysisRun({
           projectId: selectedProject.id,
           sourceFile,
         });
+        if (run?.overwrite_applied) overwriteCount += 1;
+      }
+      if (overwriteCount > 0) {
+        toast.info(
+          overwriteCount === 1
+            ? 'Se sobrescribio la version activa de 1 archivo con el mismo nombre.'
+            : `Se sobrescribieron ${overwriteCount} archivos activos con el mismo nombre.`,
+        );
       }
       toast.success(
         filesToUpload.length === 1

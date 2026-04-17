@@ -160,7 +160,7 @@ export default function DashboardPage() {
       try {
         const [project, runsResponse] = await Promise.all([
           getProjectById(projectId),
-          listAnalysisRuns({ projectId }),
+          listAnalysisRuns({ projectId, activeOnly: true }),
         ]);
         if (!isMounted) return;
         const projectName = project?.name || DEFAULT_REPO_NAME;
@@ -196,7 +196,7 @@ export default function DashboardPage() {
 
     const intervalId = setInterval(async () => {
       try {
-        const runsResponse = await listAnalysisRuns({ projectId });
+        const runsResponse = await listAnalysisRuns({ projectId, activeOnly: true });
         if (!isMounted) return;
         const runItems = Array.isArray(runsResponse?.results) ? runsResponse.results : [];
         setRuns(runItems);

@@ -20,11 +20,12 @@ export async function createAnalysisRun({ projectId, sourceFile }) {
   return data;
 }
 
-export async function listAnalysisRuns({ projectId, page = 1, status } = {}) {
+export async function listAnalysisRuns({ projectId, page = 1, status, activeOnly } = {}) {
   ensureSessionToken();
   const params = { page };
   if (projectId) params.project_id = projectId;
   if (status) params.status = status;
+  if (activeOnly) params.active_only = true;
   const { data } = await apiClient.get('/analysis/runs/', { params });
   return data;
 }

@@ -40,4 +40,20 @@ describe('analysisService', () => {
       },
     );
   });
+
+  it('sends active_only filter when requested', async () => {
+    setCurrentSession('token-123');
+    apiClient.get.mockResolvedValue({ data: { results: [] } });
+
+    await listAnalysisRuns({ projectId: 7, status: 'DONE', activeOnly: true });
+
+    expect(apiClient.get).toHaveBeenCalledWith('/analysis/runs/', {
+      params: {
+        page: 1,
+        project_id: 7,
+        status: 'DONE',
+        active_only: true,
+      },
+    });
+  });
 });
