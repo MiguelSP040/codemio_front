@@ -169,7 +169,6 @@ export default function ProjectsPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-    const deletedName = deleteTarget.name;
     const deletedId = deleteTarget.id;
     setDeleteLoading(true);
     try {
@@ -181,10 +180,10 @@ export default function ProjectsPage() {
         setSelectedId(null);
         setMode('default');
       }
-      toast.success(`Proyecto "${deletedName}" eliminado`);
+      toast.success('Proyecto eliminado');
     } catch (err) {
       const data = err.response?.data;
-      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto.';
+      const msg = data?.detail || data?.message || 'No se pudo eliminar el proyecto';
       toast.error(msg);
       setDeleteTarget(null);
     } finally {
@@ -378,8 +377,8 @@ export default function ProjectsPage() {
                         type="button"
                         className="projects-card-btn projects-card-btn--delete"
                         onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
-                        aria-label={`Eliminar proyecto ${project.name}`}
-                        title="Eliminar proyecto"
+                        aria-label={`Eliminar "${project.name}"`}
+                        title="Eliminar"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" />
@@ -541,7 +540,7 @@ export default function ProjectsPage() {
       <ConfirmModal
         open={Boolean(deleteTarget)}
         variant="danger"
-        title="Eliminar proyecto"
+        title="¿Eliminar proyecto?"
         message={
           deleteTarget ? (
             <>
