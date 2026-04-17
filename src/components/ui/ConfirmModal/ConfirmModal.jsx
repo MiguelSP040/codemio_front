@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import './ConfirmModal.css';
 
@@ -27,30 +27,25 @@ export default function ConfirmModal({
 }) {
   const cardRef = useRef(null);
   const previouslyFocused = useRef(null);
-  const [mounted, setMounted] = useState(open);
 
-  // Mount immediately on open; unmount is driven by onAnimationEnd (see below).
-  if (open && !mounted) {
-    setMounted(true);
-  }
-
-  const closing = !open && mounted;
-
-  // Lock body scroll while visible
+  // Lock body scroll + remember trigger for focus return.
   useEffect(() => {
-    if (!mounted) return undefined;
+    if (!open) return undefined;
+    previouslyFocused.current = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prevOverflow;
+      const prev = previouslyFocused.current;
+      if (prev && typeof prev.focus === 'function') {
+        prev.focus();
+      }
     };
-  }, [mounted]);
+  }, [open]);
 
-  // Focus management + Escape / focus trap (only while fully open)
+  // Focus trap + ESC handler.
   useEffect(() => {
-    if (!open || !mounted) return undefined;
-
-    previouslyFocused.current = document.activeElement;
+    if (!open) return undefined;
 
     const card = cardRef.current;
     if (!card) return undefined;
@@ -86,9 +81,9 @@ export default function ConfirmModal({
     return () => {
       document.removeEventListener('keydown', handleKey);
     };
-  }, [open, mounted, busy, onCancel]);
+  }, [open, busy, onCancel]);
 
-  if (!mounted) return null;
+  if (!open) return null;
 
   function handleOverlayMouseDown(e) {
     if (busy) return;
@@ -97,26 +92,15 @@ export default function ConfirmModal({
     }
   }
 
-  function handleOverlayAnimationEnd() {
-    if (closing) {
-      setMounted(false);
-      const prev = previouslyFocused.current;
-      if (prev && typeof prev.focus === 'function') {
-        prev.focus();
-      }
-    }
-  }
-
   const content = (
     <div
-      className={`cm-modal-overlay${closing ? ' cm-modal-overlay--closing' : ''}`}
+      className="cm-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
-      onAnimationEnd={handleOverlayAnimationEnd}
       role="presentation"
     >
       <div
         ref={cardRef}
-        className={`cm-modal-card cm-modal-card--${variant}${closing ? ' cm-modal-card--closing' : ''}`}
+        className={`cm-modal-card cm-modal-card--${variant}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="cm-modal-title"
