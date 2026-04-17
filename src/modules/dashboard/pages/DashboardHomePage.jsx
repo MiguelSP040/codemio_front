@@ -35,7 +35,7 @@ const staticStats = [
   },
   {
     label: 'Archivos analizados',
-    value: 14,
+    value: 0,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -244,9 +244,13 @@ function withUpdatedStatValue(stat, {
   totalIssues,
   averageScore,
   totalSyntacticMethods,
+  totalFilesAnalyzed,
 }) {
   if (stat.label === 'Proyectos') {
     return { ...stat, value: projectCount };
+  }
+  if (stat.label === 'Archivos analizados') {
+    return { ...stat, value: totalFilesAnalyzed };
   }
   if (stat.label === 'Problemas detectados') {
     return { ...stat, value: totalIssues };
@@ -272,6 +276,7 @@ export default function DashboardHomePage() {
   const [totalIssues, setTotalIssues] = useState(0);
   const [averageScore, setAverageScore] = useState(0);
   const [totalSyntacticMethods, setTotalSyntacticMethods] = useState(0);
+  const [totalFilesAnalyzed, setTotalFilesAnalyzed] = useState(0);
   const [runsInRange, setRunsInRange] = useState([]);
   const [statusCounts, setStatusCounts] = useState({
     PENDING: 0,
@@ -291,8 +296,9 @@ export default function DashboardHomePage() {
       totalIssues,
       averageScore,
       totalSyntacticMethods,
+      totalFilesAnalyzed,
     })),
-    [projectCount, totalIssues, averageScore, totalSyntacticMethods],
+    [projectCount, totalIssues, averageScore, totalSyntacticMethods, totalFilesAnalyzed],
   );
 
   useEffect(() => {
@@ -380,11 +386,17 @@ export default function DashboardHomePage() {
           CANCELED: 0,
         };
         const filteredRuns = [];
+        let filesAnalyzedTotal = 0;
         const fromDate = toRangeDate(dateRange.from, '00:00:00');
         const toDate = toRangeDate(dateRange.to, '23:59:59');
         while (hasMore && nextPage <= 20) {
           const response = await listAnalysisRuns({ page: nextPage });
           const items = Array.isArray(response?.results) ? response.results : [];
+          items.forEach((run) => {
+            if (normalizeRunStatus(run?.status) === 'DONE' && run?.is_active_for_filename) {
+              filesAnalyzedTotal += Number(run?.total_files_analyzed || 0);
+            }
+          });
           const rangeItems = items.filter((run) => {
             const referenceDate = run?.finished_at || run?.started_at || run?.created_at;
             if (!referenceDate) return false;
@@ -405,6 +417,7 @@ export default function DashboardHomePage() {
         if (isMounted) {
           setStatusCounts(nextStatusCounts);
           setRunsInRange(filteredRuns);
+          setTotalFilesAnalyzed(filesAnalyzedTotal);
         }
       } catch (err) {
         if (isMounted) {
@@ -419,6 +432,7 @@ export default function DashboardHomePage() {
             FAILED: 0,
             CANCELED: 0,
           });
+          setTotalFilesAnalyzed(0);
         }
       } finally {
         if (isMounted) setRunsLoading(false);
