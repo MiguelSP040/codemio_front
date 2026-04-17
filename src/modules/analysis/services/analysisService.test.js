@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAnalysisRun, listAnalysisRuns } from './analysisService';
 import apiClient from '../../../services/apiClient';
+import { setCurrentSession, setupLocalStorageMock } from '../../../test/sessionTestUtils';
 
 vi.mock('../../../services/apiClient', () => ({
   default: {
@@ -9,28 +10,10 @@ vi.mock('../../../services/apiClient', () => ({
   },
 }));
 
-class LocalStorageMock {
-  constructor() {
-    this.store = {};
-  }
-
-  clear() {
-    this.store = {};
-  }
-
-  getItem(key) {
-    return this.store[key] ?? null;
-  }
-
-  setItem(key, value) {
-    this.store[key] = String(value);
-  }
-}
-
 describe('analysisService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    globalThis.localStorage = new LocalStorageMock();
+    setupLocalStorageMock();
   });
 
   it('throws when session token is missing', async () => {
@@ -41,10 +24,7 @@ describe('analysisService', () => {
   });
 
   it('calls analysis endpoint when creating analysis run', async () => {
-    localStorage.setItem(
-      'codemio_auth',
-      JSON.stringify({ accessToken: 'token-123' }),
-    );
+    setCurrentSession('token-123');
     apiClient.post.mockResolvedValue({ data: { id: 10 } });
 
     const file = new Blob(['class Main {}'], { type: 'text/plain' });
