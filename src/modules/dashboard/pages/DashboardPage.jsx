@@ -6,6 +6,7 @@ import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
 import { listAnalysisRuns } from '../../analysis/services/analysisService';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
+import { translateFindingMessage } from '../../../utils/sonarFindingTranslations';
 import './DashboardPage.css';
 
 const DEFAULT_REPO_NAME = 'Proyecto';
@@ -46,9 +47,9 @@ function severityClass(severity) {
 function analysisStatusClass(analysisStatus) {
   if (analysisStatus === 'queued') return 'analysis-status-badge--queued';
   if (analysisStatus === 'processing') return 'analysis-status-badge--processing';
-  if (analysisStatus === 'completed_with_warnings') return 'analysis-status-badge--completed';
+  if (analysisStatus === 'completed_with_warnings') return 'analysis-status-badge--warning';
   if (analysisStatus === 'completed') return 'analysis-status-badge--completed';
-  if (analysisStatus === 'canceled') return 'analysis-status-badge--error';
+  if (analysisStatus === 'canceled') return 'analysis-status-badge--canceled';
   if (analysisStatus === 'error') return 'analysis-status-badge--error';
   return 'analysis-status-badge--idle';
 }
@@ -158,12 +159,16 @@ function mapRunToFile(run) {
       inheritanceCount: Number(item.inheritance_count || 0),
       interclassCallsCount: Number(item.interclass_calls_count || 0),
     })),
-    findings: findings.map((finding) => ({
-      severity: finding.severity || 'LOW',
-      file: finding.file_path || run.original_filename || '',
-      rule: finding.rule || finding.finding_type || 'N/A',
-      recommendation: finding.message_es || finding.message || 'Sin detalle',
-    })),
+    findings: findings.map((finding) => {
+      const rawRule = finding.rule || finding.finding_type || 'N/A';
+      const rawMessage = finding.message_es || finding.message || '';
+      return {
+        severity: finding.severity || 'LOW',
+        file: finding.file_path || run.original_filename || '',
+        rule: rawRule,
+        recommendation: translateFindingMessage(rawRule, rawMessage),
+      };
+    }),
   };
 }
 
