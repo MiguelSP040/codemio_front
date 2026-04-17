@@ -53,3 +53,25 @@ export async function deleteProject(projectId) {
   const authApi = getAuthApi();
   await authApi.delete(`/projects/${projectId}/`);
 }
+
+export async function createAnalysisRun({ projectId, file }) {
+  const authApi = getAuthApi();
+  const formData = new FormData();
+  formData.append('project_id', String(projectId));
+  formData.append('source_file', file);
+
+  const { data } = await authApi.post('/analysis/runs/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+}
+
+export async function getAnalysisRuns({ projectId, page = 1 } = {}) {
+  const authApi = getAuthApi();
+  const params = { page };
+  if (projectId) params.project_id = projectId;
+  const { data } = await authApi.get('/analysis/runs/', { params });
+  return data;
+}

@@ -29,13 +29,13 @@ export default function ProjectDrawer({
       <aside className={`dashboard-sidebar${isOpen ? ' dashboard-sidebar--open' : ' dashboard-sidebar--closed'}`}>
         <div className="dashboard-sidebar-header">
           <div>
-            <p className="dashboard-eyebrow">Proyectos</p>
-            <h2>Selecciona un archivo</h2>
+            <p className="dashboard-eyebrow">Análisis</p>
+            <h2>Selecciona una corrida</h2>
           </div>
         </div>
 
         <p className="dashboard-sidebar-caption">
-          Selecciona un proyecto para ver su analisis detallado.
+          Selecciona una corrida para ver su detalle.
         </p>
 
         <div className="dashboard-sidebar-list">
@@ -65,7 +65,7 @@ export default function ProjectDrawer({
                   <div className="dashboard-sidebar-item-stats">
                     <span className="dashboard-sidebar-item-stat">Score {analysis.score}</span>
                     <span className="dashboard-sidebar-item-stat">
-                      {analysis.summaryCards[0].value} criticos
+                      {analysis.summaryCards?.[0]?.value ?? 0} criticos
                     </span>
                   </div>
                 </div>

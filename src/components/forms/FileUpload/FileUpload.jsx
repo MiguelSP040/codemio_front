@@ -327,14 +327,25 @@ export default function FileUpload({
     clearAll();
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!hasValidFiles || totalExceeds) return;
-    if (typeof onSubmit === 'function') {
-      onSubmit(validFiles);
-    } else if (typeof onFilesReady === 'function') {
-      onFilesReady(validFiles);
+    try {
+      if (typeof onSubmit === 'function') {
+        await onSubmit(validFiles);
+      } else if (typeof onFilesReady === 'function') {
+        await onFilesReady(validFiles);
+      } else {
+        toast.success('Archivos listos para analisis');
+      }
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg =
+        data?.detail ||
+        data?.message ||
+        (Array.isArray(data?.source_file) ? data.source_file[0] : null) ||
+        'No se pudieron enviar archivos a analisis.';
+      toast.error(msg);
     }
-    toast.success('Archivos listos para analisis');
   }
 
   /* ----- DnD handlers ----- */
@@ -589,7 +600,7 @@ export default function FileUpload({
         open={confirmOpen}
         variant="danger"
         title="Eliminar todos los archivos"
-        message="Eliminar todos los archivos seleccionados? Esta accion no se puede deshacer."
+        message="¿Eliminar todos los archivos seleccionados? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         cancelText="Cancelar"
         onConfirm={handleConfirmClear}

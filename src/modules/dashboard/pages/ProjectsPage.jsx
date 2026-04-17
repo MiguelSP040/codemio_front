@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  createAnalysisRun,
   createProject,
   deleteProject,
   getProjects,
@@ -57,6 +58,7 @@ export default function ProjectsPage() {
   /* Delete state */
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
 
@@ -237,6 +239,40 @@ export default function ProjectsPage() {
   function inputClass() {
     if (!touched) return 'pj-input';
     return error ? 'pj-input pj-input--error' : 'pj-input pj-input--valid';
+  }
+
+  async function handleUploadSubmit(files) {
+    if (!selectedProject?.id || !Array.isArray(files) || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const projectId = Number(selectedProject.id);
+      const results = await Promise.allSettled(
+        files.map((file) => createAnalysisRun({ projectId, file })),
+      );
+      const succeeded = results.filter((result) => result.status === 'fulfilled').length;
+      const failed = results.length - succeeded;
+
+      if (succeeded === 0) {
+        const firstError = results.find((result) => result.status === 'rejected');
+        const data = firstError?.reason?.response?.data;
+        const msg =
+          data?.detail ||
+          data?.message ||
+          (Array.isArray(data?.source_file) ? data.source_file[0] : null) ||
+          'No se pudieron enviar archivos a analisis.';
+        toast.error(msg);
+        return;
+      }
+
+      if (failed > 0) {
+        toast.warning(`${succeeded} archivo(s) enviado(s), ${failed} con error.`);
+      } else {
+        toast.success(`${succeeded} archivo(s) enviado(s) a analisis.`);
+      }
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleCardClick(project, e) {
@@ -530,7 +566,12 @@ export default function ProjectsPage() {
                 <p className="pj-upload-sub">
                   Archivos .java individuales o un .zip con tu proyecto.
                 </p>
-                <FileUpload projectName={selectedProject.name} />
+                <FileUpload
+                  projectName={selectedProject.name}
+                  onSubmit={handleUploadSubmit}
+                  disabled={uploading}
+                  submitLabel={uploading ? 'Subiendo...' : 'Subir y analizar'}
+                />
               </div>
             </div>
           )}
