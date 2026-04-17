@@ -1,4 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import {
+  setAccessTokenGetter,
+  setRefreshTokenGetter,
+  setRefreshEmailGetter,
+  attachAuthHandlers,
+} from '../config/httpClient';
+import toast from '../utils/toast';
 
 /* --- Layouts --- */
 import AuthenticatedLayout from '../components/layout/AuthenticatedLayout';
@@ -24,21 +34,50 @@ import AnalysisRunsPage from '../modules/analysis/pages/AnalysisRunsPage';
 import AdminUsersListPage from '../modules/adminUsers/pages/AdminUsersListPage';
 import AdminUserDetailPage from '../modules/adminUsers/pages/AdminUserDetailPage';
 
+function AuthBinder() {
+  const {
+    getAccessToken,
+    getRefreshToken,
+    getRefreshEmail,
+    clearAuth,
+    applyRefreshedTokens,
+  } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setAccessTokenGetter(getAccessToken);
+    setRefreshTokenGetter(getRefreshToken);
+    setRefreshEmailGetter(getRefreshEmail);
+    attachAuthHandlers({
+      onRefreshSuccess: (tokens) => applyRefreshedTokens(tokens),
+      onSessionExpired: () => {
+        clearAuth();
+        toast.error('Tu sesión expiró, inicia sesión de nuevo', { id: 'session-expired' });
+        navigate('/login', { replace: true });
+      },
+    });
+  }, [getAccessToken, getRefreshToken, getRefreshEmail, clearAuth, applyRefreshedTokens, navigate]);
+
+  return null;
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Redirect root to login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+      <AuthProvider>
+        <AuthBinder />
+        <Routes>
+          {/* Redirect root to login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Auth routes (standalone, no layout wrapper) */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/create-password" element={<CreatePasswordPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Auth routes (standalone, no layout wrapper) */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/create-password" element={<CreatePasswordPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected routes — Sidebar layout */}
         <Route element={<ProtectedRoute />}>
@@ -48,14 +87,15 @@ export default function AppRouter() {
             <Route path="/analysis" element={<AnalysisRunsPage />} />
             <Route path="/projects/:projectId/dashboard" element={<DashboardPage />} />
 
-            {/* Admin-only */}
-            <Route element={<AdminRoute />}>
-              <Route path="/admin/users" element={<AdminUsersListPage />} />
-              <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+              {/* Admin-only */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/users" element={<AdminUsersListPage />} />
+                <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

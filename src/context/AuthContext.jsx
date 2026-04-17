@@ -1,5 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { clearSession, readSession, saveSessionFromAuthPayload } from '../modules/auth/services/sessionService';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -12,13 +11,8 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
-    const parsed = readSession();
-    if (!parsed) return { user: null, token: null, refreshToken: null };
-    return {
-      user: parsed?.user || parsed?.usuario || null,
-      token: parsed?.token || parsed?.accessToken || parsed?.tokens?.access_token || null,
-      refreshToken: parsed?.refreshToken || parsed?.tokens?.refresh_token || null,
-    };
+    const stored = localStorage.getItem('auth');
+    return stored ? JSON.parse(stored) : { user: null, token: null, refreshToken: null };
   });
 
   function loginAuth(data) {
@@ -29,24 +23,13 @@ export function AuthProvider({ children }) {
 
     const next = { user, token, refreshToken };
     setAuth(next);
-    saveSessionFromAuthPayload(data);
+    localStorage.setItem('auth', JSON.stringify(next));
   }
 
   function logout() {
     setAuth({ user: null, token: null, refreshToken: null });
-    clearSession();
+    localStorage.removeItem('auth');
   }
-
-  useEffect(() => {
-    function handleAuthExpired() {
-      setAuth({ user: null, token: null, refreshToken: null });
-      clearSession();
-    }
-    window.addEventListener('codemio:auth-expired', handleAuthExpired);
-    return () => {
-      window.removeEventListener('codemio:auth-expired', handleAuthExpired);
-    };
-  }, []);
 
   const isAuthenticated = !!auth.token;
 

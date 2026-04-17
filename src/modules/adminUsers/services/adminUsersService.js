@@ -18,4 +18,3 @@ export async function updateUser(userId, payload) {
 export async function deleteUser(userId) {
   await apiClient.delete(`/users/${userId}/`);
 }
-

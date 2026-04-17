@@ -7,6 +7,7 @@ const PROFILE_AGE_MAX = 120;
 
 // Bloquea tags HTML y caracteres de control comunes.
 const HAS_HTML_TAG_RE = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>/;
+// eslint-disable-next-line no-control-regex
 const HAS_CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/;
 
 export function isValidOtp(value) {

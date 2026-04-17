@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
@@ -31,7 +31,6 @@ function validate(field, value) {
     default:
       return '';
   }
-  return '';
 }
 
 export default function AdminUserDetailPage() {
@@ -50,7 +49,7 @@ export default function AdminUserDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setServerError('');
     try {
@@ -70,11 +69,11 @@ export default function AdminUserDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     void load();
-  }, [id]);
+  }, [load]);
 
   const isDirty = useMemo(() => {
     if (!user) return false;
