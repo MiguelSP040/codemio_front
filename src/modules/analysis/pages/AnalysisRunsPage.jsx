@@ -129,7 +129,10 @@ export default function AnalysisRunsPage() {
               <td>{Number(run.findings_count || 0)}</td>
               <td>{formatDate(run.finished_at || run.started_at || run.created_at)}</td>
               <td>
-                <Link to={`/projects/${run.project_id}/dashboard`} className="analysis-open-link">
+                <Link
+                  to={`/projects/${run.project_id}/dashboard?run=${run.id}`}
+                  className="analysis-open-link"
+                >
                   Ver dashboard
                 </Link>
               </td>

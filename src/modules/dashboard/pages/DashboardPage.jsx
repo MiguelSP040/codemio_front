@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
@@ -175,6 +175,8 @@ function mapRunToFile(run) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { projectId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedRunId = searchParams.get('run');
   const isAdmin = (user?.rol || user?.role) === 'admin';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [repositoryName, setRepositoryName] = useState(DEFAULT_REPO_NAME);
@@ -310,8 +312,33 @@ export default function DashboardPage() {
   const [selectedFileId, setSelectedFileId] = useState(null);
 
   useEffect(() => {
-    setSelectedFileId(projectFiles[0]?.id || null);
-  }, [projectFiles]);
+    if (projectFiles.length === 0) {
+      setSelectedFileId(null);
+      return;
+    }
+    if (requestedRunId) {
+      const target = projectFiles.find((file) => file.id === `run-${requestedRunId}`);
+      if (target) {
+        setSelectedFileId(target.id);
+        return;
+      }
+    }
+    setSelectedFileId((current) => {
+      if (current && projectFiles.some((file) => file.id === current)) {
+        return current;
+      }
+      return projectFiles[0].id;
+    });
+  }, [projectFiles, requestedRunId]);
+
+  function handleSelectFile(fileId) {
+    setSelectedFileId(fileId);
+    if (requestedRunId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('run');
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   const selectedAnalysis = useMemo(
     () => projectFiles.find((analysis) => analysis.id === selectedFileId) ?? projectFiles[0] ?? null,
@@ -326,7 +353,7 @@ export default function DashboardPage() {
         onClose={() => setIsSidebarOpen(false)}
         analysisFiles={projectFiles}
         selectedFileId={selectedFileId}
-        onSelectFile={setSelectedFileId}
+        onSelectFile={handleSelectFile}
         getStatusClass={analysisStatusClass}
         getStatusLabel={analysisStatusLabel}
       />
@@ -430,6 +457,35 @@ export default function DashboardPage() {
 
         {selectedAnalysis ? (
           <>
+            {projectFiles.length > 1 && (
+              <section
+                className="dashboard-file-tabs"
+                aria-label="Archivos analizados en este proyecto"
+              >
+                <p className="dashboard-file-tabs-label">
+                  Archivos analizados ({projectFiles.length})
+                </p>
+                <div className="dashboard-file-tabs-list" role="tablist">
+                  {projectFiles.map((file) => {
+                    const isActive = file.id === selectedFileId;
+                    return (
+                      <button
+                        key={file.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        className={`dashboard-file-tab${isActive ? ' dashboard-file-tab--active' : ''}`}
+                        onClick={() => handleSelectFile(file.id)}
+                        title={file.fileName}
+                      >
+                        <span className="dashboard-file-tab-name">{file.fileName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             <AnalysisStatusCard
               analysisStatus={selectedAnalysis.analysisStatus}
               lastUpdated={formatDateLabel(selectedAnalysis.lastUpdated)}
