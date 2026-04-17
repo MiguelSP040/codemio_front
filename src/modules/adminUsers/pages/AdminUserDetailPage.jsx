@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
+import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import {
   sanitizePlainText,
   validateEdad,
@@ -157,28 +158,38 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="admin-users-page">
-      <header className="admin-users-header">
-        <div>
-          <p className="admin-users-eyebrow">Administración</p>
-          <h1>Detalle de usuario</h1>
-          <p className="admin-users-subtitle">
+      <PageHeader
+        eyebrow="Administración"
+        title="Detalle de usuario"
+        description={
+          <>
             Solo puedes editar <strong>nombre</strong>, <strong>edad</strong> y <strong>perfil de GitHub</strong>.
-          </p>
-        </div>
-        <div className="admin-users-header-actions">
-          <Link className="admin-users-btn admin-users-btn--ghost" to="/admin/users">
-            Volver
-          </Link>
-          <button
-            type="button"
-            className="admin-users-btn admin-users-btn--danger"
-            onClick={() => setDeleteOpen(true)}
-            disabled={loading || !user}
-          >
-            Eliminar
-          </button>
-        </div>
-      </header>
+          </>
+        }
+        action={
+          <div className="admin-users-header-actions">
+            <Link className="projects-card-btn" to="/admin/users" aria-label="Volver a la lista" title="Volver">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </Link>
+            <button
+              type="button"
+              className="projects-card-btn projects-card-btn--delete"
+              onClick={() => setDeleteOpen(true)}
+              disabled={loading || !user}
+              aria-label="Eliminar usuario"
+              title="Eliminar"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
+          </div>
+        }
+      />
 
       {serverError && <div className="admin-users-error" role="alert">{serverError}</div>}
 
@@ -203,18 +214,10 @@ export default function AdminUserDetailPage() {
                 <dt>Fecha registro</dt>
                 <dd>{formatDate(user.fecha_registro)}</dd>
               </div>
-              <div>
-                <dt>sub_cognito</dt>
-                <dd className="admin-users-mono">{user.sub_cognito || '—'}</dd>
-              </div>
             </dl>
 
             <h3 className="admin-users-card-subtitle">Cognito</h3>
             <dl className="admin-users-dl">
-              <div>
-                <dt>Existe</dt>
-                <dd>{user?.cognito?.exists ? 'Sí' : 'No'}</dd>
-              </div>
               <div>
                 <dt>Status</dt>
                 <dd>{user?.cognito?.user_status || '—'}</dd>
@@ -285,7 +288,7 @@ export default function AdminUserDetailPage() {
               <div className="admin-users-form-actions">
                 <button
                   type="button"
-                  className="admin-users-btn admin-users-btn--primary"
+                  className="pj-btn pj-btn--primary"
                   onClick={handleSave}
                   disabled={saving || !isDirty}
                 >

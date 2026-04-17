@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, listUsers } from '../services/adminUsersService';
+import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -79,18 +80,15 @@ export default function AdminUsersListPage() {
 
   return (
     <div className="admin-users-page">
-      <header className="admin-users-header">
-        <div>
-          <p className="admin-users-eyebrow">Administración</p>
-          <h1>Usuarios</h1>
-          <p className="admin-users-subtitle">
+      <PageHeader
+        eyebrow="Administración"
+        title="Usuarios"
+        description={
+          <>
             Consulta, edita y elimina usuarios. Solo puedes modificar <strong>nombre</strong>, <strong>edad</strong> y <strong>perfil de GitHub</strong>.
-          </p>
-        </div>
-        <button type="button" className="admin-users-btn" onClick={load} disabled={loading}>
-          {loading ? 'Cargando…' : 'Refrescar'}
-        </button>
-      </header>
+          </>
+        }
+      />
 
       {serverError && <div className="admin-users-error" role="alert">{serverError}</div>}
 
@@ -142,9 +140,15 @@ export default function AdminUsersListPage() {
                   <td className="admin-users-actions">
                     <button
                       type="button"
-                      className="admin-users-btn admin-users-btn--danger admin-users-btn--sm"
+                      className="projects-card-btn projects-card-btn--delete"
                       onClick={() => setDeleteTarget(u)}
+                      aria-label={`Eliminar usuario ${u.nombre}`}
+                      title="Eliminar usuario"
                     >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                       Eliminar
                     </button>
                   </td>
