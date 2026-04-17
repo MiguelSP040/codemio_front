@@ -334,7 +334,6 @@ export default function FileUpload({
     } else if (typeof onFilesReady === 'function') {
       onFilesReady(validFiles);
     }
-    toast.success('Archivos listos para analisis');
   }
 
   /* ----- DnD handlers ----- */

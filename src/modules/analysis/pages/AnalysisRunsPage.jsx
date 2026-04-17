@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import { listAnalysisRuns } from '../services/analysisService';
+import humanizeErrorMessage from '../../../utils/errorMessages';
 import './AnalysisRunsPage.css';
 
 const RUN_STATUS_OPTIONS = [
@@ -118,10 +119,24 @@ export default function AnalysisRunsPage() {
           </tr>
         </thead>
         <tbody>
-          {visibleRuns.map((run) => (
+          {visibleRuns.map((run) => {
+            const rawError = String(run?.error_summary || '').split('\n')[0];
+            const friendlyError = run?.status === 'FAILED' && rawError
+              ? humanizeErrorMessage(rawError)
+              : '';
+            return (
             <tr key={run.id}>
               <td>Proyecto #{run.project_id}</td>
-              <td>{run.original_filename || 'N/A'}</td>
+              <td>
+                <div className="analysis-runs-file-cell">
+                  <span>{run.original_filename || 'N/A'}</span>
+                  {friendlyError ? (
+                    <small className="analysis-runs-file-error" title={friendlyError}>
+                      {friendlyError}
+                    </small>
+                  ) : null}
+                </div>
+              </td>
               <td>
                 <span className={statusClass(run.status)}>{run.status || 'N/A'}</span>
               </td>
@@ -137,7 +152,8 @@ export default function AnalysisRunsPage() {
                 </Link>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     );

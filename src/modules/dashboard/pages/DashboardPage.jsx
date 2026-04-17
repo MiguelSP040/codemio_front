@@ -7,6 +7,7 @@ import { getProjectById, updateProject } from '../../projects/services/projectSe
 import { listAnalysisRuns } from '../../analysis/services/analysisService';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import { translateFindingMessage } from '../../../utils/sonarFindingTranslations';
+import humanizeErrorMessage from '../../../utils/errorMessages';
 import './DashboardPage.css';
 
 const DEFAULT_REPO_NAME = 'Proyecto';
@@ -109,7 +110,8 @@ function mapRunToFile(run) {
     run?.status === 'FAILED'
       ? String(run?.error_summary || run?.error_detail || '').trim()
       : '';
-  const failedMessage = failedMessageRaw ? failedMessageRaw.split('\n')[0] : '';
+  const failedMessageFirstLine = failedMessageRaw ? failedMessageRaw.split('\n')[0] : '';
+  const failedMessage = failedMessageFirstLine ? humanizeErrorMessage(failedMessageFirstLine) : '';
   const canceledMessage = run?.status === 'CANCELED' ? 'El análisis fue cancelado.' : '';
   const qualityGateMessage = resolveQualityGateMessage(run?.status, {
     qualityGateFailed,

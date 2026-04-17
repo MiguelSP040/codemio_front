@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
   createProject,
@@ -8,13 +8,36 @@ import {
   getProjectsByOwner,
   updateProject,
 } from '../../projects/services/projectService';
-import { createAnalysisRun } from '../../analysis/services/analysisService';
+import {
+  createAnalysisRun,
+  getAnalysisRun,
+  listAnalysisRuns,
+} from '../../analysis/services/analysisService';
+import humanizeErrorMessage from '../../../utils/errorMessages';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
+import AnalysisProgressModal from '../components/AnalysisProgressModal';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
+
+const PROGRESS_POLL_INTERVAL_MS = 4000;
+
+function resolveItemStatusFromRun(run) {
+  const rawStatus = String(run?.status || '').toUpperCase();
+  const qg = String(run?.quality_gate_status || '').toUpperCase();
+  if (rawStatus === 'DONE') {
+    if (qg === 'FAILED' || qg === 'ERROR' || qg === 'WARN' || qg === 'WARNING') {
+      return 'done_warn';
+    }
+    return 'done';
+  }
+  if (rawStatus === 'RUNNING') return 'running';
+  if (rawStatus === 'FAILED') return 'failed';
+  if (rawStatus === 'CANCELED') return 'canceled';
+  return 'queued';
+}
 
 const UPLOAD_ALLOWED_EXTENSIONS = ['.java', '.zip'];
 const MAX_UPLOAD_SIZE_MB = 10;
@@ -348,6 +371,11 @@ export default function ProjectsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [uploadingAnalysis, setUploadingAnalysis] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressItems, setProgressItems] = useState([]);
+  const [progressProjectId, setProgressProjectId] = useState(null);
+  const pollingRef = useRef(null);
+  const navigate = useNavigate();
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
   const selectedProjectReadOnly = Boolean(
@@ -381,6 +409,78 @@ export default function ProjectsPage() {
       isMounted = false;
     };
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!progressOpen || !progressProjectId) return undefined;
+    const trackedRunIds = progressItems
+      .map((item) => item.runId)
+      .filter((id) => id != null);
+    const anyPending = progressItems.some(
+      (item) =>
+        item.status === 'uploading' ||
+        item.status === 'queued' ||
+        item.status === 'running',
+    );
+    if (trackedRunIds.length === 0 || !anyPending) return undefined;
+
+    let isMounted = true;
+    async function pollRuns() {
+      try {
+        const response = await listAnalysisRuns({
+          projectId: progressProjectId,
+          activeOnly: true,
+        });
+        if (!isMounted) return;
+        const runs = Array.isArray(response?.results) ? response.results : [];
+        const runsById = new Map(runs.map((run) => [run.id, run]));
+
+        /* `activeOnly` drops runs that lost the "active for this filename" flag
+           (e.g. when a newer upload replaces them). When that happens we still
+           need their final status to show in the modal, so fetch them one-by-one. */
+        const missingIds = trackedRunIds.filter((id) => !runsById.has(id));
+        if (missingIds.length > 0) {
+          await Promise.all(
+            missingIds.map(async (id) => {
+              try {
+                const run = await getAnalysisRun(id);
+                if (run) runsById.set(run.id, run);
+              } catch {
+                /* ignore — will retry on next tick */
+              }
+            }),
+          );
+          if (!isMounted) return;
+        }
+
+        setProgressItems((current) =>
+          current.map((item) => {
+            if (!item.runId) return item;
+            const run = runsById.get(item.runId);
+            if (!run) return item;
+            const nextStatus = resolveItemStatusFromRun(run);
+            const rawError =
+              nextStatus === 'failed'
+                ? String(run?.error_summary || run?.error_detail || '').split('\n')[0]
+                : '';
+            const nextError = rawError ? humanizeErrorMessage(rawError) : '';
+            return { ...item, status: nextStatus, error: nextError || item.error };
+          }),
+        );
+      } catch {
+        // Silent retry; no toast to avoid noise during polling
+      }
+    }
+
+    pollRuns();
+    pollingRef.current = setInterval(pollRuns, PROGRESS_POLL_INTERVAL_MS);
+    return () => {
+      isMounted = false;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [progressOpen, progressProjectId, progressItems]);
 
   function resetForm() {
     setName('');
@@ -552,34 +652,70 @@ export default function ProjectsPage() {
       return;
     }
     setUploadingAnalysis(true);
-    try {
-      let overwriteCount = 0;
-      for (const sourceFile of filesToUpload) {
+    const initialItems = filesToUpload.map((file, index) => ({
+      tempId: `upload-${Date.now()}-${index}`,
+      fileName: file?.name || `Archivo ${index + 1}`,
+      runId: null,
+      status: 'uploading',
+      error: '',
+    }));
+    setProgressItems(initialItems);
+    setProgressProjectId(selectedProject.id);
+    setProgressOpen(true);
+
+    let overwriteCount = 0;
+    for (let i = 0; i < filesToUpload.length; i += 1) {
+      const sourceFile = filesToUpload[i];
+      const tempId = initialItems[i].tempId;
+      try {
         const run = await createAnalysisRun({
           projectId: selectedProject.id,
           sourceFile,
         });
         if (run?.overwrite_applied) overwriteCount += 1;
-      }
-      if (overwriteCount > 0) {
-        toast.info(
-          overwriteCount === 1
-            ? 'Se sobrescribio la version activa de 1 archivo con el mismo nombre.'
-            : `Se sobrescribieron ${overwriteCount} archivos activos con el mismo nombre.`,
+        const runId = run?.id ?? null;
+        const initialStatus = resolveItemStatusFromRun(run);
+        setProgressItems((current) =>
+          current.map((item) =>
+            item.tempId === tempId
+              ? { ...item, runId, status: initialStatus, error: '' }
+              : item,
+          ),
+        );
+      } catch (err) {
+        const data = err.response?.data;
+        const rawMsg = data?.detail || data?.message || 'No se pudo iniciar el analisis.';
+        const msg = humanizeErrorMessage(rawMsg);
+        setProgressItems((current) =>
+          current.map((item) =>
+            item.tempId === tempId
+              ? { ...item, status: 'failed', error: msg }
+              : item,
+          ),
         );
       }
-      toast.success(
-        filesToUpload.length === 1
-          ? 'Analisis en cola para 1 archivo. Se actualizara automaticamente en el dashboard.'
-          : `Analisis en cola para ${filesToUpload.length} archivos. Se actualizaran automaticamente en el dashboard.`,
-      );
-    } catch (err) {
-      const data = err.response?.data;
-      const msg = data?.detail || data?.message || 'No se pudo iniciar el analisis.';
-      toast.error(msg);
-    } finally {
-      setUploadingAnalysis(false);
     }
+
+    if (overwriteCount > 0) {
+      toast.info(
+        overwriteCount === 1
+          ? 'Se sobrescribio la version activa de 1 archivo con el mismo nombre.'
+          : `Se sobrescribieron ${overwriteCount} archivos activos con el mismo nombre.`,
+      );
+    }
+    setUploadingAnalysis(false);
+  }
+
+  function handleCloseProgress() {
+    setProgressOpen(false);
+    setProgressItems([]);
+    setProgressProjectId(null);
+  }
+
+  function handleGoToDashboard() {
+    const targetId = progressProjectId;
+    handleCloseProgress();
+    if (targetId) navigate(`/projects/${targetId}/dashboard`);
   }
 
   return (
@@ -831,6 +967,13 @@ export default function ProjectsPage() {
         busy={deleteLoading}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <AnalysisProgressModal
+        open={progressOpen}
+        items={progressItems}
+        onClose={handleCloseProgress}
+        onGoToDashboard={handleGoToDashboard}
       />
     </div>
   );
