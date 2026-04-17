@@ -24,6 +24,8 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const displayName = user?.nombre || user?.name || user?.email || 'Usuario';
   const displayEmail = user?.correo || user?.email || '';
+  const role = user?.rol || user?.role || null;
+  const isAdmin = role === 'admin';
 
   return (
     <>
@@ -77,6 +79,24 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="sidebar-link-text">Analisis</span>
             <span className="sidebar-badge">Pronto</span>
           </span>
+
+          {isAdmin && (
+            <NavLink
+              to="/admin/users"
+              className={({ isActive }) =>
+                `sidebar-link${isActive ? ' sidebar-link--active' : ''}`
+              }
+              onClick={onClose}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span className="sidebar-link-text">Usuarios</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* User section */}

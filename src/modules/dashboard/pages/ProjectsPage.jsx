@@ -8,6 +8,7 @@ import {
 } from '../../projects/services/projectService';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
+import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
@@ -255,13 +256,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="projects-page">
-      <header className="projects-header">
-        <div className="projects-header-top">
-          <div>
-            <p className="projects-eyebrow">Seleccion de proyecto</p>
-            <h1>Proyectos disponibles</h1>
-            <p>Selecciona un proyecto para abrir su dashboard y revisar archivos analizados.</p>
-          </div>
+      <PageHeader
+        eyebrow="Seleccion de proyecto"
+        title="Proyectos disponibles"
+        description="Selecciona un proyecto para abrir su dashboard y revisar archivos analizados."
+        action={
           <button type="button" className="projects-create-btn" onClick={openCreate}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -269,8 +268,8 @@ export default function ProjectsPage() {
             </svg>
             Nuevo proyecto
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="projects-split projects-split--open">
         {/* Left: project list */}
