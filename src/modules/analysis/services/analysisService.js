@@ -20,10 +20,11 @@ export async function createAnalysisRun({ projectId, sourceFile }) {
   return data;
 }
 
-export async function listAnalysisRuns({ projectId, page = 1 } = {}) {
+export async function listAnalysisRuns({ projectId, page = 1, status } = {}) {
   ensureSessionToken();
   const params = { page };
   if (projectId) params.project_id = projectId;
+  if (status) params.status = status;
   const { data } = await apiClient.get('/analysis/runs/', { params });
   return data;
 }

@@ -120,6 +120,19 @@
   font-size: 0.875rem;
 }
 
+.projects-readonly-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  background: rgba(241, 245, 249, 0.9);
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+}
+
 .projects-quality {
   display: inline-flex;
   align-items: center;

@@ -2,7 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getProjects } from '../../projects/services/projectService';
+import { listAnalysisRuns } from '../../analysis/services/analysisService';
 import './DashboardHomePage.css';
+
+const RUN_STATUS_LABELS = {
+  PENDING: 'En cola',
+  RUNNING: 'En proceso',
+  DONE: 'Completado',
+  FAILED: 'Fallido',
+  CANCELED: 'Cancelado',
+};
+
+const RUN_STATUS_COLORS = {
+  PENDING: '#6b7280',
+  RUNNING: '#2563eb',
+  DONE: '#15803d',
+  FAILED: '#b91c1c',
+  CANCELED: '#92400e',
+};
 
 const staticStats = [
   {
@@ -74,7 +91,146 @@ function formatLastActivity(value) {
   return new Date(value).toLocaleString('es-MX');
 }
 
-function withUpdatedStatValue(stat, { projectCount, totalIssues, averageScore }) {
+function formatDateInput(dateValue) {
+  const year = dateValue.getFullYear();
+  const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+  const day = String(dateValue.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function createDefaultDateRange() {
+  const toDate = new Date();
+  const fromDate = new Date(toDate);
+  fromDate.setDate(fromDate.getDate() - 30);
+  return {
+    from: formatDateInput(fromDate),
+    to: formatDateInput(toDate),
+  };
+}
+
+function toRangeDate(dateInput, fallbackHour) {
+  if (!dateInput) return null;
+  const normalized = new Date(`${dateInput}T${fallbackHour}`);
+  if (Number.isNaN(normalized.getTime())) return null;
+  return normalized;
+}
+
+function normalizeRunStatus(status) {
+  const normalized = String(status || '').toUpperCase();
+  if (RUN_STATUS_LABELS[normalized]) return normalized;
+  return 'PENDING';
+}
+
+function buildDonutSegments(statusCounts) {
+  const entries = Object.entries(RUN_STATUS_LABELS).map(([status, label]) => ({
+    status,
+    label,
+    value: Number(statusCounts?.[status] || 0),
+    color: RUN_STATUS_COLORS[status],
+  }));
+  const total = entries.reduce((acc, entry) => acc + entry.value, 0);
+  if (total <= 0) {
+    return {
+      total: 0,
+      entries,
+      circles: [],
+    };
+  }
+
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius;
+  let cumulativeOffset = 0;
+  const circles = entries
+    .filter((entry) => entry.value > 0)
+    .map((entry) => {
+      const ratio = entry.value / total;
+      const dashLength = circumference * ratio;
+      const circle = {
+        status: entry.status,
+        color: entry.color,
+        dashArray: `${dashLength} ${circumference - dashLength}`,
+        dashOffset: -cumulativeOffset,
+      };
+      cumulativeOffset += dashLength;
+      return circle;
+    });
+
+  return {
+    total,
+    entries,
+    circles,
+  };
+}
+
+function buildRunsTimeline(runs, fromInput, toInput) {
+  const fromDate = toRangeDate(fromInput, '00:00:00');
+  const toDate = toRangeDate(toInput, '23:59:59');
+  if (!fromDate || !toDate || fromDate > toDate) {
+    return [];
+  }
+  const buckets = new Map();
+  const cursor = new Date(fromDate);
+  while (cursor <= toDate) {
+    const key = formatDateInput(cursor);
+    buckets.set(key, 0);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  runs.forEach((run) => {
+    const referenceDate = run?.finished_at || run?.started_at || run?.created_at;
+    if (!referenceDate) return;
+    const runDate = new Date(referenceDate);
+    if (Number.isNaN(runDate.getTime())) return;
+    const key = formatDateInput(runDate);
+    if (buckets.has(key)) {
+      buckets.set(key, Number(buckets.get(key) || 0) + 1);
+    }
+  });
+
+  return Array.from(buckets.entries()).map(([date, count]) => ({ date, count }));
+}
+
+function buildLineChartPoints(timeline, width, height, padding) {
+  if (!timeline.length) return '';
+  const maxValue = Math.max(...timeline.map((item) => item.count), 1);
+  const chartWidth = width - (padding * 2);
+  const chartHeight = height - (padding * 2);
+  if (timeline.length === 1) {
+    const y = padding + chartHeight - ((timeline[0].count / maxValue) * chartHeight);
+    return `${padding},${y} ${width - padding},${y}`;
+  }
+  return timeline
+    .map((item, index) => {
+      const x = padding + ((index / (timeline.length - 1)) * chartWidth);
+      const y = padding + chartHeight - ((item.count / maxValue) * chartHeight);
+      return `${x},${y}`;
+    })
+    .join(' ');
+}
+
+function buildSeverityDistribution(projects) {
+  return projects.reduce(
+    (acc, project) => {
+      acc.critical += Number(project?.severity?.critical || 0);
+      acc.high += Number(project?.severity?.high || 0);
+      acc.medium += Number(project?.severity?.medium || 0);
+      acc.low += Number(project?.severity?.low || 0);
+      return acc;
+    },
+    {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+    },
+  );
+}
+
+function withUpdatedStatValue(stat, {
+  projectCount,
+  totalIssues,
+  averageScore,
+}) {
   if (stat.label === 'Proyectos') {
     return { ...stat, value: projectCount };
   }
@@ -90,16 +246,33 @@ function withUpdatedStatValue(stat, { projectCount, totalIssues, averageScore })
 export default function DashboardHomePage() {
   const { user } = useAuth();
   const displayName = user?.nombre || user?.name || 'Usuario';
+  const [dateRange, setDateRange] = useState(() => createDefaultDateRange());
+  const [dateFilter, setDateFilter] = useState(() => createDefaultDateRange());
 
   const [projects, setProjects] = useState([]);
+  const [projectsForCharts, setProjectsForCharts] = useState([]);
   const [projectCount, setProjectCount] = useState(0);
   const [totalIssues, setTotalIssues] = useState(0);
   const [averageScore, setAverageScore] = useState(0);
+  const [runsInRange, setRunsInRange] = useState([]);
+  const [statusCounts, setStatusCounts] = useState({
+    PENDING: 0,
+    RUNNING: 0,
+    DONE: 0,
+    FAILED: 0,
+    CANCELED: 0,
+  });
+  const [runsLoading, setRunsLoading] = useState(true);
+  const [runsError, setRunsError] = useState('');
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectsError, setProjectsError] = useState('');
 
   const stats = useMemo(
-    () => staticStats.map((stat) => withUpdatedStatValue(stat, { projectCount, totalIssues, averageScore })),
+    () => staticStats.map((stat) => withUpdatedStatValue(stat, {
+      projectCount,
+      totalIssues,
+      averageScore,
+    })),
     [projectCount, totalIssues, averageScore],
   );
 
@@ -110,13 +283,33 @@ export default function DashboardHomePage() {
         const response = await getProjects();
         if (!isMounted) return;
         const items = Array.isArray(response?.results) ? response.results : [];
-        setProjects(
-          items.map((project) => ({
+        const mappedProjects = items
+          .map((project) => ({
             id: String(project.id),
             name: project.name,
             filesCount: Number(project?.severity_summary?.total || 0),
             score: Number.isFinite(project?.quality_score) ? project.quality_score : 0,
             lastActivity: formatLastActivity(project.updated_at || project.created_at),
+            lastActivityRaw: project.updated_at || project.created_at || '',
+          }))
+          .sort((left, right) => {
+            const leftTime = new Date(left.lastActivityRaw).getTime();
+            const rightTime = new Date(right.lastActivityRaw).getTime();
+            return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+          })
+          .slice(0, 3);
+        setProjects(mappedProjects);
+        setProjectsForCharts(
+          items.map((project) => ({
+            id: String(project.id),
+            name: project.name,
+            score: Number.isFinite(project?.quality_score) ? project.quality_score : 0,
+            severity: {
+              critical: Number(project?.severity_summary?.critical || 0),
+              high: Number(project?.severity_summary?.high || 0),
+              medium: Number(project?.severity_summary?.medium || 0),
+              low: Number(project?.severity_summary?.low || 0),
+            },
           })),
         );
         setProjectCount(response?.count ?? items.length);
@@ -147,6 +340,94 @@ export default function DashboardHomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRunsMetrics() {
+      setRunsLoading(true);
+      setRunsError('');
+      try {
+        let nextPage = 1;
+        let hasMore = true;
+        const nextStatusCounts = {
+          PENDING: 0,
+          RUNNING: 0,
+          DONE: 0,
+          FAILED: 0,
+          CANCELED: 0,
+        };
+        const filteredRuns = [];
+        const fromDate = toRangeDate(dateRange.from, '00:00:00');
+        const toDate = toRangeDate(dateRange.to, '23:59:59');
+        while (hasMore && nextPage <= 20) {
+          const response = await listAnalysisRuns({ page: nextPage });
+          const items = Array.isArray(response?.results) ? response.results : [];
+          const rangeItems = items.filter((run) => {
+            const referenceDate = run?.finished_at || run?.started_at || run?.created_at;
+            if (!referenceDate) return false;
+            const runDate = new Date(referenceDate);
+            if (Number.isNaN(runDate.getTime())) return false;
+            if (fromDate && runDate < fromDate) return false;
+            if (toDate && runDate > toDate) return false;
+            return true;
+          });
+          rangeItems.forEach((run) => {
+            const normalizedStatus = normalizeRunStatus(run?.status);
+            nextStatusCounts[normalizedStatus] += 1;
+          });
+          filteredRuns.push(...rangeItems);
+          hasMore = Boolean(response?.next);
+          nextPage += 1;
+        }
+        if (isMounted) {
+          setStatusCounts(nextStatusCounts);
+          setRunsInRange(filteredRuns);
+        }
+      } catch (err) {
+        if (isMounted) {
+          const data = err.response?.data;
+          const message = data?.detail || data?.message || 'No se pudieron cargar las metricas de analisis.';
+          setRunsError(message);
+          setRunsInRange([]);
+          setStatusCounts({
+            PENDING: 0,
+            RUNNING: 0,
+            DONE: 0,
+            FAILED: 0,
+            CANCELED: 0,
+          });
+        }
+      } finally {
+        if (isMounted) setRunsLoading(false);
+      }
+    }
+    loadRunsMetrics();
+    return () => {
+      isMounted = false;
+    };
+  }, [dateRange]);
+
+  const donutData = useMemo(() => buildDonutSegments(statusCounts), [statusCounts]);
+  const runsTimeline = useMemo(
+    () => buildRunsTimeline(runsInRange, dateRange.from, dateRange.to),
+    [runsInRange, dateRange.from, dateRange.to],
+  );
+  const lineChartPoints = useMemo(
+    () => buildLineChartPoints(runsTimeline, 460, 180, 20),
+    [runsTimeline],
+  );
+  const severityDistribution = useMemo(
+    () => buildSeverityDistribution(projectsForCharts),
+    [projectsForCharts],
+  );
+  const topProjectsByScore = useMemo(
+    () => [...projectsForCharts].sort((a, b) => b.score - a.score).slice(0, 5),
+    [projectsForCharts],
+  );
+  const maxTopScore = useMemo(
+    () => Math.max(1, ...topProjectsByScore.map((project) => Number(project.score || 0))),
+    [topProjectsByScore],
+  );
+
   return (
     <div className="dash-home">
       {/* Welcome */}
@@ -174,6 +455,157 @@ export default function DashboardHomePage() {
             </div>
           </article>
         ))}
+      </section>
+
+      <section className="dash-chart-card" aria-label="Graficas de analisis">
+        <header className="dash-section-header">
+          <h2>Estados de analisis</h2>
+        </header>
+
+        <form
+          className="dash-chart-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setDateRange(dateFilter);
+          }}
+        >
+          <label htmlFor="dash-date-from">
+            Desde
+            <input
+              id="dash-date-from"
+              type="date"
+              value={dateFilter.from}
+              onChange={(e) => setDateFilter((prev) => ({ ...prev, from: e.target.value }))}
+            />
+          </label>
+          <label htmlFor="dash-date-to">
+            Hasta
+            <input
+              id="dash-date-to"
+              type="date"
+              value={dateFilter.to}
+              onChange={(e) => setDateFilter((prev) => ({ ...prev, to: e.target.value }))}
+            />
+          </label>
+          <button type="submit">Aplicar filtro</button>
+        </form>
+
+        {runsError ? <p className="dash-welcome-sub">{runsError}</p> : null}
+
+        <div className="dash-chart-grid">
+          <article className="dash-chart-panel">
+            <h3 className="dash-chart-title">Estados de analisis</h3>
+            <div className="dash-chart-layout">
+              <div className="dash-donut-wrap">
+                {runsLoading ? (
+                  <p className="dash-welcome-sub">Cargando grafica...</p>
+                ) : donutData.total === 0 ? (
+                  <p className="dash-welcome-sub">No hay analisis en el rango seleccionado.</p>
+                ) : (
+                  <svg className="dash-donut-chart" viewBox="0 0 180 180" role="img" aria-label="Distribucion de estados de analisis">
+                    <g transform="translate(90 90) rotate(-90)">
+                      <circle r="66" fill="none" stroke="#eef2f7" strokeWidth="22" />
+                      {donutData.circles.map((segment) => (
+                        <circle
+                          key={segment.status}
+                          r="66"
+                          fill="none"
+                          stroke={segment.color}
+                          strokeWidth="22"
+                          strokeDasharray={segment.dashArray}
+                          strokeDashoffset={segment.dashOffset}
+                          strokeLinecap="butt"
+                        />
+                      ))}
+                    </g>
+                    <text x="90" y="84" textAnchor="middle" className="dash-donut-total-label">Total</text>
+                    <text x="90" y="106" textAnchor="middle" className="dash-donut-total-value">{donutData.total}</text>
+                  </svg>
+                )}
+              </div>
+
+              <ul className="dash-donut-legend" aria-label="Leyenda de estados">
+                {donutData.entries.map((entry) => (
+                  <li key={entry.status}>
+                    <span className="dash-donut-dot" style={{ backgroundColor: entry.color }} />
+                    <span className="dash-donut-label">{entry.label}</span>
+                    <strong>{entry.value}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+
+          <article className="dash-chart-panel">
+            <h3 className="dash-chart-title">Tendencia diaria de ejecuciones</h3>
+            {runsLoading ? (
+              <p className="dash-welcome-sub">Cargando tendencia...</p>
+            ) : runsTimeline.length === 0 ? (
+              <p className="dash-welcome-sub">No hay puntos para la tendencia.</p>
+            ) : (
+              <svg className="dash-line-chart" viewBox="0 0 460 180" role="img" aria-label="Tendencia de analisis por dia">
+                <rect x="0" y="0" width="460" height="180" rx="12" fill="rgba(30,58,95,0.03)" />
+                <polyline
+                  fill="none"
+                  stroke="#1e3a5f"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  points={lineChartPoints}
+                />
+              </svg>
+            )}
+          </article>
+
+          <article className="dash-chart-panel">
+            <h3 className="dash-chart-title">Hallazgos por severidad</h3>
+            <div className="dash-bars">
+              {[
+                ['Criticos', severityDistribution.critical, '#b91c1c'],
+                ['Altos', severityDistribution.high, '#ef4444'],
+                ['Medios', severityDistribution.medium, '#f59e0b'],
+                ['Bajos', severityDistribution.low, '#10b981'],
+              ].map(([label, value, color]) => (
+                <div className="dash-bar-row" key={String(label)}>
+                  <span>{label}</span>
+                  <div className="dash-bar-track">
+                    <div
+                      className="dash-bar-fill"
+                      style={{
+                        width: `${Math.min(100, (Number(value) / Math.max(1, totalIssues)) * 100)}%`,
+                        background: String(color),
+                      }}
+                    />
+                  </div>
+                  <strong>{Number(value)}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="dash-chart-panel">
+            <h3 className="dash-chart-title">Top proyectos por score</h3>
+            <div className="dash-bars">
+              {topProjectsByScore.length === 0 ? (
+                <p className="dash-welcome-sub">No hay proyectos para mostrar.</p>
+              ) : topProjectsByScore.map((project) => (
+                <div className="dash-bar-row" key={project.id}>
+                  <span className="dash-bar-project-name">{project.name}</span>
+                  <div className="dash-bar-track">
+                    <div
+                      className="dash-bar-fill"
+                      style={{
+                        width: `${Math.min(100, (Number(project.score || 0) / maxTopScore) * 100)}%`,
+                        background: '#1e3a5f',
+                      }}
+                    />
+                  </div>
+                  <strong>{project.score}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
       </section>
 
       {/* Recent Projects */}

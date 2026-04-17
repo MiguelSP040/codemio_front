@@ -121,6 +121,7 @@ function renderProjectsListContent({
   qualityTone,
   requestDelete,
   isAdmin,
+  currentUserEmail,
 }) {
   if (loadingList) {
     return <p className="projects-analysis-time">Cargando proyectos...</p>;
@@ -141,6 +142,9 @@ function renderProjectsListContent({
   return projects.map((project) => {
     const isSelected = selectedId === project.id;
     const isEditing = editingId === project.id;
+    const isReadOnlyForAdmin = isAdmin
+      && Boolean(project.ownerEmail)
+      && project.ownerEmail.toLowerCase() !== currentUserEmail.toLowerCase();
     return (
       <article
         className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
@@ -213,6 +217,9 @@ function renderProjectsListContent({
             {isAdmin && project.ownerEmail ? (
               <p className="projects-analysis-time">Propietario: {project.ownerEmail}</p>
             ) : null}
+            {isReadOnlyForAdmin ? (
+              <span className="projects-readonly-badge">Solo lectura</span>
+            ) : null}
             <p className="projects-analysis-time">{project.lastAnalysis}</p>
             <div className="projects-severity-row" aria-label={`Resumen de severidad de ${project.name}`}>
               <span className="projects-severity-chip projects-severity-chip--critical">
@@ -238,32 +245,36 @@ function renderProjectsListContent({
             <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
               Abrir dashboard
             </Link>
-            <button
-              type="button"
-              className="projects-card-btn projects-card-btn--edit"
-              onClick={(e) => { e.stopPropagation(); startEditName(project); }}
-              aria-label={`Editar nombre de ${project.name}`}
-              title="Editar nombre"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-              Editar
-            </button>
-            <button
-              type="button"
-              className="projects-card-btn projects-card-btn--delete"
-              onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
-              aria-label={`Eliminar proyecto ${project.name}`}
-              title="Eliminar proyecto"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-              Eliminar
-            </button>
+            {!isReadOnlyForAdmin ? (
+              <>
+                <button
+                  type="button"
+                  className="projects-card-btn projects-card-btn--edit"
+                  onClick={(e) => { e.stopPropagation(); startEditName(project); }}
+                  aria-label={`Editar nombre de ${project.name}`}
+                  title="Editar nombre"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="projects-card-btn projects-card-btn--delete"
+                  onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
+                  aria-label={`Eliminar proyecto ${project.name}`}
+                  title="Eliminar proyecto"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Eliminar
+                </button>
+              </>
+            ) : null}
           </div>
         )}
       </article>
@@ -283,6 +294,7 @@ async function hasValidZipSignature(file) {
 export default function ProjectsPage() {
   const { user } = useAuth();
   const isAdmin = (user?.rol || user?.role) === 'admin';
+  const currentUserEmail = String(user?.correo || user?.email || '').toLowerCase();
   const [projects, setProjects] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState('');
@@ -310,6 +322,11 @@ export default function ProjectsPage() {
   const [uploadingAnalysis, setUploadingAnalysis] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
+  const selectedProjectReadOnly = Boolean(
+    isAdmin
+      && selectedProject?.ownerEmail
+      && selectedProject.ownerEmail.toLowerCase() !== currentUserEmail,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -578,6 +595,7 @@ export default function ProjectsPage() {
             qualityTone,
             requestDelete,
             isAdmin,
+            currentUserEmail,
           })}
         </section>
 
@@ -743,19 +761,27 @@ export default function ProjectsPage() {
 
               <div className="pj-upload-section">
                 <h3 className="pj-upload-title">Subir archivos para analizar</h3>
-                <p className="pj-upload-sub">
-                  Archivos .java individuales o un .zip con tu proyecto.
-                </p>
-                <FileUpload
-                  projectName={selectedProject.name}
-                  disabled={uploadingAnalysis}
-                  acceptedExtensions={UPLOAD_ALLOWED_EXTENSIONS}
-                  maxFileSizeMB={MAX_UPLOAD_SIZE_MB}
-                  maxZipSizeMB={MAX_UPLOAD_SIZE_MB}
-                  maxTotalSizeMB={MAX_UPLOAD_TOTAL_MB}
-                  submitLabel={uploadingAnalysis ? 'Enviando...' : 'Subir archivos'}
-                  onSubmit={handleUploadFiles}
-                />
+                {selectedProjectReadOnly ? (
+                  <p className="pj-upload-sub">
+                    Este proyecto es de solo lectura para administradores.
+                  </p>
+                ) : (
+                  <>
+                    <p className="pj-upload-sub">
+                      Archivos .java individuales o un .zip con tu proyecto.
+                    </p>
+                    <FileUpload
+                      projectName={selectedProject.name}
+                      disabled={uploadingAnalysis}
+                      acceptedExtensions={UPLOAD_ALLOWED_EXTENSIONS}
+                      maxFileSizeMB={MAX_UPLOAD_SIZE_MB}
+                      maxZipSizeMB={MAX_UPLOAD_SIZE_MB}
+                      maxTotalSizeMB={MAX_UPLOAD_TOTAL_MB}
+                      submitLabel={uploadingAnalysis ? 'Enviando...' : 'Subir archivos'}
+                      onSubmit={handleUploadFiles}
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}
