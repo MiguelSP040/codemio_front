@@ -6,7 +6,7 @@ const PROFILE_AGE_MIN = 1;
 const PROFILE_AGE_MAX = 120;
 
 // Bloquea tags HTML y caracteres de control comunes.
-const HAS_HTML_TAG_RE = /<\s*\/?\s*[a-zA-Z][^>]*>/;
+const HAS_HTML_TAG_RE = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>/;
 const HAS_CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/;
 
 export function isValidOtp(value) {
@@ -15,8 +15,12 @@ export function isValidOtp(value) {
 
 export function sanitizePlainText(value) {
   const raw = (value ?? '').toString();
-  // Elimina tags y recorta; esto no pretende “renderizar seguro”, sino evitar enviar basura/HTML.
-  const withoutTags = raw.replace(/<[^>]*>/g, '');
+  
+  if (raw.length > 10000) {
+    return raw.slice(0, 10000).trim();
+  }
+  
+  const withoutTags = raw.replace(/<[^>]{0,1000}>/g, '');
   return withoutTags.replace(HAS_CONTROL_CHARS_RE, '').trim();
 }
 
@@ -63,4 +67,3 @@ export function validatePerfilGithub(value, { required = false } = {}) {
   if (cleaned.length > 255) return 'El perfil de GitHub es demasiado largo.';
   return '';
 }
-
