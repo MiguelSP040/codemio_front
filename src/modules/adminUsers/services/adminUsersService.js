@@ -1,12 +1,15 @@
 import axios from 'axios';
 import API_BASE_URL from '../../../config/api';
 
+const AUTH_STORAGE_KEY = 'codemio_auth';
+const LEGACY_AUTH_STORAGE_KEY = 'auth';
+
 function getAccessToken() {
-  const raw = localStorage.getItem('auth');
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    return parsed?.token || null;
+    return parsed?.accessToken || parsed?.token || parsed?.tokens?.access_token || null;
   } catch {
     return null;
   }
