@@ -98,6 +98,172 @@ function validateUploadBatch(filesToUpload) {
   return errors;
 }
 
+function renderProjectsListContent({
+  loadingList,
+  listError,
+  projects,
+  openCreate,
+  editingId,
+  draftName,
+  selectedId,
+  handleCardClick,
+  handleCardKey,
+  setDraftName,
+  handleNameKeyDown,
+  editingLoading,
+  nameError,
+  saveProjectName,
+  cancelEditName,
+  startEditName,
+  qualityTone,
+  requestDelete,
+}) {
+  if (loadingList) {
+    return <p className="projects-analysis-time">Cargando proyectos...</p>;
+  }
+  if (listError) {
+    return <p className="projects-analysis-time">{listError}</p>;
+  }
+  if (projects.length === 0) {
+    return (
+      <div className="projects-empty">
+        <p>No tienes proyectos aun.</p>
+        <button type="button" className="projects-create-btn" onClick={openCreate}>
+          Crear tu primer proyecto
+        </button>
+      </div>
+    );
+  }
+  return projects.map((project) => {
+    const isSelected = selectedId === project.id;
+    const isEditing = editingId === project.id;
+    return (
+      <article
+        className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
+        key={project.id}
+        onClick={(e) => {
+          if (isEditing) return;
+          handleCardClick(project, e);
+        }}
+        onKeyDown={(e) => {
+          if (isEditing) return;
+          handleCardKey(project, e);
+        }}
+        role={isEditing ? undefined : 'button'}
+        tabIndex={isEditing ? -1 : 0}
+        aria-pressed={!isEditing && isSelected}
+      >
+        {isEditing ? (
+          <div
+            className="projects-card-edit"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
+              Nombre del proyecto
+            </label>
+            <input
+              id={`pj-edit-${project.id}`}
+              type="text"
+              className="pj-input"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => handleNameKeyDown(e, project.id)}
+              maxLength={100}
+              disabled={editingLoading}
+              autoFocus
+            />
+            {nameError ? (
+              <span className="pj-field-error" role="alert">{nameError}</span>
+            ) : (
+              <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+            )}
+            <div className="projects-card-edit-actions">
+              <button
+                type="button"
+                className="pj-btn pj-btn--primary"
+                onClick={() => saveProjectName(project.id)}
+                disabled={draftName.trim().length < 3 || editingLoading}
+              >
+                {editingLoading ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button
+                type="button"
+                className="pj-btn pj-btn--ghost"
+                onClick={cancelEditName}
+                disabled={editingLoading}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="projects-card-heading">
+              <h2>{project.name}</h2>
+              <span className={`projects-quality ${qualityTone(project.qualityScore)}`}>
+                {project.qualityScore === null ? 'Sin score' : `Score ${project.qualityScore}`}
+              </span>
+            </div>
+            {project.description && <p>{project.description}</p>}
+            <p className="projects-analysis-time">{project.lastAnalysis}</p>
+            <div className="projects-severity-row" aria-label={`Resumen de severidad de ${project.name}`}>
+              <span className="projects-severity-chip projects-severity-chip--critical">
+                C {project.severitySummary.critical}
+              </span>
+              <span className="projects-severity-chip projects-severity-chip--high">
+                A {project.severitySummary.high}
+              </span>
+              <span className="projects-severity-chip projects-severity-chip--medium">
+                M {project.severitySummary.medium}
+              </span>
+              <span className="projects-severity-chip projects-severity-chip--low">
+                B {project.severitySummary.low}
+              </span>
+              <span className="projects-severity-total">
+                Total {project.severitySummary.total}
+              </span>
+            </div>
+          </>
+        )}
+        {!isEditing && (
+          <div className="projects-card-actions">
+            <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
+              Abrir dashboard
+            </Link>
+            <button
+              type="button"
+              className="projects-card-btn projects-card-btn--edit"
+              onClick={(e) => { e.stopPropagation(); startEditName(project); }}
+              aria-label={`Editar nombre de ${project.name}`}
+              title="Editar nombre"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Editar
+            </button>
+            <button
+              type="button"
+              className="projects-card-btn projects-card-btn--delete"
+              onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
+              aria-label={`Eliminar proyecto ${project.name}`}
+              title="Eliminar proyecto"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  });
+}
+
 async function hasValidZipSignature(file) {
   try {
     const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
@@ -384,147 +550,26 @@ export default function ProjectsPage() {
       <div className="projects-split projects-split--open">
         {/* Left: project list */}
         <section className="projects-list" aria-label="Lista de proyectos">
-          {loadingList ? (
-            <p className="projects-analysis-time">Cargando proyectos...</p>
-          ) : listError ? (
-            <p className="projects-analysis-time">{listError}</p>
-          ) : projects.length === 0 ? (
-            <div className="projects-empty">
-              <p>No tienes proyectos aun.</p>
-              <button type="button" className="projects-create-btn" onClick={openCreate}>
-                Crear tu primer proyecto
-              </button>
-            </div>
-          ) : (
-            projects.map((project) => {
-              const isSelected = selectedId === project.id;
-              const isEditing = editingId === project.id;
-              return (
-                <article
-                  className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
-                  key={project.id}
-                  onClick={(e) => {
-                    if (isEditing) return;
-                    handleCardClick(project, e);
-                  }}
-                  onKeyDown={(e) => {
-                    if (isEditing) return;
-                    handleCardKey(project, e);
-                  }}
-                  role={isEditing ? undefined : 'button'}
-                  tabIndex={isEditing ? -1 : 0}
-                  aria-pressed={!isEditing && isSelected}
-                >
-                  {isEditing ? (
-                    <div
-                      className="projects-card-edit"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
-                      <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
-                        Nombre del proyecto
-                      </label>
-                      <input
-                        id={`pj-edit-${project.id}`}
-                        type="text"
-                        className="pj-input"
-                        value={draftName}
-                        onChange={(e) => setDraftName(e.target.value)}
-                        onKeyDown={(e) => handleNameKeyDown(e, project.id)}
-                        maxLength={100}
-                        disabled={editingLoading}
-                        autoFocus
-                      />
-                      {nameError ? (
-                        <span className="pj-field-error" role="alert">{nameError}</span>
-                      ) : (
-                        <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
-                      )}
-                      <div className="projects-card-edit-actions">
-                        <button
-                          type="button"
-                          className="pj-btn pj-btn--primary"
-                          onClick={() => saveProjectName(project.id)}
-                          disabled={draftName.trim().length < 3 || editingLoading}
-                        >
-                          {editingLoading ? 'Guardando...' : 'Guardar'}
-                        </button>
-                        <button
-                          type="button"
-                          className="pj-btn pj-btn--ghost"
-                          onClick={cancelEditName}
-                          disabled={editingLoading}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="projects-card-heading">
-                        <h2>{project.name}</h2>
-                        <span className={`projects-quality ${qualityTone(project.qualityScore)}`}>
-                          {project.qualityScore === null ? 'Sin score' : `Score ${project.qualityScore}`}
-                        </span>
-                      </div>
-                      {project.description && <p>{project.description}</p>}
-                      <p className="projects-analysis-time">{project.lastAnalysis}</p>
-                      <div className="projects-severity-row" aria-label={`Resumen de severidad de ${project.name}`}>
-                        <span className="projects-severity-chip projects-severity-chip--critical">
-                          C {project.severitySummary.critical}
-                        </span>
-                        <span className="projects-severity-chip projects-severity-chip--high">
-                          A {project.severitySummary.high}
-                        </span>
-                        <span className="projects-severity-chip projects-severity-chip--medium">
-                          M {project.severitySummary.medium}
-                        </span>
-                        <span className="projects-severity-chip projects-severity-chip--low">
-                          B {project.severitySummary.low}
-                        </span>
-                        <span className="projects-severity-total">
-                          Total {project.severitySummary.total}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {!isEditing && (
-                    <div className="projects-card-actions">
-                      <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
-                        Abrir dashboard
-                      </Link>
-                      <button
-                        type="button"
-                        className="projects-card-btn projects-card-btn--edit"
-                        onClick={(e) => { e.stopPropagation(); startEditName(project); }}
-                        aria-label={`Editar nombre de ${project.name}`}
-                        title="Editar nombre"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="projects-card-btn projects-card-btn--delete"
-                        onClick={(e) => { e.stopPropagation(); requestDelete(project); }}
-                        aria-label={`Eliminar proyecto ${project.name}`}
-                        title="Eliminar proyecto"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                        Eliminar
-                      </button>
-                    </div>
-                  )}
-                </article>
-              );
-            })
-          )}
+          {renderProjectsListContent({
+            loadingList,
+            listError,
+            projects,
+            openCreate,
+            editingId,
+            draftName,
+            selectedId,
+            handleCardClick,
+            handleCardKey,
+            setDraftName,
+            handleNameKeyDown,
+            editingLoading,
+            nameError,
+            saveProjectName,
+            cancelEditName,
+            startEditName,
+            qualityTone,
+            requestDelete,
+          })}
         </section>
 
         {/* Right: contextual panel (always visible) */}

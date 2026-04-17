@@ -61,6 +61,24 @@ function analysisStatusLabel(analysisStatus) {
   return 'Sin iniciar';
 }
 
+function resolveAnalysisStatus(runStatus, { qualityGateFailed, qualityGateWarn }) {
+  if (runStatus === 'DONE') {
+    if (qualityGateFailed || qualityGateWarn) return 'completed_with_warnings';
+    return 'completed';
+  }
+  if (runStatus === 'RUNNING') return 'processing';
+  if (runStatus === 'CANCELED') return 'canceled';
+  if (runStatus === 'FAILED') return 'error';
+  return 'queued';
+}
+
+function resolveQualityGateMessage(runStatus, { qualityGateFailed, qualityGateWarn }) {
+  if (runStatus !== 'DONE') return '';
+  if (qualityGateFailed) return 'El análisis terminó, pero no pasó el Quality Gate.';
+  if (qualityGateWarn) return 'El análisis terminó con observaciones de calidad.';
+  return '';
+}
+
 function mapRunToFile(run) {
   const findings = Array.isArray(run?.findings) ? run.findings : [];
   const metrics = run?.metrics || {};
@@ -82,12 +100,10 @@ function mapRunToFile(run) {
       : '';
   const failedMessage = failedMessageRaw ? failedMessageRaw.split('\n')[0] : '';
   const canceledMessage = run?.status === 'CANCELED' ? 'El análisis fue cancelado.' : '';
-  const qualityGateMessage =
-    run?.status === 'DONE' && qualityGateFailed
-      ? 'El análisis terminó, pero no pasó el Quality Gate.'
-      : run?.status === 'DONE' && qualityGateWarn
-        ? 'El análisis terminó con observaciones de calidad.'
-      : '';
+  const qualityGateMessage = resolveQualityGateMessage(run?.status, {
+    qualityGateFailed,
+    qualityGateWarn,
+  });
   const statusMessage = failedMessage || canceledMessage || qualityGateMessage;
   const shortDescription = statusMessage
     ? `Estado: ${run.status}. ${statusMessage}`
@@ -100,16 +116,7 @@ function mapRunToFile(run) {
     filePath: run.original_filename || '',
     shortDescription,
     score: Math.max(0, 100 - bugs - vulnerabilities - codeSmells),
-    analysisStatus:
-      run.status === 'DONE'
-        ? (qualityGateFailed || qualityGateWarn ? 'completed_with_warnings' : 'completed')
-        : run.status === 'RUNNING'
-          ? 'processing'
-          : run.status === 'CANCELED'
-            ? 'canceled'
-          : run.status === 'FAILED'
-            ? 'error'
-            : 'queued',
+    analysisStatus: resolveAnalysisStatus(run.status, { qualityGateFailed, qualityGateWarn }),
     lastUpdated: run.finished_at || run.started_at || run.created_at || '',
     failureMessage: statusMessage,
     summaryCards: [

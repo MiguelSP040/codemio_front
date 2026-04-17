@@ -74,6 +74,19 @@ function formatLastActivity(value) {
   return new Date(value).toLocaleString('es-MX');
 }
 
+function withUpdatedStatValue(stat, { projectCount, totalIssues, averageScore }) {
+  if (stat.label === 'Proyectos') {
+    return { ...stat, value: projectCount };
+  }
+  if (stat.label === 'Problemas detectados') {
+    return { ...stat, value: totalIssues };
+  }
+  if (stat.label === 'Score promedio') {
+    return { ...stat, value: averageScore };
+  }
+  return stat;
+}
+
 export default function DashboardHomePage() {
   const { user } = useAuth();
   const displayName = user?.nombre || user?.name || 'Usuario';
@@ -86,16 +99,7 @@ export default function DashboardHomePage() {
   const [projectsError, setProjectsError] = useState('');
 
   const stats = useMemo(
-    () =>
-      staticStats.map((stat) =>
-        stat.label === 'Proyectos'
-          ? { ...stat, value: projectCount }
-          : stat.label === 'Problemas detectados'
-            ? { ...stat, value: totalIssues }
-            : stat.label === 'Score promedio'
-              ? { ...stat, value: averageScore }
-              : stat,
-      ),
+    () => staticStats.map((stat) => withUpdatedStatValue(stat, { projectCount, totalIssues, averageScore })),
     [projectCount, totalIssues, averageScore],
   );
 
