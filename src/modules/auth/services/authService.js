@@ -1,7 +1,6 @@
 import axios from 'axios';
 import API_BASE_URL from '../../../config/api';
-
-const AUTH_STORAGE_KEY = 'codemio_auth';
+import { saveSessionFromAuthPayload } from './sessionService';
 
 const authApi = axios.create({
   baseURL: API_BASE_URL,
@@ -9,19 +8,7 @@ const authApi = axios.create({
 });
 
 function saveSession(payload) {
-  const tokens = payload?.tokens;
-  if (!tokens?.access_token) return;
-
-  localStorage.setItem(
-    AUTH_STORAGE_KEY,
-    JSON.stringify({
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token || null,
-      tokenType: tokens.token_type || 'Bearer',
-      expiresIn: tokens.expires_in ?? null,
-      user: payload?.usuario || null,
-    }),
-  );
+  saveSessionFromAuthPayload(payload);
 }
 
 /**

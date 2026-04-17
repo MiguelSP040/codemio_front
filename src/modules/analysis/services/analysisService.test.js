@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import axios from 'axios';
 import { createAnalysisRun, listAnalysisRuns } from './analysisService';
+import apiClient from '../../../services/apiClient';
 
-vi.mock('axios', () => ({
+vi.mock('../../../services/apiClient', () => ({
   default: {
-    create: vi.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -36,24 +37,27 @@ describe('analysisService', () => {
     await expect(listAnalysisRuns({ projectId: '1' })).rejects.toThrow(
       'Sesion expirada. Inicia sesion nuevamente.',
     );
-    expect(axios.create).not.toHaveBeenCalled();
+    expect(apiClient.get).not.toHaveBeenCalled();
   });
 
-  it('sends bearer token when creating analysis run', async () => {
+  it('calls analysis endpoint when creating analysis run', async () => {
     localStorage.setItem(
       'codemio_auth',
       JSON.stringify({ accessToken: 'token-123' }),
     );
-    const post = vi.fn().mockResolvedValue({ data: { id: 10 } });
-    axios.create.mockReturnValue({ post });
+    apiClient.post.mockResolvedValue({ data: { id: 10 } });
 
     const file = new Blob(['class Main {}'], { type: 'text/plain' });
     await createAnalysisRun({ projectId: 99, sourceFile: file });
 
-    expect(axios.create).toHaveBeenCalledWith({
-      baseURL: expect.any(String),
-      headers: { Authorization: 'Bearer token-123' },
-    });
-    expect(post).toHaveBeenCalledOnce();
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/analysis/runs/',
+      expect.any(FormData),
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
+    );
   });
 });

@@ -1,6 +1,8 @@
 import axios from 'axios';
 import API_BASE_URL from '../../../config/api';
 import { encryptProfilePayload } from './payloadCrypto';
+import { getAccessToken } from './sessionService';
+import apiClient from '../../../services/apiClient';
 
 /**
  * Servicios del flujo de onboarding de Codemio.
@@ -15,24 +17,10 @@ import { encryptProfilePayload } from './payloadCrypto';
  *                                                   header: Authorization: Bearer <access_token>
  */
 
-const AUTH_STORAGE_KEY = 'codemio_auth';
-
 const authApi = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
-
-function getAccessToken() {
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!raw) return null;
-
-  try {
-    const session = JSON.parse(raw);
-    return session?.accessToken || null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Fase A.1 — Envía (o reenvía) el código OTP al correo del usuario.
@@ -95,9 +83,7 @@ export async function completeProfile({ nombre, edad, perfil_github }) {
     throw err;
   }
 
-  const { data: publicKeyPayload } = await authApi.get('/auth/payload-public-key/', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const { data: publicKeyPayload } = await apiClient.get('/auth/payload-public-key/');
 
   const encryptedPayload = await encryptProfilePayload(
     {
@@ -108,12 +94,9 @@ export async function completeProfile({ nombre, edad, perfil_github }) {
     publicKeyPayload,
   );
 
-  const { data } = await authApi.patch(
+  const { data } = await apiClient.patch(
     '/users/me/',
     encryptedPayload,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
   );
 
   return data;

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import axios from 'axios';
 import { listUsers } from './adminUsersService';
+import apiClient from '../../../services/apiClient';
 
-vi.mock('axios', () => ({
+vi.mock('../../../services/apiClient', () => ({
   default: {
-    create: vi.fn(),
+    get: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -32,35 +34,21 @@ describe('adminUsersService', () => {
     globalThis.localStorage = new LocalStorageMock();
   });
 
-  it('uses token from codemio_auth storage', async () => {
+  it('calls users endpoint with active session', async () => {
     localStorage.setItem('codemio_auth', JSON.stringify({ accessToken: 'new-token' }));
-    const get = vi.fn().mockResolvedValue({ data: [] });
-    axios.create.mockReturnValue({ get });
+    apiClient.get.mockResolvedValue({ data: [] });
 
     await listUsers();
 
-    expect(axios.create).toHaveBeenCalledWith({
-      baseURL: expect.any(String),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer new-token',
-      },
-    });
+    expect(apiClient.get).toHaveBeenCalledWith('/users/');
   });
 
-  it('falls back to legacy auth token format', async () => {
+  it('calls users endpoint with legacy session payload', async () => {
     localStorage.setItem('auth', JSON.stringify({ token: 'legacy-token' }));
-    const get = vi.fn().mockResolvedValue({ data: [] });
-    axios.create.mockReturnValue({ get });
+    apiClient.get.mockResolvedValue({ data: [] });
 
     await listUsers();
 
-    expect(axios.create).toHaveBeenCalledWith({
-      baseURL: expect.any(String),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer legacy-token',
-      },
-    });
+    expect(apiClient.get).toHaveBeenCalledWith('/users/');
   });
 });
