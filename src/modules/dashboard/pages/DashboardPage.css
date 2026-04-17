@@ -374,6 +374,10 @@
   color: var(--color-text-light);
 }
 
+.dashboard-section-empty {
+  padding: var(--space-lg);
+}
+
 .dashboard-findings-table-wrap {
   overflow-x: auto;
 }

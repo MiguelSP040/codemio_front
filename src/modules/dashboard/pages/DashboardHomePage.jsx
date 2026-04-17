@@ -71,6 +71,19 @@ const staticStats = [
     color: 'var(--secondary-dark-green)',
     bg: 'rgba(46, 139, 87, 0.08)',
   },
+  {
+    label: 'Metodos sintacticos',
+    value: 0,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7h16" />
+        <path d="M4 12h10" />
+        <path d="M4 17h7" />
+      </svg>
+    ),
+    color: 'var(--color-secondary)',
+    bg: 'rgba(70, 130, 180, 0.12)',
+  },
 ];
 
 function getGreeting() {
@@ -230,6 +243,7 @@ function withUpdatedStatValue(stat, {
   projectCount,
   totalIssues,
   averageScore,
+  totalSyntacticMethods,
 }) {
   if (stat.label === 'Proyectos') {
     return { ...stat, value: projectCount };
@@ -239,6 +253,9 @@ function withUpdatedStatValue(stat, {
   }
   if (stat.label === 'Score promedio') {
     return { ...stat, value: averageScore };
+  }
+  if (stat.label === 'Metodos sintacticos') {
+    return { ...stat, value: totalSyntacticMethods };
   }
   return stat;
 }
@@ -254,6 +271,7 @@ export default function DashboardHomePage() {
   const [projectCount, setProjectCount] = useState(0);
   const [totalIssues, setTotalIssues] = useState(0);
   const [averageScore, setAverageScore] = useState(0);
+  const [totalSyntacticMethods, setTotalSyntacticMethods] = useState(0);
   const [runsInRange, setRunsInRange] = useState([]);
   const [statusCounts, setStatusCounts] = useState({
     PENDING: 0,
@@ -272,8 +290,9 @@ export default function DashboardHomePage() {
       projectCount,
       totalIssues,
       averageScore,
+      totalSyntacticMethods,
     })),
-    [projectCount, totalIssues, averageScore],
+    [projectCount, totalIssues, averageScore, totalSyntacticMethods],
   );
 
   useEffect(() => {
@@ -325,6 +344,11 @@ export default function DashboardHomePage() {
           : 0;
         setTotalIssues(issues);
         setAverageScore(avg);
+        setTotalSyntacticMethods(
+          items.reduce((acc, project) => (
+            acc + Number(project?.syntax_summary?.methods || 0)
+          ), 0),
+        );
       } catch (err) {
         if (!isMounted) return;
         const data = err.response?.data;

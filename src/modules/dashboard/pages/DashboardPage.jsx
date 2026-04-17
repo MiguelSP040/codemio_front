@@ -91,6 +91,14 @@ function mapRunToFile(run) {
   const duplicatedDensity = Number(
     run?.duplicated_lines_density ?? metrics?.duplicated_lines_density ?? 0,
   );
+  const classesCount = Number(run?.classes_count ?? metrics?.classes_count ?? 0);
+  const methodsCount = Number(run?.methods_count ?? metrics?.methods_count ?? 0);
+  const parametersCount = Number(run?.parameters_count ?? metrics?.parameters_count ?? 0);
+  const inheritanceCount = Number(run?.inheritance_count ?? metrics?.inheritance_count ?? 0);
+  const interclassCallsCount = Number(
+    run?.interclass_calls_count ?? metrics?.interclass_calls_count ?? 0,
+  );
+  const fileMetrics = Array.isArray(run?.file_metrics) ? run.file_metrics : [];
   const qualityGate = run?.quality_gate_status || metrics?.quality_gate_status || '';
   const normalizedQualityGate = String(qualityGate || '').toUpperCase();
   const qualityGateFailed = normalizedQualityGate === 'FAILED' || normalizedQualityGate === 'ERROR';
@@ -128,7 +136,27 @@ function mapRunToFile(run) {
       { label: 'Complejidad', value: complexity },
       { label: 'Cobertura', value: formatPercent(coverage) },
       { label: 'Duplicacion', value: formatPercent(duplicatedDensity) },
+      { label: 'Clases', value: classesCount },
+      { label: 'Metodos', value: methodsCount },
+      { label: 'Parametros', value: parametersCount },
+      { label: 'Herencias', value: inheritanceCount },
+      { label: 'Llamadas entre clases', value: interclassCallsCount },
     ],
+    syntaxMetrics: {
+      classesCount,
+      methodsCount,
+      parametersCount,
+      inheritanceCount,
+      interclassCallsCount,
+    },
+    fileMetrics: fileMetrics.map((item) => ({
+      filePath: item.file_path || '',
+      classesCount: Number(item.classes_count || 0),
+      methodsCount: Number(item.methods_count || 0),
+      parametersCount: Number(item.parameters_count || 0),
+      inheritanceCount: Number(item.inheritance_count || 0),
+      interclassCallsCount: Number(item.interclass_calls_count || 0),
+    })),
     findings: findings.map((finding) => ({
       severity: finding.severity || 'LOW',
       file: finding.file_path || run.original_filename || '',
@@ -408,6 +436,45 @@ export default function DashboardPage() {
                   <p className="dashboard-summary-value">{item.value}</p>
                 </article>
               ))}
+            </section>
+
+            <section className="dashboard-findings" aria-label="Metricas sintacticas por archivo">
+              <header className="dashboard-section-header">
+                <h2>Metricas sintacticas</h2>
+                <p>Clases, metodos, parametros, herencia y llamadas entre clases.</p>
+              </header>
+              {selectedAnalysis.fileMetrics.length === 0 ? (
+                <p className="dashboard-subtitle dashboard-section-empty">
+                  No hay detalle sintactico por archivo para este analisis.
+                </p>
+              ) : (
+                <div className="dashboard-findings-table-wrap">
+                  <table className="dashboard-findings-table">
+                    <thead>
+                      <tr>
+                        <th>Archivo</th>
+                        <th>Clases</th>
+                        <th>Metodos</th>
+                        <th>Parametros</th>
+                        <th>Herencia</th>
+                        <th>Llamadas entre clases</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedAnalysis.fileMetrics.map((metric) => (
+                        <tr key={metric.filePath}>
+                          <td>{metric.filePath}</td>
+                          <td>{metric.classesCount}</td>
+                          <td>{metric.methodsCount}</td>
+                          <td>{metric.parametersCount}</td>
+                          <td>{metric.inheritanceCount}</td>
+                          <td>{metric.interclassCallsCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
 
             <section className="dashboard-findings" aria-label="Hallazgos del análisis">
