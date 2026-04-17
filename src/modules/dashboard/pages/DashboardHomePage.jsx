@@ -182,11 +182,11 @@ function buildRunsTimeline(runs, fromInput, toInput) {
     return [];
   }
   const buckets = new Map();
-  const cursor = new Date(fromDate);
-  while (cursor <= toDate) {
+  let cursor = new Date(fromDate);
+  while (cursor.getTime() <= toDate.getTime()) {
     const key = formatDateInput(cursor);
     buckets.set(key, 0);
-    cursor.setDate(cursor.getDate() + 1);
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
   }
 
   runs.forEach((run) => {
@@ -451,6 +451,54 @@ export default function DashboardHomePage() {
     () => Math.max(1, ...topProjectsByScore.map((project) => Number(project.score || 0))),
     [topProjectsByScore],
   );
+  const hallazgosPorSeveridad = [
+    ['Criticos', severityDistribution.critical, '#b91c1c'],
+    ['Altos', severityDistribution.high, '#ef4444'],
+    ['Medios', severityDistribution.medium, '#f59e0b'],
+    ['Bajos', severityDistribution.low, '#10b981'],
+  ];
+  const donutContent = (() => {
+    if (runsLoading) return <p className="dash-welcome-sub">Cargando grafica...</p>;
+    if (donutData.total === 0) return <p className="dash-welcome-sub">No hay analisis en el rango seleccionado.</p>;
+    return (
+      <svg className="dash-donut-chart" viewBox="0 0 180 180" aria-label="Distribucion de estados de analisis">
+        <g transform="translate(90 90) rotate(-90)">
+          <circle r="66" fill="none" stroke="#eef2f7" strokeWidth="22" />
+          {donutData.circles.map((segment) => (
+            <circle
+              key={segment.status}
+              r="66"
+              fill="none"
+              stroke={segment.color}
+              strokeWidth="22"
+              strokeDasharray={segment.dashArray}
+              strokeDashoffset={segment.dashOffset}
+              strokeLinecap="butt"
+            />
+          ))}
+        </g>
+        <text x="90" y="84" textAnchor="middle" className="dash-donut-total-label">Total</text>
+        <text x="90" y="106" textAnchor="middle" className="dash-donut-total-value">{donutData.total}</text>
+      </svg>
+    );
+  })();
+  const trendContent = (() => {
+    if (runsLoading) return <p className="dash-welcome-sub">Cargando tendencia...</p>;
+    if (runsTimeline.length === 0) return <p className="dash-welcome-sub">No hay puntos para la tendencia.</p>;
+    return (
+      <svg className="dash-line-chart" viewBox="0 0 460 180" aria-label="Tendencia de analisis por dia">
+        <rect x="0" y="0" width="460" height="180" rx="12" fill="rgba(30,58,95,0.03)" />
+        <polyline
+          fill="none"
+          stroke="#1e3a5f"
+          strokeWidth="3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          points={lineChartPoints}
+        />
+      </svg>
+    );
+  })();
 
   return (
     <div className="dash-home">
@@ -521,31 +569,7 @@ export default function DashboardHomePage() {
             <h3 className="dash-chart-title">Estados de analisis</h3>
             <div className="dash-chart-layout">
               <div className="dash-donut-wrap">
-                {runsLoading ? (
-                  <p className="dash-welcome-sub">Cargando grafica...</p>
-                ) : donutData.total === 0 ? (
-                  <p className="dash-welcome-sub">No hay analisis en el rango seleccionado.</p>
-                ) : (
-                  <svg className="dash-donut-chart" viewBox="0 0 180 180" role="img" aria-label="Distribucion de estados de analisis">
-                    <g transform="translate(90 90) rotate(-90)">
-                      <circle r="66" fill="none" stroke="#eef2f7" strokeWidth="22" />
-                      {donutData.circles.map((segment) => (
-                        <circle
-                          key={segment.status}
-                          r="66"
-                          fill="none"
-                          stroke={segment.color}
-                          strokeWidth="22"
-                          strokeDasharray={segment.dashArray}
-                          strokeDashoffset={segment.dashOffset}
-                          strokeLinecap="butt"
-                        />
-                      ))}
-                    </g>
-                    <text x="90" y="84" textAnchor="middle" className="dash-donut-total-label">Total</text>
-                    <text x="90" y="106" textAnchor="middle" className="dash-donut-total-value">{donutData.total}</text>
-                  </svg>
-                )}
+                {donutContent}
               </div>
 
               <ul className="dash-donut-legend" aria-label="Leyenda de estados">
@@ -562,34 +586,13 @@ export default function DashboardHomePage() {
 
           <article className="dash-chart-panel">
             <h3 className="dash-chart-title">Tendencia diaria de ejecuciones</h3>
-            {runsLoading ? (
-              <p className="dash-welcome-sub">Cargando tendencia...</p>
-            ) : runsTimeline.length === 0 ? (
-              <p className="dash-welcome-sub">No hay puntos para la tendencia.</p>
-            ) : (
-              <svg className="dash-line-chart" viewBox="0 0 460 180" role="img" aria-label="Tendencia de analisis por dia">
-                <rect x="0" y="0" width="460" height="180" rx="12" fill="rgba(30,58,95,0.03)" />
-                <polyline
-                  fill="none"
-                  stroke="#1e3a5f"
-                  strokeWidth="3"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  points={lineChartPoints}
-                />
-              </svg>
-            )}
+            {trendContent}
           </article>
 
           <article className="dash-chart-panel">
             <h3 className="dash-chart-title">Hallazgos por severidad</h3>
             <div className="dash-bars">
-              {[
-                ['Criticos', severityDistribution.critical, '#b91c1c'],
-                ['Altos', severityDistribution.high, '#ef4444'],
-                ['Medios', severityDistribution.medium, '#f59e0b'],
-                ['Bajos', severityDistribution.low, '#10b981'],
-              ].map(([label, value, color]) => (
+              {hallazgosPorSeveridad.map(([label, value, color]) => (
                 <div className="dash-bar-row" key={String(label)}>
                   <span>{label}</span>
                   <div className="dash-bar-track">

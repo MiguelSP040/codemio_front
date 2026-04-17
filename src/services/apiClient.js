@@ -50,7 +50,7 @@ apiClient.interceptors.request.use((config) => {
   const next = { ...config };
   const token = getAccessToken();
   if (token && !next?.headers?.Authorization) {
-    next.headers = { ...(next.headers || {}), Authorization: `Bearer ${token}` };
+    next.headers = { ...next.headers, Authorization: `Bearer ${token}` };
   }
   return next;
 });
@@ -59,26 +59,26 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error?.response?.status;
-    const originalRequest = error?.config || {};
+    const originalRequest = error?.config;
     const isAuthEndpoint = String(originalRequest?.url || '').includes('/auth/');
-    if (status !== 401 || originalRequest._retry || isAuthEndpoint) {
-      return Promise.reject(error);
+    if (status !== 401 || !originalRequest || originalRequest._retry || isAuthEndpoint) {
+      throw error;
     }
     originalRequest._retry = true;
     try {
       const newToken = await refreshAccessToken();
       if (!newToken) throw new Error('Unable to refresh access token');
       originalRequest.headers = {
-        ...(originalRequest.headers || {}),
+        ...originalRequest.headers,
         Authorization: `Bearer ${newToken}`,
       };
       return apiClient(originalRequest);
     } catch (refreshError) {
       clearSession();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('codemio:auth-expired'));
+      if (typeof globalThis.window !== 'undefined') {
+        globalThis.window.dispatchEvent(new Event('codemio:auth-expired'));
       }
-      return Promise.reject(refreshError);
+      throw refreshError;
     }
   },
 );

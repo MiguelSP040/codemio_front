@@ -29,6 +29,16 @@ function qualityGateLabel(value) {
   return normalized;
 }
 
+function statusClass(status) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'DONE') return 'analysis-status-chip analysis-status-chip--done';
+  if (normalized === 'RUNNING') return 'analysis-status-chip analysis-status-chip--running';
+  if (normalized === 'PENDING') return 'analysis-status-chip analysis-status-chip--pending';
+  if (normalized === 'FAILED') return 'analysis-status-chip analysis-status-chip--failed';
+  if (normalized === 'CANCELED') return 'analysis-status-chip analysis-status-chip--canceled';
+  return 'analysis-status-chip';
+}
+
 export default function AnalysisRunsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchText, setSearchText] = useState('');
@@ -87,14 +97,46 @@ export default function AnalysisRunsPage() {
     };
   }, [runs, totalRuns]);
 
-  function statusClass(status) {
-    const normalized = String(status || '').toUpperCase();
-    if (normalized === 'DONE') return 'analysis-status-chip analysis-status-chip--done';
-    if (normalized === 'RUNNING') return 'analysis-status-chip analysis-status-chip--running';
-    if (normalized === 'PENDING') return 'analysis-status-chip analysis-status-chip--pending';
-    if (normalized === 'FAILED') return 'analysis-status-chip analysis-status-chip--failed';
-    if (normalized === 'CANCELED') return 'analysis-status-chip analysis-status-chip--canceled';
-    return 'analysis-status-chip';
+  let tableContent = null;
+  if (loading) {
+    tableContent = <p className="analysis-runs-empty">Cargando analisis...</p>;
+  } else if (visibleRuns.length === 0) {
+    tableContent = <p className="analysis-runs-empty">No hay ejecuciones para el filtro seleccionado.</p>;
+  } else {
+    tableContent = (
+      <table className="analysis-runs-table">
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Archivo</th>
+            <th>Estado</th>
+            <th>Quality Gate</th>
+            <th>Hallazgos</th>
+            <th>Fecha</th>
+            <th>Accion</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleRuns.map((run) => (
+            <tr key={run.id}>
+              <td>Proyecto #{run.project_id}</td>
+              <td>{run.original_filename || 'N/A'}</td>
+              <td>
+                <span className={statusClass(run.status)}>{run.status || 'N/A'}</span>
+              </td>
+              <td>{qualityGateLabel(run.quality_gate_status)}</td>
+              <td>{Number(run.findings_count || 0)}</td>
+              <td>{formatDate(run.finished_at || run.started_at || run.created_at)}</td>
+              <td>
+                <Link to={`/projects/${run.project_id}/dashboard`} className="analysis-open-link">
+                  Ver dashboard
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
   }
 
   return (
@@ -113,7 +155,7 @@ export default function AnalysisRunsPage() {
           <span>Fallidos: {summary.failed}</span>
         </div>
         <label htmlFor="analysis-search-filter">
-          Buscar
+          <span>Buscar</span>
           <input
             id="analysis-search-filter"
             type="search"
@@ -123,7 +165,7 @@ export default function AnalysisRunsPage() {
           />
         </label>
         <label htmlFor="analysis-status-filter">
-          Estado
+          <span>Estado</span>
           <select
             id="analysis-status-filter"
             value={statusFilter}
@@ -144,44 +186,7 @@ export default function AnalysisRunsPage() {
       {error ? <p className="analysis-runs-error">{error}</p> : null}
 
       <section className="analysis-runs-table-wrap" aria-label="Listado de ejecuciones">
-        {loading ? (
-          <p className="analysis-runs-empty">Cargando analisis...</p>
-        ) : visibleRuns.length === 0 ? (
-          <p className="analysis-runs-empty">No hay ejecuciones para el filtro seleccionado.</p>
-        ) : (
-          <table className="analysis-runs-table">
-            <thead>
-              <tr>
-                <th>Proyecto</th>
-                <th>Archivo</th>
-                <th>Estado</th>
-                <th>Quality Gate</th>
-                <th>Hallazgos</th>
-                <th>Fecha</th>
-                <th>Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRuns.map((run) => (
-                <tr key={run.id}>
-                  <td>Proyecto #{run.project_id}</td>
-                  <td>{run.original_filename || 'N/A'}</td>
-                  <td>
-                    <span className={statusClass(run.status)}>{run.status || 'N/A'}</span>
-                  </td>
-                  <td>{qualityGateLabel(run.quality_gate_status)}</td>
-                  <td>{Number(run.findings_count || 0)}</td>
-                  <td>{formatDate(run.finished_at || run.started_at || run.created_at)}</td>
-                  <td>
-                    <Link to={`/projects/${run.project_id}/dashboard`} className="analysis-open-link">
-                      Ver dashboard
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {tableContent}
       </section>
 
       <section className="analysis-runs-pagination" aria-label="Paginacion de analisis">

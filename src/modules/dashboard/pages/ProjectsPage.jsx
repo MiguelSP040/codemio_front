@@ -110,7 +110,6 @@ function renderProjectsListContent({
   draftName,
   selectedId,
   handleCardClick,
-  handleCardKey,
   setDraftName,
   handleNameKeyDown,
   editingLoading,
@@ -149,23 +148,11 @@ function renderProjectsListContent({
       <article
         className={`projects-card${isSelected ? ' projects-card--selected' : ''}${isEditing ? ' projects-card--editing' : ''}`}
         key={project.id}
-        onClick={(e) => {
-          if (isEditing) return;
-          handleCardClick(project, e);
-        }}
-        onKeyDown={(e) => {
-          if (isEditing) return;
-          handleCardKey(project, e);
-        }}
-        role={isEditing ? undefined : 'button'}
-        tabIndex={isEditing ? -1 : 0}
-        aria-pressed={!isEditing && isSelected}
       >
         {isEditing ? (
           <div
             className="projects-card-edit"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
           >
             <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
               Nombre del proyecto
@@ -242,10 +229,17 @@ function renderProjectsListContent({
         )}
         {!isEditing && (
           <div className="projects-card-actions">
+            <button
+              type="button"
+              className="projects-card-btn"
+              onClick={() => handleCardClick(project)}
+            >
+              Ver detalle
+            </button>
             <Link className="projects-open-btn" to={`/projects/${project.id}/dashboard`}>
               Abrir dashboard
             </Link>
-            {!isReadOnlyForAdmin ? (
+            {isReadOnlyForAdmin ? null : (
               <>
                 <button
                   type="button"
@@ -274,7 +268,7 @@ function renderProjectsListContent({
                   Eliminar
                 </button>
               </>
-            ) : null}
+            )}
           </div>
         )}
       </article>
@@ -507,18 +501,8 @@ export default function ProjectsPage() {
     return error ? 'pj-input pj-input--error' : 'pj-input pj-input--valid';
   }
 
-  function handleCardClick(project, e) {
-    // Ignore clicks on the inner "Abrir dashboard" link (it navigates away)
-    if (e.target.closest('a')) return;
+  function handleCardClick(project) {
     openDetail(project);
-  }
-
-  function handleCardKey(project, e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      if (e.target.closest('a')) return;
-      e.preventDefault();
-      openDetail(project);
-    }
   }
 
   async function handleUploadFiles(filesToUpload) {
@@ -593,7 +577,6 @@ export default function ProjectsPage() {
             draftName,
             selectedId,
             handleCardClick,
-            handleCardKey,
             setDraftName,
             handleNameKeyDown,
             editingLoading,

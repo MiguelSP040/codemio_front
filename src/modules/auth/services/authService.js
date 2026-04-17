@@ -56,7 +56,7 @@ export async function register({ name, email, password }) {
 
 /**
  * Start GitHub OAuth sign-up flow.
- * TODO: Replace with real OAuth redirect once the backend
+ * Pendiente: Replace with real OAuth redirect once the backend
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
  *       The flow should redirect the user to GitHub's authorize URL
  *       and handle the callback with the returned code/token.
@@ -67,7 +67,7 @@ export async function githubAuth() {
 
 /**
  * Fase B — Registra la cuenta (set password) después de verificar el correo.
- * TODO: Reemplazar mock con llamada real:
+ * Pendiente: Reemplazar mock con llamada real:
  *   POST /auth/register/  body: { email, password }
  *   → 201 { detail, already_registered, correo, sub_cognito }
  *   Errores: 400 password inválido · 403 correo no verificado · 404 sin cuenta Cognito · 409 conflicto sub
@@ -84,7 +84,7 @@ export async function registerAccount({ email, password }) {
 
 /**
  * Recuperación de contraseña — paso 1: solicitar código de restablecimiento.
- * TODO: El backend NO tiene este endpoint todavía.
+ * Pendiente: El backend NO tiene este endpoint todavía.
  *   Cuando se implemente en Cognito, será algo como:
  *   POST /auth/forgot-password/  body: { email }
  *   → 200 { detail, email }
@@ -100,7 +100,7 @@ export async function forgotPassword({ email }) {
 
 /**
  * Recuperación de contraseña — paso 2: confirmar nueva contraseña.
- * TODO: El backend NO tiene este endpoint todavía.
+ * Pendiente: El backend NO tiene este endpoint todavía.
  *   Cuando se implemente en Cognito, será algo como:
  *   POST /auth/reset-password/  body: { email, code, password }
  *   → 200 { detail }
