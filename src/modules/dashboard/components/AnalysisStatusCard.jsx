@@ -11,6 +11,7 @@ import './AnalysisStatusCard.css';
  */
 
 /** @type {Record<AnalysisStatus, { label: string, message: string, badgeClass: string, cardClass: string }>} */
+// eslint-disable-next-line react-refresh/only-export-components
 export const statusConfig = {
   idle: {
     label: 'Sin iniciar',
