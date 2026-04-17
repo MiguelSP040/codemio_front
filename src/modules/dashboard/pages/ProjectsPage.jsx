@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import {
   createProject,
   deleteProject,
   getProjects,
+  getProjectsByOwner,
   updateProject,
 } from '../../projects/services/projectService';
 import { createAnalysisRun } from '../../analysis/services/analysisService';
@@ -25,6 +27,7 @@ function mapProjectToCard(project) {
   return {
     id: String(project.id),
     name: project.name,
+    ownerEmail: project.user_email || '',
     description: '',
     lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin analisis',
     createdAt: project.created_at ? new Date(project.created_at).toISOString().slice(0, 10) : '',
@@ -117,6 +120,7 @@ function renderProjectsListContent({
   startEditName,
   qualityTone,
   requestDelete,
+  isAdmin,
 }) {
   if (loadingList) {
     return <p className="projects-analysis-time">Cargando proyectos...</p>;
@@ -206,6 +210,9 @@ function renderProjectsListContent({
               </span>
             </div>
             {project.description && <p>{project.description}</p>}
+            {isAdmin && project.ownerEmail ? (
+              <p className="projects-analysis-time">Propietario: {project.ownerEmail}</p>
+            ) : null}
             <p className="projects-analysis-time">{project.lastAnalysis}</p>
             <div className="projects-severity-row" aria-label={`Resumen de severidad de ${project.name}`}>
               <span className="projects-severity-chip projects-severity-chip--critical">
@@ -274,6 +281,8 @@ async function hasValidZipSignature(file) {
 }
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
+  const isAdmin = (user?.rol || user?.role) === 'admin';
   const [projects, setProjects] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState('');
@@ -306,7 +315,7 @@ export default function ProjectsPage() {
     let isMounted = true;
     async function loadProjects() {
       try {
-        const response = await getProjects();
+        const response = isAdmin ? await getProjectsByOwner({}) : await getProjects();
         if (!isMounted) return;
         const items = Array.isArray(response?.results) ? response.results : [];
         setProjects(items.map(mapProjectToCard));
@@ -326,7 +335,7 @@ export default function ProjectsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   function resetForm() {
     setName('');
@@ -568,6 +577,7 @@ export default function ProjectsPage() {
             startEditName,
             qualityTone,
             requestDelete,
+            isAdmin,
           })}
         </section>
 

@@ -10,6 +10,13 @@ export async function getProjects({ page = 1 } = {}) {
   return data;
 }
 
+export async function getProjectsByOwner({ ownerId, page = 1 } = {}) {
+  const params = { page };
+  if (ownerId) params.owner_id = ownerId;
+  const { data } = await apiClient.get('/projects/', { params });
+  return data;
+}
+
 export async function getProjectById(projectId) {
   const { data } = await apiClient.get(`/projects/${projectId}/`);
   return data;
