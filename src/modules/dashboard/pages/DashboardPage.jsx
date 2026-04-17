@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
@@ -138,9 +139,12 @@ function mapRunToFile(run) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const { projectId } = useParams();
+  const isAdmin = (user?.rol || user?.role) === 'admin';
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [repositoryName, setRepositoryName] = useState(DEFAULT_REPO_NAME);
+  const [projectOwnerEmail, setProjectOwnerEmail] = useState('');
   const [draftName, setDraftName] = useState(DEFAULT_REPO_NAME);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameError, setNameError] = useState('');
@@ -162,6 +166,7 @@ export default function DashboardPage() {
         const projectName = project?.name || DEFAULT_REPO_NAME;
         setRepositoryName(projectName);
         setDraftName(projectName);
+        setProjectOwnerEmail(project?.user_email || '');
         const runItems = Array.isArray(runsResponse?.results) ? runsResponse.results : [];
         setRuns(runItems);
         setRunsRefreshError('');
@@ -296,21 +301,26 @@ export default function DashboardPage() {
         <section className="dashboard-header">
           <div>
             {!isEditingName ? (
-              <div className="dashboard-repo-row">
-                <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
-                <button
-                  type="button"
-                  className="dashboard-edit-btn"
-                  onClick={startEditName}
-                  aria-label="Editar nombre del proyecto"
-                  title="Editar nombre"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-              </div>
+              <>
+                <div className="dashboard-repo-row">
+                  <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
+                  <button
+                    type="button"
+                    className="dashboard-edit-btn"
+                    onClick={startEditName}
+                    aria-label="Editar nombre del proyecto"
+                    title="Editar nombre"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                </div>
+                {isAdmin && projectOwnerEmail ? (
+                  <p className="dashboard-subtitle">Propietario del proyecto: {projectOwnerEmail}</p>
+                ) : null}
+              </>
             ) : (
               <div className="dashboard-name-editor">
                 <label htmlFor="project-name" className="dashboard-name-label">
