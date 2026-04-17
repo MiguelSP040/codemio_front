@@ -6,7 +6,7 @@
 
 .codemio-toaster {
   --font-family: var(--font-sans);
-  --width: 400px;
+  --width: 460px;
 }
 
 @media (max-width: 640px) {
@@ -18,14 +18,14 @@
 /* ===== Base toast card ===== */
 .codemio-toaster [data-sonner-toast] {
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.5;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
-  padding: 18px 20px;
-  gap: 14px;
+  padding: 20px 24px;
+  gap: 16px;
   align-items: flex-start;
   box-shadow:
     0 16px 40px -10px rgba(30, 58, 95, 0.22),
@@ -56,7 +56,7 @@
 
 .codemio-toaster [data-sonner-toast] [data-title] {
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.4;
   color: var(--color-text);
   letter-spacing: -0.005em;
@@ -64,15 +64,15 @@
 }
 
 .codemio-toaster [data-sonner-toast] [data-description] {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   color: var(--color-text-light);
 }
 
 /* ===== Icon chip ===== */
 .codemio-toaster [data-sonner-toast] [data-icon] {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -82,8 +82,8 @@
 }
 
 .codemio-toaster [data-sonner-toast] [data-icon] svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 /* ===== Close button ===== */
@@ -92,10 +92,10 @@
   border: 1px solid var(--color-border);
   color: var(--color-text-light);
   border-radius: var(--radius-full);
-  width: 24px;
-  height: 24px;
-  top: 10px;
-  right: 10px;
+  width: 28px;
+  height: 28px;
+  top: 12px;
+  right: 12px;
   transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
 
