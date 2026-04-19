@@ -451,7 +451,7 @@ export default function DashboardPage() {
                 {nameError && <p className="dashboard-name-error">{nameError}</p>}
               </div>
             )}
-            {projectLoading && <p className="dashboard-subtitle">Cargando proyecto...</p>}
+            {projectLoading && <p className="dashboard-subtitle">Cargando proyecto…</p>}
             {projectError && <p className="dashboard-subtitle">{projectError}</p>}
             <div className="dashboard-title-row">
               <h1>{selectedAnalysis.fileName}</h1>

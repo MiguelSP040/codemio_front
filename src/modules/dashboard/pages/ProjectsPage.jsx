@@ -274,7 +274,7 @@ export default function ProjectsPage() {
         {/* Left: project list */}
         <section className="projects-list" aria-label="Lista de proyectos">
           {loadingList ? (
-            <p className="projects-analysis-time">Cargando proyectos...</p>
+            <p className="projects-analysis-time">Cargando proyectos…</p>
           ) : listError ? (
             <p className="projects-analysis-time">{listError}</p>
           ) : projects.length === 0 ? (

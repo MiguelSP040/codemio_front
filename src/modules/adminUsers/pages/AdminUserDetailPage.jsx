@@ -193,7 +193,7 @@ export default function AdminUserDetailPage() {
       {serverError && <div className="admin-users-error" role="alert">{serverError}</div>}
 
       {loading ? (
-        <div className="admin-users-card">Cargando…</div>
+        <div className="admin-users-card">Cargando usuario…</div>
       ) : !user ? (
         <div className="admin-users-card">No encontramos el usuario.</div>
       ) : (

@@ -117,7 +117,7 @@ export default function AdminUsersListPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="admin-users-empty">Cargando…</td></tr>
+              <tr><td colSpan={6} className="admin-users-empty">Cargando usuarios…</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
             ) : (
