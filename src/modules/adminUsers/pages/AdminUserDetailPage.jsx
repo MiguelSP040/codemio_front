@@ -218,7 +218,7 @@ export default function AdminUserDetailPage() {
             <h3 className="admin-users-card-subtitle">Cognito</h3>
             <dl className="admin-users-dl">
               <div>
-                <dt>Status</dt>
+                <dt>Estado</dt>
                 <dd>{user?.cognito?.user_status || '—'}</dd>
               </div>
               <div>
@@ -226,7 +226,7 @@ export default function AdminUserDetailPage() {
                 <dd>{user?.cognito?.email_verified ? 'Sí' : 'No'}</dd>
               </div>
               <div>
-                <dt>Enabled</dt>
+                <dt>Habilitado</dt>
                 <dd>{user?.cognito?.enabled === null || user?.cognito?.enabled === undefined ? '—' : (user?.cognito?.enabled ? 'Sí' : 'No')}</dd>
               </div>
             </dl>

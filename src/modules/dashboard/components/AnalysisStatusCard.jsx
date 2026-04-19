@@ -38,7 +38,7 @@ export const statusConfig = {
     cardClass: 'analysis-status-card--completed',
   },
   error: {
-    label: 'Error',
+    label: 'Fallo',
     message: 'Ocurrió un error durante el análisis.',
     badgeClass: 'analysis-status-badge--error',
     cardClass: 'analysis-status-card--error',

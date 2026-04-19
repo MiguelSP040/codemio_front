@@ -278,7 +278,7 @@ function analysisStatusLabel(analysisStatus) {
   if (analysisStatus === 'queued') return 'En cola';
   if (analysisStatus === 'processing') return 'En proceso';
   if (analysisStatus === 'completed') return 'Completado';
-  if (analysisStatus === 'error') return 'Error';
+  if (analysisStatus === 'error') return 'Análisis fallido';
   return 'Sin iniciar';
 }
 
