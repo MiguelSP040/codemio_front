@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { completeProfile } from '../services/onboardingService';
 import {
   sanitizePlainText,
@@ -30,6 +31,7 @@ const INITIAL_TOUCHED = { nombre: false, edad: false, perfil_github: false };
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState(INITIAL_ERRORS);
   const [touched, setTouched] = useState(INITIAL_TOUCHED);
@@ -68,12 +70,12 @@ export default function OnboardingPage() {
     setServerError('');
 
     try {
-      await completeProfile({
+      const updatedUser = await completeProfile({
         nombre: sanitizePlainText(form.nombre),
         edad: Number(form.edad),
         perfil_github: sanitizePlainText(form.perfil_github) || null,
       });
-      // TODO (rama de integración): actualizar AuthContext con `onboarding_completed: true`
+      setUser(updatedUser);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const msg =
