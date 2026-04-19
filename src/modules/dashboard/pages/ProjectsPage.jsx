@@ -369,6 +369,10 @@ function mergeRunIntoItem(item, runsById) {
   return { ...item, status: nextStatus, error: nextError || item.error };
 }
 
+function makeProgressItemsUpdater(runsById) {
+  return (current) => current.map((item) => mergeRunIntoItem(item, runsById));
+}
+
 async function hasValidZipSignature(file) {
   try {
     const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
@@ -488,9 +492,7 @@ export default function ProjectsPage() {
           if (!isMounted) return;
         }
 
-        setProgressItems((current) =>
-          current.map((item) => mergeRunIntoItem(item, runsById)),
-        );
+        setProgressItems(makeProgressItemsUpdater(runsById));
       } catch {
         // Silent retry; no toast to avoid noise during polling
       }

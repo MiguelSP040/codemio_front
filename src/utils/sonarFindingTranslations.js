@@ -123,8 +123,8 @@ const RULE_TRANSLATIONS = {
   'java:S3655': 'Verifica "isPresent()" antes de llamar a "get()" en un Optional.',
 
   'java:S3776': (message) => {
-    const complexityMatch = /(\d+)\s{0,10}(?:\(|allowed|permitido)/i.exec(message);
-    const numbers = message.match(/(\d+)/g);
+    const complexityMatch = /(\d{1,10})\s{0,10}(?:\(|allowed|permitido)/i.exec(message);
+    const numbers = message.match(/\d{1,10}/g);
     if (numbers && numbers.length >= 2) {
       return `Reduce la complejidad cognitiva de este método de ${numbers[0]} al máximo permitido de ${numbers[1]}.`;
     }
@@ -192,7 +192,7 @@ const GENERIC_PATTERNS = [
     translate: () => 'Usa isEmpty() en lugar de comparar el tamaño con cero.',
   },
   {
-    pattern: /^\s*Refactor this method to reduce its Cognitive Complexity from (\d+) to (?:the )?(\d+) allowed/i,
+    pattern: /^\s*Refactor this method to reduce its Cognitive Complexity from (\d{1,10}) to (?:the )?(\d{1,10}) allowed/i,
     translate: (_, current, max) =>
       `Reduce la complejidad cognitiva de este método de ${current} al máximo permitido de ${max}.`,
   },
