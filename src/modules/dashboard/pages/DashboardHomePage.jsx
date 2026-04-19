@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import { getProjects } from '../../projects/services/projectService';
 import './DashboardHomePage.css';
 
@@ -76,12 +77,35 @@ function formatLastActivity(value) {
 
 export default function DashboardHomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const displayName = user?.nombre || user?.name || 'Usuario';
 
   const [projects, setProjects] = useState([]);
   const [projectCount, setProjectCount] = useState(0);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectsError, setProjectsError] = useState('');
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+
+  useEffect(() => {
+    const flagFromNav = location.state?.needsOnboarding === true;
+    const flagFromUser = user?.onboarding_completed === false;
+    if (flagFromNav || flagFromUser) {
+      setShowOnboardingModal(true);
+    }
+    if (flagFromNav) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate, user?.onboarding_completed]);
+
+  function handleCloseOnboardingModal() {
+    setShowOnboardingModal(false);
+  }
+
+  function handleGoToOnboarding() {
+    setShowOnboardingModal(false);
+    navigate('/onboarding');
+  }
 
   const stats = useMemo(
     () =>
@@ -201,6 +225,16 @@ export default function DashboardHomePage() {
           </div>
         )}
       </section>
+
+      <ConfirmModal
+        open={showOnboardingModal}
+        title="Completa tu perfil"
+        message="No has completado tu información de perfil. Completa tu onboarding para acceder a todas las funcionalidades."
+        confirmText="Completar onboarding"
+        cancelText="Más tarde"
+        onConfirm={handleGoToOnboarding}
+        onCancel={handleCloseOnboardingModal}
+      />
     </div>
   );
 }
