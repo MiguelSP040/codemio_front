@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { registerAccount } from '../services/authService';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
@@ -48,6 +49,7 @@ const INITIAL_TOUCHED = { password: false, confirmPassword: false };
 export default function CreatePasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loginAuth } = useAuth();
   const email = location.state?.email ?? '';
 
   const [form, setForm] = useState(INITIAL_FORM);
@@ -104,7 +106,8 @@ export default function CreatePasswordPage() {
     setServerError('');
 
     try {
-      await registerAccount({ email, password: form.password });
+      const data = await registerAccount({ email, password: form.password });
+      loginAuth(data);
       navigate('/onboarding', { state: { email } });
     } catch (err) {
       const msg =

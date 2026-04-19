@@ -75,12 +75,13 @@ export default function AppRouter() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/create-password" element={<CreatePasswordPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected routes — Sidebar layout */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/onboarding" element={<OnboardingPage />} />
+
             <Route element={<AuthenticatedLayout />}>
               <Route path="/dashboard" element={<DashboardHomePage />} />
               <Route path="/projects" element={<ProjectsPage />} />
