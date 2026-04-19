@@ -227,7 +227,7 @@ export default function ProjectsPage() {
         data?.detail ||
         data?.message ||
         (Array.isArray(data?.name) ? data.name[0] : null) ||
-        'Algo salio mal. Intentalo de nuevo.';
+        'No pudimos crear el proyecto. Verifica el nombre e inténtalo de nuevo.';
       setServerError(msg);
     } finally {
       setLoading(false);
