@@ -222,7 +222,7 @@ export function translateFindingMessage(rule, message) {
   const rawMessage = typeof message === 'string' ? message : '';
   const fallback = rawMessage.trim() ? rawMessage : 'Sin detalle';
 
-  if (rule && Object.prototype.hasOwnProperty.call(RULE_TRANSLATIONS, rule)) {
+  if (rule && Object.hasOwn(RULE_TRANSLATIONS, rule)) {
     const entry = RULE_TRANSLATIONS[rule];
     if (typeof entry === 'function') {
       try {
@@ -249,5 +249,5 @@ export function translateFindingMessage(rule, message) {
 }
 
 export function hasSpanishTranslation(rule) {
-  return Boolean(rule && Object.prototype.hasOwnProperty.call(RULE_TRANSLATIONS, rule));
+  return Boolean(rule && Object.hasOwn(RULE_TRANSLATIONS, rule));
 }

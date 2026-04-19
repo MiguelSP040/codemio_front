@@ -12,10 +12,10 @@ describe('sonarFindingTranslations', () => {
     expect(
       translateFindingMessage(
         'java:S1598',
-        'File path "\\Users\\Daniela\\AppData\\Local\\Temp\\codemio-analysis-2-_dht4z6n\\source" should match package name "com.codemio.sample". Move the file or change the package name.',
+        String.raw`File path "\Users\Daniela\AppData\Local\Temp\codemio-analysis-2-_dht4z6n\source" should match package name "com.codemio.sample". Move the file or change the package name.`,
       ),
     ).toBe(
-      'La ruta del archivo "\\Users\\Daniela\\AppData\\Local\\Temp\\codemio-analysis-2-_dht4z6n\\source" no coincide con el nombre del paquete "com.codemio.sample". Mueve el archivo o cambia el nombre del paquete.',
+      String.raw`La ruta del archivo "\Users\Daniela\AppData\Local\Temp\codemio-analysis-2-_dht4z6n\source" no coincide con el nombre del paquete "com.codemio.sample". Mueve el archivo o cambia el nombre del paquete.`,
     );
   });
 
