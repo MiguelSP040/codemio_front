@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, onClose }) {
               <line x1="12" y1="20" x2="12" y2="4" />
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
-            <span className="sidebar-link-text">Analisis</span>
+            <span className="sidebar-link-text">Análisis</span>
             <span className="sidebar-badge">Pronto</span>
           </span>
 
@@ -114,8 +114,8 @@ export default function Sidebar({ isOpen, onClose }) {
             type="button"
             className="sidebar-logout"
             onClick={handleLogout}
-            aria-label="Cerrar sesion"
-            title="Cerrar sesion"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

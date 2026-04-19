@@ -74,7 +74,7 @@ export default function AnalysisStatusCard({ analysisStatus, lastUpdated }) {
       )}
 
       <p className="analysis-status-updated">
-        Última actualización: {lastUpdated || 'sin registros aún'}
+        Última actualización: {lastUpdated || 'Sin registros aún'}
       </p>
     </section>
   );

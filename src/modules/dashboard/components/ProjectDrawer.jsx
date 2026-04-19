@@ -35,7 +35,7 @@ export default function ProjectDrawer({
         </div>
 
         <p className="dashboard-sidebar-caption">
-          Selecciona un proyecto para ver su analisis detallado.
+          Selecciona un proyecto para ver su análisis detallado.
         </p>
 
         <div className="dashboard-sidebar-list">
@@ -65,7 +65,7 @@ export default function ProjectDrawer({
                   <div className="dashboard-sidebar-item-stats">
                     <span className="dashboard-sidebar-item-stat">Score {analysis.score}</span>
                     <span className="dashboard-sidebar-item-stat">
-                      {analysis.summaryCards[0].value} criticos
+                      {analysis.summaryCards[0].value} críticos
                     </span>
                   </div>
                 </div>

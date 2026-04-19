@@ -114,14 +114,14 @@ function validateFile(file, { acceptedExtensions, maxFileSizeMB, maxZipSizeMB })
   const ext = getExtension(file.name);
 
   if (!acceptedExtensions.includes(ext)) {
-    return `Formato no soportado (${ext || 'sin extension'})`;
+    return `Formato no soportado (${ext || 'sin extensión'})`;
   }
   if (file.size === 0) {
-    return 'El archivo esta vacio';
+    return 'El archivo está vacío';
   }
   const limitMB = ext === '.zip' ? maxZipSizeMB : maxFileSizeMB;
   if (file.size > limitMB * 1024 * 1024) {
-    return `Excede el tamano maximo (${limitMB} MB)`;
+    return `Excede el tamaño máximo (${limitMB} MB)`;
   }
   return '';
 }
@@ -264,7 +264,7 @@ export default function FileUpload({
     if (duplicates > 0) {
       toast.info(
         duplicates === 1
-          ? 'Se omitio 1 archivo duplicado'
+          ? 'Se omitió 1 archivo duplicado'
           : `Se omitieron ${duplicates} archivos duplicados`,
       );
     }
@@ -313,7 +313,7 @@ export default function FileUpload({
       if (inputRef.current) inputRef.current.value = '';
       if (typeof onClear === 'function') onClear();
       if (typeof onFilesChanged === 'function') onFilesChanged([]);
-      toast.info('Seleccion limpiada');
+      toast.info('Selección limpiada');
     }, REMOVE_ANIM_MS);
   }
 
@@ -334,7 +334,7 @@ export default function FileUpload({
     } else if (typeof onFilesReady === 'function') {
       onFilesReady(validFiles);
     }
-    toast.success('Archivos listos para analisis');
+    toast.success('Archivos listos para análisis');
   }
 
   /* ----- DnD handlers ----- */
@@ -452,7 +452,7 @@ export default function FileUpload({
             </p>
           )}
           <ul className="fu-dropzone-rules" aria-hidden="true">
-            <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el codigo</li>
+            <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el código</li>
             <li>Formatos aceptados: {acceptedExtensions.join(', ')}</li>
             <li>
               Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)

@@ -59,7 +59,7 @@ const staticStats = [
 
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Buenos dias';
+  if (hour < 12) return 'Buenos días';
   if (hour < 18) return 'Buenas tardes';
   return 'Buenas noches';
 }
@@ -158,13 +158,13 @@ export default function DashboardHomePage() {
             {getGreeting()}, {displayName}
           </h1>
           <p className="dash-welcome-sub">
-            Aqui tienes un resumen de tus proyectos y analisis recientes.
+            Aquí tienes un resumen de tus proyectos y análisis recientes.
           </p>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="dash-stats" aria-label="Estadisticas generales">
+      <section className="dash-stats" aria-label="Estadísticas generales">
         {stats.map((stat) => (
           <article className="dash-stat-card" key={stat.label}>
             <div className="dash-stat-icon" style={{ background: stat.bg, color: stat.color }}>
