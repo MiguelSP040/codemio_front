@@ -13,7 +13,11 @@ RUN npm ci --silent
 # Copy source code
 COPY . .
 
-# Build the application
+# Accept build argument for API URL
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build the application (variables de entorno se embeben aquí)
 RUN npm run build
 
 # Stage 2: Serve with nginx
