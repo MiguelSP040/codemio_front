@@ -123,7 +123,7 @@ const RULE_TRANSLATIONS = {
   'java:S3655': 'Verifica "isPresent()" antes de llamar a "get()" en un Optional.',
 
   'java:S3776': (message) => {
-    const complexityMatch = message.match(/(\d+)\s*(?:\(|allowed|permitido)/i);
+    const complexityMatch = /(\d+)\s{0,10}(?:\(|allowed|permitido)/i.exec(message);
     const numbers = message.match(/(\d+)/g);
     if (numbers && numbers.length >= 2) {
       return `Reduce la complejidad cognitiva de este método de ${numbers[0]} al máximo permitido de ${numbers[1]}.`;

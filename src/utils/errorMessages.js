@@ -12,7 +12,7 @@ export function humanizeErrorMessage(raw) {
   if (!text) return '';
   if (text.length > MAX_INPUT_LENGTH) return text;
 
-  const throttled = text.match(THROTTLED_PATTERN);
+  const throttled = THROTTLED_PATTERN.exec(text);
   if (throttled) {
     const seconds = Number(throttled[1]);
     if (Number.isFinite(seconds) && seconds > 0) {
@@ -21,7 +21,7 @@ export function humanizeErrorMessage(raw) {
     return 'Demasiadas solicitudes al servicio de análisis. Intenta de nuevo en unos segundos.';
   }
 
-  const sonarHttp = text.match(SONAR_HTTP_PATTERN);
+  const sonarHttp = SONAR_HTTP_PATTERN.exec(text);
   if (sonarHttp) {
     const code = sonarHttp[1];
     if (code === '429') {
