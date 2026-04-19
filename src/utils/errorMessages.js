@@ -3,12 +3,14 @@
    DRF / SonarCloud strings like "Request was throttled. Expected available
    in 39 seconds." */
 
-const THROTTLED_PATTERN = /request was throttled.*?(\d+)\s*seconds?/i;
-const SONAR_HTTP_PATTERN = /sonarcloud api respondió\s*(\d{3})[:\s]*(.*)/i;
+const MAX_INPUT_LENGTH = 2000;
+const THROTTLED_PATTERN = /request was throttled[^\d]{0,200}?(\d+)\s{0,10}seconds?/i;
+const SONAR_HTTP_PATTERN = /sonarcloud api respondió\s{0,10}(\d{3})[:\s]{0,10}(.{0,500})/i;
 
 export function humanizeErrorMessage(raw) {
   const text = String(raw || '').trim();
   if (!text) return '';
+  if (text.length > MAX_INPUT_LENGTH) return text;
 
   const throttled = text.match(THROTTLED_PATTERN);
   if (throttled) {
