@@ -1,22 +1,8 @@
-import httpClient, { STORAGE_AUTH } from '../../../config/httpClient';
-
-function saveSession(payload) {
-  const tokens = payload?.tokens;
-  if (!tokens?.access_token) return;
-
-  const next = {
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token ?? null,
-    expires_in: tokens.expires_in ?? null,
-    token_type: tokens.token_type ?? 'Bearer',
-    id_token: tokens.id_token ?? null,
-    usuario: payload?.usuario ?? null,
-  };
-  localStorage.setItem(STORAGE_AUTH, JSON.stringify(next));
-}
+import httpClient from '../../../config/httpClient';
 
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
+ * La persistencia en localStorage la maneja AuthContext.loginAuth(data).
  */
 export async function login({ email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -24,7 +10,6 @@ export async function login({ email, password }) {
     email: normalizedEmail,
     password,
   });
-  saveSession(data);
   return data;
 }
 
