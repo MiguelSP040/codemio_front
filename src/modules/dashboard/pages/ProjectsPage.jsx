@@ -182,6 +182,59 @@ function renderProjectsListContent({
   }));
 }
 
+function ProjectCardEditingForm({
+  project,
+  draftName,
+  setDraftName,
+  handleNameKeyDown,
+  editingLoading,
+  nameError,
+  saveProjectName,
+  cancelEditName,
+}) {
+  return (
+    <div className="projects-card-edit">
+      <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
+        Nombre del proyecto
+      </label>
+      <input
+        id={`pj-edit-${project.id}`}
+        type="text"
+        className="pj-input"
+        value={draftName}
+        onChange={(e) => setDraftName(e.target.value)}
+        onKeyDown={(e) => handleNameKeyDown(e, project.id)}
+        maxLength={100}
+        disabled={editingLoading}
+        autoFocus
+      />
+      {nameError ? (
+        <span className="pj-field-error" role="alert">{nameError}</span>
+      ) : (
+        <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+      )}
+      <div className="projects-card-edit-actions">
+        <button
+          type="button"
+          className="pj-btn pj-btn--primary"
+          onClick={() => saveProjectName(project.id)}
+          disabled={draftName.trim().length < 3 || editingLoading}
+        >
+          {editingLoading ? 'Guardando...' : 'Guardar'}
+        </button>
+        <button
+          type="button"
+          className="pj-btn pj-btn--ghost"
+          onClick={cancelEditName}
+          disabled={editingLoading}
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function renderProjectCard({
   project,
   selectedId,
@@ -211,45 +264,16 @@ function renderProjectCard({
       key={project.id}
     >
       {isEditing ? (
-        <div className="projects-card-edit">
-          <label htmlFor={`pj-edit-${project.id}`} className="pj-label">
-            Nombre del proyecto
-          </label>
-          <input
-            id={`pj-edit-${project.id}`}
-            type="text"
-            className="pj-input"
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onKeyDown={(e) => handleNameKeyDown(e, project.id)}
-            maxLength={100}
-            disabled={editingLoading}
-            autoFocus
-          />
-          {nameError ? (
-            <span className="pj-field-error" role="alert">{nameError}</span>
-          ) : (
-            <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
-          )}
-          <div className="projects-card-edit-actions">
-            <button
-              type="button"
-              className="pj-btn pj-btn--primary"
-              onClick={() => saveProjectName(project.id)}
-              disabled={draftName.trim().length < 3 || editingLoading}
-            >
-              {editingLoading ? 'Guardando...' : 'Guardar'}
-            </button>
-            <button
-              type="button"
-              className="pj-btn pj-btn--ghost"
-              onClick={cancelEditName}
-              disabled={editingLoading}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
+        <ProjectCardEditingForm
+          project={project}
+          draftName={draftName}
+          setDraftName={setDraftName}
+          handleNameKeyDown={handleNameKeyDown}
+          editingLoading={editingLoading}
+          nameError={nameError}
+          saveProjectName={saveProjectName}
+          cancelEditName={cancelEditName}
+        />
       ) : (
         <>
           <div className="projects-card-heading">
@@ -331,6 +355,18 @@ function renderProjectCard({
       )}
     </article>
   );
+}
+
+function mergeRunIntoItem(item, runsById) {
+  if (!item.runId) return item;
+  const run = runsById.get(item.runId);
+  if (!run) return item;
+  const nextStatus = resolveItemStatusFromRun(run);
+  const rawError = nextStatus === 'failed'
+    ? String(run?.error_summary || run?.error_detail || '').split('\n')[0]
+    : '';
+  const nextError = rawError ? humanizeErrorMessage(rawError) : '';
+  return { ...item, status: nextStatus, error: nextError || item.error };
 }
 
 async function hasValidZipSignature(file) {
@@ -453,18 +489,7 @@ export default function ProjectsPage() {
         }
 
         setProgressItems((current) =>
-          current.map((item) => {
-            if (!item.runId) return item;
-            const run = runsById.get(item.runId);
-            if (!run) return item;
-            const nextStatus = resolveItemStatusFromRun(run);
-            const rawError =
-              nextStatus === 'failed'
-                ? String(run?.error_summary || run?.error_detail || '').split('\n')[0]
-                : '';
-            const nextError = rawError ? humanizeErrorMessage(rawError) : '';
-            return { ...item, status: nextStatus, error: nextError || item.error };
-          }),
+          current.map((item) => mergeRunIntoItem(item, runsById)),
         );
       } catch {
         // Silent retry; no toast to avoid noise during polling
