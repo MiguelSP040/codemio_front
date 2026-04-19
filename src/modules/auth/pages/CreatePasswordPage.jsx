@@ -239,7 +239,7 @@ export default function CreatePasswordPage() {
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>
-          {loading ? <span className="auth-spinner" /> : 'Registrarse'}
+          {loading ? <span className="auth-spinner" /> : 'Crear contraseña'}
         </button>
 
         <p className="auth-footer-text">
