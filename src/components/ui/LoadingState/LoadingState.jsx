@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import './LoadingState.css';
 
 export default function LoadingState({
@@ -7,6 +9,11 @@ export default function LoadingState({
   inline = false,
   className = '',
 }) {
+  const placeholderIds = useMemo(
+    () => Array.from({ length: count }, () => crypto.randomUUID()),
+    [count],
+  );
+
   if (variant === 'skeleton') {
     return (
       <div
@@ -14,8 +21,8 @@ export default function LoadingState({
         role="status"
         aria-live="polite"
       >
-        {Array.from({ length: count }).map((_, index) => (
-          <div key={index} className="cm-skeleton-card" aria-hidden="true" />
+        {placeholderIds.map((id) => (
+          <div key={id} className="cm-skeleton-card" aria-hidden="true" />
         ))}
         <span className="cm-sr-only">{label}</span>
       </div>
@@ -37,3 +44,11 @@ export default function LoadingState({
     </div>
   );
 }
+
+LoadingState.propTypes = {
+  variant: PropTypes.oneOf(['spinner', 'skeleton']),
+  label: PropTypes.string,
+  count: PropTypes.number,
+  inline: PropTypes.bool,
+  className: PropTypes.string,
+};

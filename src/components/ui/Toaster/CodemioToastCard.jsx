@@ -2,6 +2,7 @@
    Sonner stays the engine (stacking, enter/exit animations, swipe-to-dismiss,
    auto-dismiss timers) but the visible element is 100% our design — no more
    fighting with library defaults. */
+import PropTypes from 'prop-types';
 
 function IconCheck() {
   return (
@@ -72,7 +73,7 @@ export function renderCodemioToast(props) {
 export default function CodemioToastCard({ type = 'default', title, description, onDismiss }) {
   const Icon = ICON_FOR_TYPE[type] ?? IconBell;
   return (
-    <div className={`cm-toast cm-toast--${type}`} role="status">
+    <output className={`cm-toast cm-toast--${type}`}>
       <span className="cm-toast__accent" aria-hidden="true" />
       <span className="cm-toast__icon" aria-hidden="true">
         <Icon />
@@ -96,6 +97,20 @@ export default function CodemioToastCard({ type = 'default', title, description,
       >
         <IconClose />
       </button>
-    </div>
+    </output>
   );
 }
+
+CodemioToastCard.propTypes = {
+  type: PropTypes.oneOf(['success', 'error', 'warning', 'info', 'default']),
+  title: PropTypes.node,
+  description: PropTypes.node,
+  onDismiss: PropTypes.func,
+};
+
+renderCodemioToast.propTypes = {
+  type: PropTypes.oneOf(['success', 'error', 'warning', 'info', 'default']),
+  title: PropTypes.node,
+  description: PropTypes.node,
+  onDismiss: PropTypes.func,
+};

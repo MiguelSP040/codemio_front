@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import PropTypes from 'prop-types';
 import './AnalysisProgressModal.css';
 
 const STATUS_LABELS = {
@@ -24,6 +25,18 @@ const STATUS_CLASS = {
 
 function isTerminal(status) {
   return status === 'done' || status === 'done_warn' || status === 'failed' || status === 'canceled';
+}
+
+function pickHeadline({ allDone, anyFailed }) {
+  if (!allDone) return 'Analizando tus archivos...';
+  if (anyFailed) return 'Análisis terminado con errores';
+  return 'Análisis completado';
+}
+
+function pickSubtitle({ allDone, anyFailed }) {
+  if (!allDone) return 'Puedes cerrar esta ventana y el análisis continuará en segundo plano.';
+  if (anyFailed) return 'Algunos archivos no se pudieron analizar. Revisa el detalle abajo.';
+  return 'Todos los archivos fueron analizados correctamente.';
 }
 
 /* Each upload moves through discrete states — uploading, queued, running,
@@ -71,17 +84,8 @@ export default function AnalysisProgressModal({
     (item) => item.status === 'uploading' || item.status === 'queued' || item.status === 'running',
   );
 
-  const headline = allDone
-    ? anyFailed
-      ? 'Análisis terminado con errores'
-      : 'Análisis completado'
-    : 'Analizando tus archivos...';
-
-  const subtitle = allDone
-    ? anyFailed
-      ? 'Algunos archivos no se pudieron analizar. Revisa el detalle abajo.'
-      : 'Todos los archivos fueron analizados correctamente.'
-    : 'Puedes cerrar esta ventana y el análisis continuará en segundo plano.';
+  const headline = pickHeadline({ allDone, anyFailed });
+  const subtitle = pickSubtitle({ allDone, anyFailed });
 
   const content = (
     <div className="apm-overlay" role="presentation">
@@ -162,3 +166,17 @@ export default function AnalysisProgressModal({
 
   return createPortal(content, document.body);
 }
+
+AnalysisProgressModal.propTypes = {
+  open: PropTypes.bool,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      tempId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      fileName: PropTypes.string,
+      status: PropTypes.string,
+      error: PropTypes.string,
+    }),
+  ),
+  onClose: PropTypes.func,
+  onGoToDashboard: PropTypes.func,
+};
