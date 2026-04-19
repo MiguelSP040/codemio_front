@@ -58,7 +58,8 @@ export default function LoginPage() {
     try {
       const data = await login(form);
       loginAuth(data);
-      navigate('/dashboard');
+      const needsOnboarding = data?.usuario?.onboarding_completed === false;
+      navigate('/dashboard', { state: { needsOnboarding } });
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
