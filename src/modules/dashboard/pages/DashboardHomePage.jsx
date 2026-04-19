@@ -107,6 +107,61 @@ export default function DashboardHomePage() {
     navigate('/onboarding');
   }
 
+  function renderProjectCard(project) {
+    return (
+      <article className="dash-project-card" key={project.id}>
+        <div className="dash-project-top">
+          <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
+            {project.name}
+          </Link>
+          <span className={`dash-project-score ${scoreClass(project.score)}`}>
+            {project.score}
+          </span>
+        </div>
+        <div className="dash-project-meta">
+          <span>{project.filesCount} archivos</span>
+          <span className="dash-project-dot" aria-hidden="true" />
+          <span>{project.lastActivity}</span>
+        </div>
+        <div className="dash-project-actions">
+          <Link
+            to={`/projects/${project.id}/dashboard`}
+            className="dash-action-btn dash-action-btn--open"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            Abrir
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
+  function renderProjectsBody() {
+    if (projectsError) return <p className="dash-welcome-sub">{projectsError}</p>;
+    if (loadingProjects) return <p className="dash-welcome-sub">Cargando proyectos…</p>;
+    if (projects.length === 0) {
+      return (
+        <div className="dash-empty" role="status">
+          <p className="dash-empty-text">
+            Aún no tienes proyectos. Crea uno para empezar a analizar tu código Java.
+          </p>
+          <Link to="/projects" className="dash-action-btn dash-action-btn--open">
+            Crear proyecto
+          </Link>
+        </div>
+      );
+    }
+    return (
+      <div className="dash-recent-grid">
+        {projects.map(renderProjectCard)}
+      </div>
+    );
+  }
+
   const stats = useMemo(
     () =>
       staticStats.map((stat) =>
@@ -187,43 +242,7 @@ export default function DashboardHomePage() {
           </Link>
         </header>
 
-        {projectsError && <p className="dash-welcome-sub">{projectsError}</p>}
-        {loadingProjects ? (
-          <p className="dash-welcome-sub">Cargando proyectos...</p>
-        ) : (
-          <div className="dash-recent-grid">
-            {projects.map((project) => (
-              <article className="dash-project-card" key={project.id}>
-                <div className="dash-project-top">
-                  <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
-                    {project.name}
-                  </Link>
-                  <span className={`dash-project-score ${scoreClass(project.score)}`}>
-                    {project.score}
-                  </span>
-                </div>
-                <div className="dash-project-meta">
-                  <span>{project.filesCount} archivos</span>
-                  <span className="dash-project-dot" aria-hidden="true" />
-                  <span>{project.lastActivity}</span>
-                </div>
-                <div className="dash-project-actions">
-                  <Link
-                    to={`/projects/${project.id}/dashboard`}
-                    className="dash-action-btn dash-action-btn--open"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                    Abrir
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+        {renderProjectsBody()}
       </section>
 
       <ConfirmModal
