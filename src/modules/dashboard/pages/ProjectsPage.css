@@ -150,19 +150,19 @@
 .projects-quality--good {
   color: #064e2b;
   border-color: rgba(10, 79, 49, 0.45);
-  background: rgba(10, 79, 49, 0.04);
+  background: #e8f5ee;
 }
 
 .projects-quality--warning {
   color: #4a2c00;
   border-color: rgba(107, 67, 0, 0.45);
-  background: rgba(107, 67, 0, 0.04);
+  background: #fdf3e0;
 }
 
 .projects-quality--critical {
   color: #7a1717;
   border-color: rgba(143, 29, 20, 0.45);
-  background: rgba(143, 29, 20, 0.04);
+  background: #fce9e7;
 }
 
 .projects-quality--neutral {
@@ -193,25 +193,25 @@
 .projects-severity-chip--critical {
   color: #7a1717;
   border-color: rgba(143, 29, 20, 0.4);
-  background: rgba(143, 29, 20, 0.04);
+  background: #fce9e7;
 }
 
 .projects-severity-chip--high {
   color: #6b240f;
   border-color: rgba(147, 55, 13, 0.4);
-  background: rgba(147, 55, 13, 0.04);
+  background: #fdece2;
 }
 
 .projects-severity-chip--medium {
   color: #4a2c00;
   border-color: rgba(107, 67, 0, 0.4);
-  background: rgba(107, 67, 0, 0.04);
+  background: #fdf3e0;
 }
 
 .projects-severity-chip--low {
   color: #1e3a8a;
   border-color: rgba(20, 71, 194, 0.38);
-  background: rgba(20, 71, 194, 0.03);
+  background: #e8eefb;
 }
 
 .projects-severity-total {
