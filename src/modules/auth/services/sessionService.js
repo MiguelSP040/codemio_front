@@ -60,6 +60,20 @@ export function updateTokens({ accessToken, refreshToken }) {
   );
 }
 
+export function setSessionUser(user) {
+  const current = readSession();
+  if (!current) return;
+  localStorage.setItem(
+    AUTH_STORAGE_KEY,
+    JSON.stringify({
+      ...current,
+      user,
+      email: user?.correo || user?.email || current.email || null,
+    }),
+  );
+  localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+}
+
 export function clearSession() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);

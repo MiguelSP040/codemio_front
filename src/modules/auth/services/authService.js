@@ -1,65 +1,22 @@
-import axios from 'axios';
-import API_BASE_URL from '../../../config/api';
-
-const AUTH_STORAGE_KEY = 'codemio_auth';
-
-const authApi = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
-
-function saveSession(payload) {
-  const tokens = payload?.tokens;
-  if (!tokens?.access_token) return;
-
-  localStorage.setItem(
-    AUTH_STORAGE_KEY,
-    JSON.stringify({
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token || null,
-      tokenType: tokens.token_type || 'Bearer',
-      expiresIn: tokens.expires_in ?? null,
-      user: payload?.usuario || null,
-    }),
-  );
-}
+import apiClient from '../../../services/apiClient';
 
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
- * Currently uses a mock delay — swap the body of this function
- * with the real API call once the backend endpoint is ready.
+ * La sesión se persiste en localStorage vía AuthContext.loginAuth.
  */
 export async function login({ email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
-  const { data } = await authApi.post('/auth/login/', {
+  const { data } = await apiClient.post('/auth/login/', {
     email: normalizedEmail,
     password,
   });
-  saveSession(data);
   return data;
-}
-
-/**
- * Register a new user.
- * Currently uses a mock delay — swap with real API call when ready.
- */
-export async function register({ name, email, password }) {
-  void name;
-  const normalizedEmail = email.trim().toLowerCase();
-  await authApi.post('/auth/register/', {
-    email: normalizedEmail,
-    password,
-  });
-
-  return login({ email: normalizedEmail, password });
 }
 
 /**
  * Start GitHub OAuth sign-up flow.
  * Pendiente: Replace with real OAuth redirect once the backend
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
- *       The flow should redirect the user to GitHub's authorize URL
- *       and handle the callback with the returned code/token.
  */
 export async function githubAuth() {
   console.log('[authService] GitHub OAuth not implemented yet');
@@ -67,32 +24,22 @@ export async function githubAuth() {
 
 /**
  * Fase B — Registra la cuenta (set password) después de verificar el correo.
- * Pendiente: Reemplazar mock con llamada real:
- *   POST /auth/register/  body: { email, password }
- *   → 201 { detail, already_registered, correo, sub_cognito }
- *   Errores: 400 password inválido · 403 correo no verificado · 404 sin cuenta Cognito · 409 conflicto sub
  */
 export async function registerAccount({ email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
-  await authApi.post('/auth/register/', {
+  await apiClient.post('/auth/register/', {
     email: normalizedEmail,
     password,
   });
-
   return login({ email: normalizedEmail, password });
 }
 
 /**
  * Recuperación de contraseña — paso 1: solicitar código de restablecimiento.
- * Pendiente: El backend NO tiene este endpoint todavía.
- *   Cuando se implemente en Cognito, será algo como:
- *   POST /auth/forgot-password/  body: { email }
- *   → 200 { detail, email }
- *   Cognito usa ForgotPassword API (envía código al correo).
  */
 export async function forgotPassword({ email }) {
   const normalizedEmail = email.trim().toLowerCase();
-  const { data } = await authApi.post('/auth/forgot-password/', {
+  const { data } = await apiClient.post('/auth/forgot-password/', {
     email: normalizedEmail,
   });
   return data;
@@ -100,17 +47,10 @@ export async function forgotPassword({ email }) {
 
 /**
  * Recuperación de contraseña — paso 2: confirmar nueva contraseña.
- * Pendiente: El backend NO tiene este endpoint todavía.
- *   Cuando se implemente en Cognito, será algo como:
- *   POST /auth/reset-password/  body: { email, code, password }
- *   → 200 { detail }
- *   Cognito usa ConfirmForgotPassword API.
- *   NOTA: Probablemente se necesitará un paso intermedio de código OTP
- *   entre forgot-password y reset-password. Por ahora el mock va directo.
  */
 export async function resetPassword({ email, code, password }) {
   const normalizedEmail = email.trim().toLowerCase();
-  const { data } = await authApi.post('/auth/confirm-forgot-password/', {
+  const { data } = await apiClient.post('/auth/confirm-forgot-password/', {
     email: normalizedEmail,
     code: (code || '').trim(),
     new_password: password,

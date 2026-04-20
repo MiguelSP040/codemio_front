@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import PropTypes from 'prop-types';
 import './ConfirmModal.css';
 
 /* Reusable custom confirmation modal.
@@ -85,19 +86,21 @@ export default function ConfirmModal({
 
   if (!open) return null;
 
-  function handleOverlayMouseDown(e) {
+  function handleBackdropMouseDown() {
     if (busy) return;
-    if (e.target === e.currentTarget && typeof onCancel === 'function') {
-      onCancel();
-    }
+    if (typeof onCancel === 'function') onCancel();
   }
 
   const content = (
-    <div
-      className="cm-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      role="presentation"
-    >
+    <div className="cm-modal-portal">
+      <button
+        type="button"
+        className="cm-modal-backdrop-btn"
+        onMouseDown={handleBackdropMouseDown}
+        disabled={busy}
+        aria-label="Cerrar diálogo"
+        tabIndex={-1}
+      />
       <div
         ref={cardRef}
         className={`cm-modal-card cm-modal-card--${variant}`}
@@ -134,3 +137,15 @@ export default function ConfirmModal({
 
   return createPortal(content, document.body);
 }
+
+ConfirmModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  title: PropTypes.string.isRequired,
+  message: PropTypes.node,
+  confirmText: PropTypes.string,
+  cancelText: PropTypes.string,
+  variant: PropTypes.oneOf(['default', 'danger', 'warning']),
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  busy: PropTypes.bool,
+};

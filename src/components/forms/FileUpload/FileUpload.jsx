@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import toast from '../../../utils/toast';
 import ConfirmModal from '../../ui/ConfirmModal/ConfirmModal';
 import './FileUpload.css';
@@ -114,16 +115,132 @@ function validateFile(file, { acceptedExtensions, maxFileSizeMB, maxZipSizeMB })
   const ext = getExtension(file.name);
 
   if (!acceptedExtensions.includes(ext)) {
-    return `Formato no soportado (${ext || 'sin extension'})`;
+    return `Formato no soportado (${ext || 'sin extensión'})`;
   }
   if (file.size === 0) {
-    return 'El archivo esta vacio';
+    return 'El archivo está vacío';
   }
   const limitMB = ext === '.zip' ? maxZipSizeMB : maxFileSizeMB;
   if (file.size > limitMB * 1024 * 1024) {
-    return `Excede el tamano maximo (${limitMB} MB)`;
+    return `Excede el tamaño máximo (${limitMB} MB)`;
   }
   return '';
+}
+
+/* ===== addFiles helpers ===== */
+function isFolderLike(file) {
+  // Folders arrive from DnD with size=0 and no type/extension.
+  return file.size === 0 && !file.type && !getExtension(file.name);
+}
+
+function checkMixedRejection(file, { allowMixed, hasZip, hasJava }) {
+  if (allowMixed) return null;
+  const fileIsZip = isZip(file);
+  const fileIsJava = isJava(file);
+  if (fileIsZip && hasJava) return 'mixed';
+  if (fileIsJava && hasZip) return 'mixed';
+  if (fileIsZip && hasZip) return 'multipleZip';
+  return null;
+}
+
+function getRejectionBucket(rejection) {
+  if (rejection === 'mixed') return 'mixedRejected';
+  if (rejection === 'multipleZip') return 'multipleZipRejected';
+  return null;
+}
+
+function updateTypeFlags(file, state) {
+  if (isZip(file)) state.hasZip = true;
+  if (isJava(file)) state.hasJava = true;
+}
+
+function classifyIncoming(incoming, existingEntries, opts) {
+  const activeExisting = existingEntries.filter((e) => !e.removing);
+  const state = {
+    existingKeys: new Set(activeExisting.map((e) => fileKey(e.file))),
+    hasZip: activeExisting.some((e) => isZip(e.file)),
+    hasJava: activeExisting.some((e) => isJava(e.file)),
+  };
+  const existingCount = activeExisting.length;
+  const counts = {
+    duplicates: 0,
+    folderRejected: 0,
+    mixedRejected: 0,
+    multipleZipRejected: 0,
+    invalidCount: 0,
+    addedCount: 0,
+  };
+  const toAdd = [];
+  let acceptedSoFar = 0;
+
+  for (const file of incoming) {
+    if (isFolderLike(file)) {
+      counts.folderRejected += 1;
+      continue;
+    }
+    const key = fileKey(file);
+    if (state.existingKeys.has(key)) {
+      counts.duplicates += 1;
+      continue;
+    }
+    state.existingKeys.add(key);
+
+    if (!opts.multiple && existingCount + acceptedSoFar >= 1) break;
+
+    const rejectionBucket = getRejectionBucket(
+      checkMixedRejection(file, {
+        allowMixed: opts.allowMixed,
+        hasZip: state.hasZip,
+        hasJava: state.hasJava,
+      }),
+    );
+    if (rejectionBucket) {
+      counts[rejectionBucket] += 1;
+      continue;
+    }
+
+    updateTypeFlags(file, state);
+
+    const error = validateFile(file, opts);
+    if (error) counts.invalidCount += 1;
+    else counts.addedCount += 1;
+
+    toAdd.push({ file, error, id: key, removing: false, entering: true });
+    acceptedSoFar += 1;
+  }
+
+  return { toAdd, counts };
+}
+
+function emitAddFilesToasts(counts) {
+  if (counts.addedCount > 0) {
+    toast.success(
+      counts.addedCount === 1 ? '1 archivo agregado' : `${counts.addedCount} archivos agregados`,
+    );
+  }
+  if (counts.folderRejected > 0) {
+    toast.error('Las carpetas no son soportadas. Selecciona archivos o un .zip.');
+  }
+  if (counts.mixedRejected > 0) {
+    toast.warning('No puedes combinar archivos .java con un .zip.');
+  }
+  if (counts.multipleZipRejected > 0) {
+    toast.warning('Solo puedes subir un archivo .zip a la vez.');
+  }
+  if (counts.duplicates > 0) {
+    toast.info(
+      counts.duplicates === 1
+        ? 'Se omitió 1 archivo duplicado'
+        : `Se omitieron ${counts.duplicates} archivos duplicados`,
+    );
+  }
+  if (counts.invalidCount > 0) {
+    toast.error(
+      counts.invalidCount === 1
+        ? '1 archivo no cumple con los requisitos'
+        : `${counts.invalidCount} archivos no cumplen con los requisitos`,
+    );
+  }
 }
 
 /* ===== Main component ===== */
@@ -174,122 +291,33 @@ export default function FileUpload({
     const incoming = Array.from(incomingList || []);
     if (incoming.length === 0) return;
 
-    const existingKeys = new Set(
-      files.filter((e) => !e.removing).map((entry) => fileKey(entry.file)),
-    );
-    const existingZip = files.some((e) => !e.removing && isZip(e.file));
-    const existingJava = files.some((e) => !e.removing && isJava(e.file));
+    const { toAdd, counts } = classifyIncoming(incoming, files, {
+      acceptedExtensions,
+      maxFileSizeMB,
+      maxZipSizeMB,
+      allowMixed,
+      multiple,
+    });
 
-    let duplicates = 0;
-    let folderRejected = 0;
-    let mixedRejected = 0;
-    let multipleZipRejected = 0;
-    let invalidCount = 0;
-    let addedCount = 0;
-
-    const next = [...files];
-    let sawIncomingZip = existingZip;
-    let sawIncomingJava = existingJava;
-
-    for (const file of incoming) {
-      // Folder rejection heuristic: folders come with size=0 and type=''
-      if (file.size === 0 && !file.type && !getExtension(file.name)) {
-        folderRejected += 1;
-        continue;
-      }
-
-      const key = fileKey(file);
-      if (existingKeys.has(key)) {
-        duplicates += 1;
-        continue;
-      }
-      existingKeys.add(key);
-
-      const fileIsZip = isZip(file);
-      const fileIsJava = isJava(file);
-
-      if (!multiple && next.filter((e) => !e.removing).length >= 1) {
-        break;
-      }
-
-      // Mixed-mode rules
-      if (!allowMixed) {
-        if (fileIsZip && (sawIncomingJava || next.some((e) => !e.removing && isJava(e.file)))) {
-          mixedRejected += 1;
-          continue;
-        }
-        if (fileIsJava && (sawIncomingZip || next.some((e) => !e.removing && isZip(e.file)))) {
-          mixedRejected += 1;
-          continue;
-        }
-        if (fileIsZip && next.some((e) => !e.removing && isZip(e.file))) {
-          multipleZipRejected += 1;
-          continue;
-        }
-      }
-
-      if (fileIsZip) sawIncomingZip = true;
-      if (fileIsJava) sawIncomingJava = true;
-
-      const error = validateFile(file, { acceptedExtensions, maxFileSizeMB, maxZipSizeMB });
-      if (error) invalidCount += 1;
-      else addedCount += 1;
-
-      next.push({ file, error, id: key, removing: false, entering: true });
-    }
-
+    const next = [...files, ...toAdd];
     setFiles(next);
     notifyChanged(next);
+    emitAddFilesToasts(counts);
+  }
 
-    // Toast summary
-    if (addedCount > 0 && invalidCount === 0 && duplicates === 0 && folderRejected === 0 && mixedRejected === 0 && multipleZipRejected === 0) {
-      toast.success(
-        addedCount === 1 ? '1 archivo agregado' : `${addedCount} archivos agregados`,
-      );
-    } else if (addedCount > 0) {
-      toast.success(
-        addedCount === 1 ? '1 archivo agregado' : `${addedCount} archivos agregados`,
-      );
-    }
-
-    if (folderRejected > 0) {
-      toast.error('Las carpetas no son soportadas. Selecciona archivos o un .zip.');
-    }
-    if (mixedRejected > 0) {
-      toast.warning('No puedes combinar archivos .java con un .zip.');
-    }
-    if (multipleZipRejected > 0) {
-      toast.warning('Solo puedes subir un archivo .zip a la vez.');
-    }
-    if (duplicates > 0) {
-      toast.info(
-        duplicates === 1
-          ? 'Se omitio 1 archivo duplicado'
-          : `Se omitieron ${duplicates} archivos duplicados`,
-      );
-    }
-    if (invalidCount > 0) {
-      toast.error(
-        invalidCount === 1
-          ? '1 archivo no cumple con los requisitos'
-          : `${invalidCount} archivos no cumplen con los requisitos`,
-      );
-    }
+  function finalizeRemoval(id, onDone) {
+    setFiles((curr) => {
+      const next = curr.filter((e) => e.id !== id);
+      notifyChanged(next);
+      return next;
+    });
+    if (typeof onDone === 'function') onDone();
   }
 
   function scheduleRemoval(id, onDone) {
     // Mark as removing so CSS plays the fade-out, then drop from state.
     setFiles((curr) => curr.map((e) => (e.id === id ? { ...e, removing: true } : e)));
-    setTimeout(() => {
-      setFiles((curr) => {
-        const next = curr.filter((e) => e.id !== id);
-        if (typeof onFilesChanged === 'function') {
-          onFilesChanged(next.filter((e) => !e.removing && !e.error).map((e) => e.file));
-        }
-        return next;
-      });
-      if (typeof onDone === 'function') onDone();
-    }, REMOVE_ANIM_MS);
+    setTimeout(() => finalizeRemoval(id, onDone), REMOVE_ANIM_MS);
   }
 
   function removeFile(id) {
@@ -313,7 +341,7 @@ export default function FileUpload({
       if (inputRef.current) inputRef.current.value = '';
       if (typeof onClear === 'function') onClear();
       if (typeof onFilesChanged === 'function') onFilesChanged([]);
-      toast.info('Seleccion limpiada');
+      toast.info('Selección limpiada');
     }, REMOVE_ANIM_MS);
   }
 
@@ -403,6 +431,37 @@ export default function FileUpload({
     .filter(Boolean)
     .join(' ');
 
+  const dragHandlers = {
+    onDragEnter: handleDragEnter,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+    onClick: openPicker,
+    onKeyDown: handleZoneKeyDown,
+    tabIndex: disabled ? -1 : 0,
+    'aria-disabled': disabled || undefined,
+  };
+
+  const dropzoneView =
+    viewMode === 'dropzone' ? (
+      <FullDropzone
+        zoneClass={zoneClass}
+        dragHandlers={dragHandlers}
+        projectName={projectName}
+        isDragging={isDragging}
+        acceptedExtensions={acceptedExtensions}
+        maxFileSizeMB={maxFileSizeMB}
+        maxZipSizeMB={maxZipSizeMB}
+        maxTotalSizeMB={maxTotalSizeMB}
+      />
+    ) : (
+      <CompactDropzone
+        zoneClass={zoneClass}
+        dragHandlers={dragHandlers}
+        isDragging={isDragging}
+      />
+    );
+
   return (
     <div className="fu-root" aria-label="Subir archivos">
       <input
@@ -418,171 +477,24 @@ export default function FileUpload({
         tabIndex={-1}
       />
 
-      {viewMode === 'dropzone' ? (
-        <div
-          className={zoneClass}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={openPicker}
-          onKeyDown={handleZoneKeyDown}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-disabled={disabled || undefined}
-          aria-label={
-            projectName
-              ? `Subir archivos al proyecto ${projectName}`
-              : 'Arrastra archivos o haz clic para seleccionar'
-          }
-        >
-          <div className="fu-dropzone-icon" aria-hidden="true">
-            <UploadIcon />
-          </div>
-          <p className="fu-dropzone-title">
-            {isDragging ? 'Suelta para agregar' : 'Arrastra tus clases .java o un .zip'}
-          </p>
-          <p className="fu-dropzone-sub">
-            o <span className="fu-dropzone-link">selecciona desde tu equipo</span>
-          </p>
-          {projectName && (
-            <p className="fu-dropzone-project">
-              Agregar archivos a <strong>{projectName}</strong>
-            </p>
-          )}
-          <ul className="fu-dropzone-rules" aria-hidden="true">
-            <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el codigo</li>
-            <li>Formatos aceptados: {acceptedExtensions.join(', ')}</li>
-            <li>
-              Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)
-            </li>
-          </ul>
-        </div>
-      ) : (
-        <div
-          className={zoneClass + ' fu-dropzone--compact'}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={openPicker}
-          onKeyDown={handleZoneKeyDown}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-label="Arrastra mas archivos o haz clic para agregar"
-        >
-          <span className="fu-dropzone-compact-icon" aria-hidden="true">
-            <UploadIcon />
-          </span>
-          <span className="fu-dropzone-compact-text">
-            {isDragging ? 'Suelta para agregar' : 'Arrastra mas clases .java o haz clic para agregar'}
-          </span>
-        </div>
-      )}
+      {dropzoneView}
 
-      {files.length > 0 && (
-        <div className="fu-list-wrap">
-          <div className="fu-list-header">
-            <div>
-              <p className="fu-list-title">
-                {visibleFiles.length === 1 ? '1 archivo' : `${visibleFiles.length} archivos`}
-                {validFiles.length !== visibleFiles.length && (
-                  <span className="fu-list-count-badge">
-                    {validFiles.length} valido{validFiles.length === 1 ? '' : 's'}
-                  </span>
-                )}
-              </p>
-              <p className={`fu-list-sub${totalExceeds ? ' fu-list-sub--over' : ''}`}>
-                Total {formatSize(totalBytes)} / {maxTotalSizeMB} MB
-              </p>
-            </div>
-            <button
-              type="button"
-              className="fu-clear-btn"
-              onClick={handleClearRequest}
-              disabled={disabled || visibleFiles.length === 0}
-              aria-label="Quitar todos los archivos"
-            >
-              <TrashIcon />
-              Limpiar
-            </button>
-          </div>
-
-          <ul className="fu-list" aria-label="Archivos seleccionados">
-            {files.map((entry) => {
-              const itemIsZip = isZip(entry.file);
-              const hasError = Boolean(entry.error);
-              const cls = [
-                'fu-item',
-                hasError ? 'fu-item--error' : '',
-                entry.removing ? 'fu-item--removing' : 'fu-item--entering',
-              ]
-                .filter(Boolean)
-                .join(' ');
-              return (
-                <li key={entry.id} className={cls}>
-                  <span
-                    className={`fu-item-icon${itemIsZip ? ' fu-item-icon--zip' : ''}`}
-                    aria-hidden="true"
-                  >
-                    {itemIsZip ? <ZipIcon /> : <JavaIcon />}
-                  </span>
-                  <div className="fu-item-info">
-                    <p className="fu-item-name" title={entry.file.name}>
-                      {entry.file.name}
-                    </p>
-                    <p className="fu-item-meta">
-                      <span>{formatSize(entry.file.size)}</span>
-                      {hasError ? (
-                        <span className="fu-item-error">· {entry.error}</span>
-                      ) : (
-                        <span className="fu-item-ok">
-                          <CheckIcon /> Valido
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="fu-item-remove"
-                    onClick={() => removeFile(entry.id)}
-                    disabled={disabled || entry.removing}
-                    aria-label={`Quitar ${entry.file.name}`}
-                  >
-                    <TrashIcon />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {multiple && (
-            <button
-              type="button"
-              className="fu-add-more"
-              onClick={openPicker}
-              disabled={disabled}
-            >
-              <PlusIcon />
-              Agregar mas archivos
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="fu-submit"
-            onClick={handleSubmit}
-            disabled={disabled || !hasValidFiles || totalExceeds}
-            aria-disabled={disabled || !hasValidFiles || totalExceeds}
-          >
-            <SendIcon />
-            {submitLabel}
-            {hasValidFiles && !totalExceeds && (
-              <span className="fu-submit-badge">{validFiles.length}</span>
-            )}
-          </button>
-        </div>
-      )}
+      <FileListSection
+        files={files}
+        visibleFiles={visibleFiles}
+        validFiles={validFiles}
+        totalBytes={totalBytes}
+        maxTotalSizeMB={maxTotalSizeMB}
+        totalExceeds={totalExceeds}
+        hasValidFiles={hasValidFiles}
+        multiple={multiple}
+        disabled={disabled}
+        submitLabel={submitLabel}
+        onClearRequest={handleClearRequest}
+        onRemoveFile={removeFile}
+        onAddMore={openPicker}
+        onSubmit={handleSubmit}
+      />
 
       <ConfirmModal
         open={confirmOpen}
@@ -597,3 +509,287 @@ export default function FileUpload({
     </div>
   );
 }
+
+function FullDropzone({
+  zoneClass,
+  dragHandlers,
+  projectName,
+  isDragging,
+  acceptedExtensions,
+  maxFileSizeMB,
+  maxZipSizeMB,
+  maxTotalSizeMB,
+}) {
+  const ariaLabel = projectName
+    ? `Subir archivos al proyecto ${projectName}`
+    : 'Arrastra archivos o haz clic para seleccionar';
+  const title = isDragging
+    ? 'Suelta para agregar'
+    : 'Arrastra tus clases .java o un .zip';
+  return (
+    <button
+      type="button"
+      className={zoneClass}
+      {...dragHandlers}
+      aria-label={ariaLabel}
+    >
+      <div className="fu-dropzone-icon" aria-hidden="true">
+        <UploadIcon />
+      </div>
+      <p className="fu-dropzone-title">{title}</p>
+      <p className="fu-dropzone-sub">
+        o <span className="fu-dropzone-link">selecciona desde tu equipo</span>
+      </p>
+      {projectName && (
+        <p className="fu-dropzone-project">
+          Agregar archivos a <strong>{projectName}</strong>
+        </p>
+      )}
+      <ul className="fu-dropzone-rules" aria-hidden="true">
+        <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el código</li>
+        <li>Formatos aceptados: {acceptedExtensions.join(', ')}</li>
+        <li>
+          Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)
+        </li>
+      </ul>
+    </button>
+  );
+}
+
+FullDropzone.propTypes = {
+  zoneClass: PropTypes.string.isRequired,
+  dragHandlers: PropTypes.object.isRequired,
+  projectName: PropTypes.string,
+  isDragging: PropTypes.bool,
+  acceptedExtensions: PropTypes.arrayOf(PropTypes.string).isRequired,
+  maxFileSizeMB: PropTypes.number.isRequired,
+  maxZipSizeMB: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+};
+
+function CompactDropzone({ zoneClass, dragHandlers, isDragging }) {
+  const text = isDragging
+    ? 'Suelta para agregar'
+    : 'Arrastra mas clases .java o haz clic para agregar';
+  return (
+    <button
+      type="button"
+      className={zoneClass + ' fu-dropzone--compact'}
+      {...dragHandlers}
+      aria-label="Arrastra mas archivos o haz clic para agregar"
+    >
+      <span className="fu-dropzone-compact-icon" aria-hidden="true">
+        <UploadIcon />
+      </span>
+      <span className="fu-dropzone-compact-text">{text}</span>
+    </button>
+  );
+}
+
+CompactDropzone.propTypes = {
+  zoneClass: PropTypes.string.isRequired,
+  dragHandlers: PropTypes.object.isRequired,
+  isDragging: PropTypes.bool,
+};
+
+function FileItemStatus({ error }) {
+  if (error) return <span className="fu-item-error">· {error}</span>;
+  return (
+    <span className="fu-item-ok">
+      <CheckIcon /> Valido
+    </span>
+  );
+}
+
+FileItemStatus.propTypes = { error: PropTypes.string };
+
+function FileItem({ entry, disabled, onRemove }) {
+  const itemIsZip = isZip(entry.file);
+  const hasError = Boolean(entry.error);
+  const cls = [
+    'fu-item',
+    hasError ? 'fu-item--error' : '',
+    entry.removing ? 'fu-item--removing' : 'fu-item--entering',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <li className={cls}>
+      <span
+        className={`fu-item-icon${itemIsZip ? ' fu-item-icon--zip' : ''}`}
+        aria-hidden="true"
+      >
+        {itemIsZip ? <ZipIcon /> : <JavaIcon />}
+      </span>
+      <div className="fu-item-info">
+        <p className="fu-item-name" title={entry.file.name}>
+          {entry.file.name}
+        </p>
+        <p className="fu-item-meta">
+          <span>{formatSize(entry.file.size)}</span>
+          <FileItemStatus error={entry.error} />
+        </p>
+      </div>
+      <button
+        type="button"
+        className="fu-item-remove"
+        onClick={() => onRemove(entry.id)}
+        disabled={disabled || entry.removing}
+        aria-label={`Quitar ${entry.file.name}`}
+      >
+        <TrashIcon />
+      </button>
+    </li>
+  );
+}
+
+FileItem.propTypes = {
+  entry: PropTypes.object.isRequired,
+  disabled: PropTypes.bool,
+  onRemove: PropTypes.func.isRequired,
+};
+
+function FileListHeader({ visibleFiles, validFiles, totalBytes, maxTotalSizeMB, totalExceeds, disabled, onClearRequest }) {
+  const countLabel = visibleFiles.length === 1 ? '1 archivo' : `${visibleFiles.length} archivos`;
+  const showBadge = validFiles.length !== visibleFiles.length;
+  return (
+    <div className="fu-list-header">
+      <div>
+        <p className="fu-list-title">
+          {countLabel}
+          {showBadge && (
+            <span className="fu-list-count-badge">
+              {validFiles.length} valido{validFiles.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </p>
+        <p className={`fu-list-sub${totalExceeds ? ' fu-list-sub--over' : ''}`}>
+          Total {formatSize(totalBytes)} / {maxTotalSizeMB} MB
+        </p>
+      </div>
+      <button
+        type="button"
+        className="fu-clear-btn"
+        onClick={onClearRequest}
+        disabled={disabled || visibleFiles.length === 0}
+        aria-label="Quitar todos los archivos"
+      >
+        <TrashIcon />
+        Limpiar
+      </button>
+    </div>
+  );
+}
+
+FileListHeader.propTypes = {
+  visibleFiles: PropTypes.array.isRequired,
+  validFiles: PropTypes.array.isRequired,
+  totalBytes: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+  totalExceeds: PropTypes.bool,
+  disabled: PropTypes.bool,
+  onClearRequest: PropTypes.func.isRequired,
+};
+
+function FileListSection({
+  files,
+  visibleFiles,
+  validFiles,
+  totalBytes,
+  maxTotalSizeMB,
+  totalExceeds,
+  hasValidFiles,
+  multiple,
+  disabled,
+  submitLabel,
+  onClearRequest,
+  onRemoveFile,
+  onAddMore,
+  onSubmit,
+}) {
+  if (files.length === 0) return null;
+  const submitDisabled = disabled || !hasValidFiles || totalExceeds;
+  return (
+    <div className="fu-list-wrap">
+      <FileListHeader
+        visibleFiles={visibleFiles}
+        validFiles={validFiles}
+        totalBytes={totalBytes}
+        maxTotalSizeMB={maxTotalSizeMB}
+        totalExceeds={totalExceeds}
+        disabled={disabled}
+        onClearRequest={onClearRequest}
+      />
+
+      <ul className="fu-list" aria-label="Archivos seleccionados">
+        {files.map((entry) => (
+          <FileItem
+            key={entry.id}
+            entry={entry}
+            disabled={disabled}
+            onRemove={onRemoveFile}
+          />
+        ))}
+      </ul>
+
+      {multiple && (
+        <button
+          type="button"
+          className="fu-add-more"
+          onClick={onAddMore}
+          disabled={disabled}
+        >
+          <PlusIcon />
+          Agregar mas archivos
+        </button>
+      )}
+
+      <button
+        type="button"
+        className="fu-submit"
+        onClick={onSubmit}
+        disabled={submitDisabled}
+        aria-disabled={submitDisabled}
+      >
+        <SendIcon />
+        {submitLabel}
+        {hasValidFiles && !totalExceeds && (
+          <span className="fu-submit-badge">{validFiles.length}</span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+FileListSection.propTypes = {
+  files: PropTypes.array.isRequired,
+  visibleFiles: PropTypes.array.isRequired,
+  validFiles: PropTypes.array.isRequired,
+  totalBytes: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+  totalExceeds: PropTypes.bool,
+  hasValidFiles: PropTypes.bool,
+  multiple: PropTypes.bool,
+  disabled: PropTypes.bool,
+  submitLabel: PropTypes.string,
+  onClearRequest: PropTypes.func.isRequired,
+  onRemoveFile: PropTypes.func.isRequired,
+  onAddMore: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+};
+
+FileUpload.propTypes = {
+  onFilesReady: PropTypes.func,
+  onFilesChanged: PropTypes.func,
+  onClear: PropTypes.func,
+  onSubmit: PropTypes.func,
+  acceptedExtensions: PropTypes.arrayOf(PropTypes.string),
+  maxFileSizeMB: PropTypes.number,
+  maxZipSizeMB: PropTypes.number,
+  maxTotalSizeMB: PropTypes.number,
+  allowMixed: PropTypes.bool,
+  multiple: PropTypes.bool,
+  disabled: PropTypes.bool,
+  projectName: PropTypes.string,
+  submitLabel: PropTypes.string,
+};

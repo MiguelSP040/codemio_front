@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import { getProjects } from '../../projects/services/projectService';
 import { listAnalysisRuns } from '../../analysis/services/analysisService';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
@@ -89,7 +90,7 @@ const staticStats = [
 
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Buenos dias';
+  if (hour < 12) return 'Buenos días';
   if (hour < 18) return 'Buenas tardes';
   return 'Buenas noches';
 }
@@ -268,6 +269,8 @@ function withUpdatedStatValue(stat, {
 
 export default function DashboardHomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const displayName = user?.nombre || user?.name || 'Usuario';
   const [dateRange, setDateRange] = useState(() => createDefaultDateRange());
   const [dateFilter, setDateFilter] = useState(() => createDefaultDateRange());
@@ -291,6 +294,82 @@ export default function DashboardHomePage() {
   const [runsError, setRunsError] = useState('');
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectsError, setProjectsError] = useState('');
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+
+  useEffect(() => {
+    const flagFromNav = location.state?.needsOnboarding === true;
+    const flagFromUser = user?.onboarding_completed === false;
+    if (flagFromNav || flagFromUser) {
+      setShowOnboardingModal(true);
+    }
+    if (flagFromNav) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate, user?.onboarding_completed]);
+
+  function handleCloseOnboardingModal() {
+    setShowOnboardingModal(false);
+  }
+
+  function handleGoToOnboarding() {
+    setShowOnboardingModal(false);
+    navigate('/onboarding');
+  }
+
+  function renderProjectCard(project) {
+    return (
+      <article className="dash-project-card" key={project.id}>
+        <div className="dash-project-top">
+          <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
+            {project.name}
+          </Link>
+          <span className={`dash-project-score ${scoreClass(project.score)}`}>
+            {project.score}
+          </span>
+        </div>
+        <div className="dash-project-meta">
+          <span>{project.filesCount} archivos</span>
+          <span className="dash-project-dot" aria-hidden="true" />
+          <span>{project.lastActivity}</span>
+        </div>
+        <div className="dash-project-actions">
+          <Link
+            to={`/projects/${project.id}/dashboard`}
+            className="dash-action-btn dash-action-btn--open"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            Abrir
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
+  function renderProjectsBody() {
+    if (projectsError) return <p className="dash-welcome-sub">{projectsError}</p>;
+    if (loadingProjects) return <p className="dash-welcome-sub">Cargando proyectos…</p>;
+    if (projects.length === 0) {
+      return (
+        <output className="dash-empty">
+          <p className="dash-empty-text">
+            Aún no tienes proyectos. Crea uno para empezar a analizar tu código Java.
+          </p>
+          <Link to="/projects" className="dash-action-btn dash-action-btn--open">
+            Crear proyecto
+          </Link>
+        </output>
+      );
+    }
+    return (
+      <div className="dash-recent-grid">
+        {projects.map(renderProjectCard)}
+      </div>
+    );
+  }
 
   const stats = useMemo(
     () => staticStats.map((stat) => withUpdatedStatValue(stat, {
@@ -525,13 +604,13 @@ export default function DashboardHomePage() {
             {getGreeting()}, {displayName}
           </h1>
           <p className="dash-welcome-sub">
-            Aqui tienes un resumen de tus proyectos y analisis recientes.
+            Aquí tienes un resumen de tus proyectos y análisis recientes.
           </p>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="dash-stats" aria-label="Estadisticas generales">
+      <section className="dash-stats" aria-label="Estadísticas generales">
         {stats.map((stat) => (
           <article className="dash-stat-card" key={stat.label}>
             <div className="dash-stat-icon" style={{ background: stat.bg, color: stat.color }}>
@@ -660,44 +739,18 @@ export default function DashboardHomePage() {
           </Link>
         </header>
 
-        {projectsError && <p className="dash-welcome-sub">{projectsError}</p>}
-        {loadingProjects ? (
-          <LoadingState variant="skeleton" count={3} label="Cargando proyectos..." />
-        ) : (
-          <div className="dash-recent-grid">
-            {projects.map((project) => (
-              <article className="dash-project-card" key={project.id}>
-                <div className="dash-project-top">
-                  <Link to={`/projects/${project.id}/dashboard`} className="dash-project-name">
-                    {project.name}
-                  </Link>
-                  <span className={`dash-project-score ${scoreClass(project.score)}`}>
-                    {project.score}
-                  </span>
-                </div>
-                <div className="dash-project-meta">
-                  <span>{project.filesCount} archivos</span>
-                  <span className="dash-project-dot" aria-hidden="true" />
-                  <span>{project.lastActivity}</span>
-                </div>
-                <div className="dash-project-actions">
-                  <Link
-                    to={`/projects/${project.id}/dashboard`}
-                    className="dash-action-btn dash-action-btn--open"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
-                    Abrir
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+        {renderProjectsBody()}
       </section>
+
+      <ConfirmModal
+        open={showOnboardingModal}
+        title="Completa tu perfil"
+        message="No has completado tu información de perfil. Completa tu onboarding para acceder a todas las funcionalidades."
+        confirmText="Completar onboarding"
+        cancelText="Más tarde"
+        onConfirm={handleGoToOnboarding}
+        onCancel={handleCloseOnboardingModal}
+      />
     </div>
   );
 }

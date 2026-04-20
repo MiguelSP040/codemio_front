@@ -5,13 +5,19 @@ const PROFILE_NAME_MAX_LEN = 100;
 const PROFILE_AGE_MIN = 1;
 const PROFILE_AGE_MAX = 120;
 
-// Bloquea tags HTML y caracteres de control comunes.
-const HAS_HTML_TAG_RE = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>/;
+// Email con cuantificadores acotados a límites RFC 5321 para evitar ReDoS.
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,63}$/;
+// Bloquea tags HTML y caracteres de control comunes (cuantificadores acotados para evitar ReDoS).
+const HAS_HTML_TAG_RE = /<\/?[a-zA-Z][a-zA-Z0-9]{0,20}(?:\s[^>]{0,500})?>/;
 // eslint-disable-next-line no-control-regex
 const HAS_CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/;
 
 export function isValidOtp(value) {
   return OTP_RE.test((value ?? '').toString());
+}
+
+export function isValidEmail(value) {
+  return EMAIL_RE.test((value ?? '').toString());
 }
 
 export function sanitizePlainText(value) {
@@ -21,7 +27,7 @@ export function sanitizePlainText(value) {
     return raw.slice(0, 10000).trim();
   }
   
-  const withoutTags = raw.replace(/<[^>]{0,1000}>/g, '');
+  const withoutTags = raw.replaceAll(/<[^>]{0,1000}>/g, '');
   return withoutTags.replace(HAS_CONTROL_CHARS_RE, '').trim();
 }
 
@@ -48,7 +54,7 @@ export function validateEdad(value, { required = true } = {}) {
   if (value === null || value === undefined || value === '') {
     return required ? 'Este campo es obligatorio.' : '';
   }
-  if (isNaN(value) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
+  if (Number.isNaN(Number(value)) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
   const n = Number(value);
   if (n < PROFILE_AGE_MIN) return 'La edad debe ser mayor que 0.';
   if (n > PROFILE_AGE_MAX) return `Ingresa una edad válida (máximo ${PROFILE_AGE_MAX}).`;

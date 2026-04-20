@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { registerAccount } from '../services/authService';
+import { getAuthErrorMessage } from '../utils/authErrorMessages';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './RegisterPage.css';
@@ -48,6 +50,7 @@ const INITIAL_TOUCHED = { password: false, confirmPassword: false };
 export default function CreatePasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loginAuth } = useAuth();
   const email = location.state?.email ?? '';
 
   const [form, setForm] = useState(INITIAL_FORM);
@@ -104,14 +107,11 @@ export default function CreatePasswordPage() {
     setServerError('');
 
     try {
-      await registerAccount({ email, password: form.password });
+      const data = await registerAccount({ email, password: form.password });
+      loginAuth(data);
       navigate('/onboarding', { state: { email } });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'Algo salió mal. Inténtalo de nuevo.';
-      setServerError(msg);
+      setServerError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -236,7 +236,7 @@ export default function CreatePasswordPage() {
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>
-          {loading ? <span className="auth-spinner" /> : 'Registrarse'}
+          {loading ? <span className="auth-spinner" /> : 'Crear contraseña'}
         </button>
 
         <p className="auth-footer-text">

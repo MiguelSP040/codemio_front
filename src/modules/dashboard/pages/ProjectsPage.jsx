@@ -57,7 +57,7 @@ function mapProjectToCard(project) {
     name: project.name,
     ownerEmail: project.user_email || '',
     description: '',
-    lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin analisis',
+    lastAnalysis: createdDate ? `Creado: ${createdDate}` : 'Sin análisis',
     createdAt: project.created_at ? new Date(project.created_at).toISOString().slice(0, 10) : '',
     qualityScore: Number.isFinite(project?.quality_score) ? project.quality_score : null,
     severitySummary: {
@@ -151,7 +151,7 @@ function renderProjectsListContent({
   currentUserEmail,
 }) {
   if (loadingList) {
-    return <LoadingState variant="skeleton" count={3} label="Cargando proyectos..." />;
+    return <LoadingState variant="skeleton" count={3} label="Cargando proyectos…" />;
   }
   if (listError) {
     return <p className="projects-analysis-time">{listError}</p>;
@@ -689,7 +689,7 @@ export default function ProjectsPage() {
         data?.detail ||
         data?.message ||
         (Array.isArray(data?.name) ? data.name[0] : null) ||
-        'Algo salio mal. Intentalo de nuevo.';
+        'No pudimos crear el proyecto. Verifica el nombre e inténtalo de nuevo.';
       setServerError(msg);
     } finally {
       setLoading(false);
@@ -787,7 +787,7 @@ export default function ProjectsPage() {
   return (
     <div className="projects-page">
       <PageHeader
-        eyebrow="Seleccion de proyecto"
+        eyebrow="Selección de proyecto"
         title="Proyectos disponibles"
         description="Selecciona un proyecto para abrir su dashboard y revisar archivos analizados."
         action={
@@ -865,7 +865,7 @@ export default function ProjectsPage() {
                 </div>
                 <div>
                   <h2 className="pj-panel-title">Nuevo proyecto</h2>
-                  <p className="pj-panel-subtitle">Crea un proyecto para analizar tu codigo Java</p>
+                  <p className="pj-panel-subtitle">Crea un proyecto para analizar tu código Java</p>
                 </div>
                 <button type="button" className="pj-panel-close" onClick={closePanel} aria-label="Cerrar panel">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -897,7 +897,7 @@ export default function ProjectsPage() {
                   {touched && error ? (
                     <span className="pj-field-error" role="alert">{error}</span>
                   ) : (
-                    <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+                    <span className="pj-hint">Mínimo 3 caracteres, máximo 100</span>
                   )}
                 </div>
 

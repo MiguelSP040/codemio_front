@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
@@ -10,6 +11,7 @@ import {
   validateNombre,
   validatePerfilGithub,
 } from '../../../utils/validation';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -33,6 +35,25 @@ function validate(field, value) {
       return '';
   }
 }
+
+function renderEnabled(enabled) {
+  if (enabled === null || enabled === undefined) return '—';
+  return enabled ? 'Sí' : 'No';
+}
+
+function inputClass(errorMsg) {
+  return `admin-users-input${errorMsg ? ' admin-users-input--error' : ''}`;
+}
+
+function FieldError({ show, message }) {
+  if (!show || !message) return null;
+  return <span className="admin-users-help" role="alert">{message}</span>;
+}
+
+FieldError.propTypes = {
+  show: PropTypes.bool,
+  message: PropTypes.string,
+};
 
 export default function AdminUserDetailPage() {
   const { id } = useParams();
@@ -62,11 +83,7 @@ export default function AdminUserDetailPage() {
         perfil_github: data?.perfil_github ?? '',
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo cargar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo cargar el usuario.'));
     } finally {
       setLoading(false);
     }
@@ -128,11 +145,7 @@ export default function AdminUserDetailPage() {
         perfil_github: updated?.perfil_github ?? '',
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo guardar.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo guardar.'));
     } finally {
       setSaving(false);
     }
@@ -146,14 +159,121 @@ export default function AdminUserDetailPage() {
       await deleteUser(user.id);
       navigate('/admin/users', { replace: true });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo eliminar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo eliminar el usuario.'));
     } finally {
       setDeleting(false);
     }
+  }
+
+  function renderBody() {
+    if (loading) {
+      return <div className="admin-users-card"><LoadingState label="Cargando usuario…" /></div>;
+    }
+    if (!user) {
+      return <div className="admin-users-card">No encontramos el usuario.</div>;
+    }
+    return (
+      <div className="admin-users-grid">
+        <section className="admin-users-card">
+          <h2 className="admin-users-card-title">Datos (solo lectura)</h2>
+          <dl className="admin-users-dl">
+            <div>
+              <dt>Correo</dt>
+              <dd>{user.correo || '—'}</dd>
+            </div>
+            <div>
+              <dt>Rol</dt>
+              <dd>{user.rol || '—'}</dd>
+            </div>
+            <div>
+              <dt>Fecha registro</dt>
+              <dd>{formatDate(user.fecha_registro)}</dd>
+            </div>
+          </dl>
+
+          <h3 className="admin-users-card-subtitle">Cognito</h3>
+          <dl className="admin-users-dl">
+            <div>
+              <dt>Estado</dt>
+              <dd>{user?.cognito?.user_status || '—'}</dd>
+            </div>
+            <div>
+              <dt>Email verificado</dt>
+              <dd>{user?.cognito?.email_verified ? 'Sí' : 'No'}</dd>
+            </div>
+            <div>
+              <dt>Habilitado</dt>
+              <dd>{renderEnabled(user?.cognito?.enabled)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="admin-users-card">
+          <h2 className="admin-users-card-title">Editar</h2>
+
+          <div className="admin-users-form">
+            <div className="admin-users-field">
+              <label className="admin-users-label" htmlFor="nombre">Nombre</label>
+              <input
+                id="nombre"
+                name="nombre"
+                className={inputClass(errors.nombre)}
+                value={form.nombre}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                disabled={saving}
+              />
+              <FieldError show={touched.nombre} message={errors.nombre} />
+            </div>
+
+            <div className="admin-users-field">
+              <label className="admin-users-label" htmlFor="edad">Edad</label>
+              <input
+                id="edad"
+                name="edad"
+                type="number"
+                inputMode="numeric"
+                className={inputClass(errors.edad)}
+                value={form.edad}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                disabled={saving}
+              />
+              <FieldError show={touched.edad} message={errors.edad} />
+            </div>
+
+            <div className="admin-users-field">
+              <label className="admin-users-label" htmlFor="perfil_github">Perfil GitHub</label>
+              <input
+                id="perfil_github"
+                name="perfil_github"
+                className={inputClass(errors.perfil_github)}
+                value={form.perfil_github}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                disabled={saving}
+                placeholder="usuario o URL"
+              />
+              <FieldError show={touched.perfil_github} message={errors.perfil_github} />
+              <p className="admin-users-muted">
+                No puedes editar correo ni rol desde aquí.
+              </p>
+            </div>
+
+            <div className="admin-users-form-actions">
+              <button
+                type="button"
+                className="pj-btn pj-btn--primary"
+                onClick={handleSave}
+                disabled={saving || !isDirty}
+              >
+                {saving ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -193,112 +313,7 @@ export default function AdminUserDetailPage() {
 
       {serverError && <div className="admin-users-error" role="alert">{serverError}</div>}
 
-      {loading ? (
-        <div className="admin-users-card"><LoadingState label="Cargando usuario..." /></div>
-      ) : !user ? (
-        <div className="admin-users-card">No encontramos el usuario.</div>
-      ) : (
-        <div className="admin-users-grid">
-          <section className="admin-users-card">
-            <h2 className="admin-users-card-title">Datos (solo lectura)</h2>
-            <dl className="admin-users-dl">
-              <div>
-                <dt>Correo</dt>
-                <dd>{user.correo || '—'}</dd>
-              </div>
-              <div>
-                <dt>Rol</dt>
-                <dd>{user.rol || '—'}</dd>
-              </div>
-              <div>
-                <dt>Fecha registro</dt>
-                <dd>{formatDate(user.fecha_registro)}</dd>
-              </div>
-            </dl>
-
-            <h3 className="admin-users-card-subtitle">Cognito</h3>
-            <dl className="admin-users-dl">
-              <div>
-                <dt>Status</dt>
-                <dd>{user?.cognito?.user_status || '—'}</dd>
-              </div>
-              <div>
-                <dt>Email verificado</dt>
-                <dd>{user?.cognito?.email_verified ? 'Sí' : 'No'}</dd>
-              </div>
-              <div>
-                <dt>Enabled</dt>
-                <dd>{user?.cognito?.enabled === null || user?.cognito?.enabled === undefined ? '—' : (user?.cognito?.enabled ? 'Sí' : 'No')}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className="admin-users-card">
-            <h2 className="admin-users-card-title">Editar</h2>
-
-            <div className="admin-users-form">
-              <div className="admin-users-field">
-                <label className="admin-users-label" htmlFor="nombre">Nombre</label>
-                <input
-                  id="nombre"
-                  name="nombre"
-                  className={`admin-users-input${errors.nombre ? ' admin-users-input--error' : ''}`}
-                  value={form.nombre}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  disabled={saving}
-                />
-                {touched.nombre && errors.nombre && <span className="admin-users-help" role="alert">{errors.nombre}</span>}
-              </div>
-
-              <div className="admin-users-field">
-                <label className="admin-users-label" htmlFor="edad">Edad</label>
-                <input
-                  id="edad"
-                  name="edad"
-                  type="number"
-                  inputMode="numeric"
-                  className={`admin-users-input${errors.edad ? ' admin-users-input--error' : ''}`}
-                  value={form.edad}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  disabled={saving}
-                />
-                {touched.edad && errors.edad && <span className="admin-users-help" role="alert">{errors.edad}</span>}
-              </div>
-
-              <div className="admin-users-field">
-                <label className="admin-users-label" htmlFor="perfil_github">Perfil GitHub</label>
-                <input
-                  id="perfil_github"
-                  name="perfil_github"
-                  className={`admin-users-input${errors.perfil_github ? ' admin-users-input--error' : ''}`}
-                  value={form.perfil_github}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  disabled={saving}
-                  placeholder="usuario o URL"
-                />
-                {touched.perfil_github && errors.perfil_github && <span className="admin-users-help" role="alert">{errors.perfil_github}</span>}
-                <p className="admin-users-muted">
-                  No puedes editar correo ni rol desde aquí.
-                </p>
-              </div>
-
-              <div className="admin-users-form-actions">
-                <button
-                  type="button"
-                  className="pj-btn pj-btn--primary"
-                  onClick={handleSave}
-                  disabled={saving || !isDirty}
-                >
-                  {saving ? 'Guardando…' : 'Guardar cambios'}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
+      {renderBody()}
 
       <ConfirmDeleteModal
         open={deleteOpen}

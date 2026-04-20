@@ -79,28 +79,7 @@ function renderDashboardHeaderContent({
 }) {
   return (
     <div>
-      {!isEditingName ? (
-        <>
-          <div className="dashboard-repo-row">
-            <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
-            <button
-              type="button"
-              className="dashboard-edit-btn"
-              onClick={startEditName}
-              aria-label="Editar nombre del proyecto"
-              title="Editar nombre"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
-          </div>
-          {isAdmin && projectOwnerEmail ? (
-            <p className="dashboard-subtitle">Propietario del proyecto: {projectOwnerEmail}</p>
-          ) : null}
-        </>
-      ) : (
+      {isEditingName ? (
         <div className="dashboard-name-editor">
           <label htmlFor="project-name" className="dashboard-name-label">
             Nombre del proyecto
@@ -134,8 +113,29 @@ function renderDashboardHeaderContent({
           </div>
           {nameError && <p className="dashboard-name-error">{nameError}</p>}
         </div>
+      ) : (
+        <>
+          <div className="dashboard-repo-row">
+            <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
+            <button
+              type="button"
+              className="dashboard-edit-btn"
+              onClick={startEditName}
+              aria-label="Editar nombre del proyecto"
+              title="Editar nombre"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </div>
+          {isAdmin && projectOwnerEmail ? (
+            <p className="dashboard-subtitle">Propietario del proyecto: {projectOwnerEmail}</p>
+          ) : null}
+        </>
       )}
-      {projectLoading && <LoadingState inline label="Cargando proyecto..." />}
+      {projectLoading && <LoadingState inline label="Cargando proyecto…" />}
       {projectError && <p className="dashboard-subtitle">{projectError}</p>}
       {runsRefreshError && <p className="dashboard-subtitle">{runsRefreshError}</p>}
       {selectedAnalysis ? (
@@ -366,7 +366,7 @@ function analysisStatusLabel(analysisStatus) {
   if (analysisStatus === 'completed_with_warnings') return 'Completado con observaciones';
   if (analysisStatus === 'completed') return 'Completado';
   if (analysisStatus === 'canceled') return 'Cancelado';
-  if (analysisStatus === 'error') return 'Error';
+  if (analysisStatus === 'error') return 'Análisis fallido';
   return 'Sin iniciar';
 }
 

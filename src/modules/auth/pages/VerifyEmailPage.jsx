@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CodeInput from '../../../components/forms/CodeInput';
 import { resendVerificationCode, validateOtp } from '../services/onboardingService';
 import { isValidOtp } from '../../../utils/validation';
+import { getAuthErrorMessage } from '../utils/authErrorMessages';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './VerifyEmailPage.css';
@@ -62,11 +63,7 @@ export default function VerifyEmailPage() {
         state: isRecovery ? { email, code: fullCode } : { email },
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'El código no es válido. Inténtalo de nuevo.';
-      setError(msg);
+      setError(getAuthErrorMessage(err, 'El código no es válido. Inténtalo de nuevo.'));
       resetCodeInput();
     } finally {
       setLoading(false);
@@ -85,11 +82,7 @@ export default function VerifyEmailPage() {
       setCooldown(RESEND_COOLDOWN_S);
       resetCodeInput();
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No pudimos reenviar el código. Inténtalo de nuevo.';
-      setError(msg);
+      setError(getAuthErrorMessage(err, 'No pudimos reenviar el código. Inténtalo de nuevo.'));
     } finally {
       setResending(false);
     }
@@ -121,9 +114,9 @@ export default function VerifyEmailPage() {
           </div>
         )}
         {info && !error && (
-          <div className="verify-info" role="status">
+          <output className="verify-info">
             {info}
-          </div>
+          </output>
         )}
 
         <div className="verify-code-wrap">
