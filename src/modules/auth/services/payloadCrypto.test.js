@@ -44,19 +44,17 @@ describe('encryptProfilePayload with mocked WebCrypto', () => {
         return new Uint8Array(16).fill(7).buffer;
       }),
     };
-    globalThis.window = {
-      crypto: {
-        subtle,
-        getRandomValues: (buf) => {
-          for (let i = 0; i < buf.length; i += 1) buf[i] = i;
-          return buf;
-        },
+    vi.stubGlobal('crypto', {
+      subtle,
+      getRandomValues: (buf) => {
+        for (let i = 0; i < buf.length; i += 1) buf[i] = i;
+        return buf;
       },
-    };
+    });
   });
 
   afterEach(() => {
-    delete globalThis.window;
+    vi.unstubAllGlobals();
   });
 
   it('returns a payload with all encrypted fields as base64', async () => {
