@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import './CodeInput.css';
 
@@ -35,6 +35,10 @@ export default function CodeInput({
 }) {
   const [digits, setDigits] = useState(() => Array.from({ length }, () => ''));
   const inputsRef = useRef([]);
+  const digitKeys = useMemo(
+    () => Array.from({ length }, (_, i) => `digit-${i}`),
+    [length],
+  );
 
   // Sincroniza con value externo (modo controlado opcional)
   useEffect(() => {
@@ -161,7 +165,7 @@ export default function CodeInput({
     >
       {digits.map((digit, index) => (
         <input
-          key={index}
+          key={digitKeys[index]}
           ref={(el) => (inputsRef.current[index] = el)}
           type="text"
           inputMode="numeric"

@@ -110,12 +110,18 @@ export default function AdminUsersListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="admin-users-empty"><LoadingState label="Cargando usuarios…" /></td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
-            ) : (
-              filtered.map((u) => (
+            {(() => {
+              if (loading) {
+                return (
+                  <tr><td colSpan={6} className="admin-users-empty"><LoadingState label="Cargando usuarios…" /></td></tr>
+                );
+              }
+              if (filtered.length === 0) {
+                return (
+                  <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
+                );
+              }
+              return filtered.map((u) => (
                 <tr key={u.id}>
                   <td>
                     <Link className="admin-users-link" to={`/admin/users/${u.id}`}>
@@ -147,8 +153,8 @@ export default function AdminUsersListPage() {
                     </button>
                   </td>
                 </tr>
-              ))
-            )}
+              ));
+            })()}
           </tbody>
         </table>
       </div>
