@@ -1,4 +1,5 @@
-import httpClient from '../../../config/httpClient';
+import apiClient from '../../../services/apiClient';
+import { getAccessToken } from './sessionService';
 import { encryptProfilePayload } from './payloadCrypto';
 
 /**
@@ -7,24 +8,21 @@ import { encryptProfilePayload } from './payloadCrypto';
  *  - sendVerificationCode  → POST /auth/send/       body: { email }
  *  - validateOtp           → POST /auth/validate/   body: { email, otp }
  *  - completeProfile       → PATCH /users/me/       body: { nombre, edad, perfil_github }
- *                                                   header: Authorization: Bearer <access_token>
+ *
+ * Authorization se añade automáticamente por el interceptor de apiClient cuando existe sesión.
  */
 
 /**
  * Fase A.1 — Envía (o reenvía) el código OTP al correo del usuario.
- * Swagger: POST /auth/send/  { email }  → 201 { detail, email, cognito_sub, otp_flow }
  */
 export async function sendVerificationCode({ email }) {
   const normalizedEmail = email.trim().toLowerCase();
-  const { data } = await httpClient.post('/auth/send/', { email: normalizedEmail });
+  const { data } = await apiClient.post('/auth/send/', { email: normalizedEmail });
   return data;
 }
 
 /**
- * Reenvío del código OTP. A nivel backend es el mismo endpoint que `sendVerificationCode`
- * (Cognito devuelve otp_flow: 'resent' si la cuenta sigue UNCONFIRMED). Se expone como
- * función separada para claridad en la UI.
- * Swagger: POST /auth/send/  { email }
+ * Reenvío del código OTP (mismo endpoint que sendVerificationCode).
  */
 export async function resendVerificationCode({ email }) {
   return sendVerificationCode({ email });
@@ -32,21 +30,19 @@ export async function resendVerificationCode({ email }) {
 
 /**
  * Fase A.2 — Valida el código OTP.
- * Swagger: POST /auth/validate/  { email, otp }  → 200 { detail, email, already_verified }
- *          Errores: 400 OTP inválido · 404 no existe cuenta · 429 rate limit.
  */
 export async function validateOtp({ email, otp, flow = 'register' }) {
   const normalizedEmail = email.trim().toLowerCase();
 
   if (flow === 'recovery') {
-    const { data } = await httpClient.post('/auth/forgot-password/validate-code/', {
+    const { data } = await apiClient.post('/auth/forgot-password/validate-code/', {
       email: normalizedEmail,
       code: otp,
     });
     return data;
   }
 
-  const { data } = await httpClient.post('/auth/validate/', {
+  const { data } = await apiClient.post('/auth/validate/', {
     email: normalizedEmail,
     otp,
   });
@@ -55,12 +51,19 @@ export async function validateOtp({ email, otp, flow = 'register' }) {
 
 /**
  * Fase D — Actualiza el perfil del usuario autenticado (onboarding).
- * Swagger: PATCH /users/me/  { nombre?, edad?, perfil_github? }  → 200 Usuario
- *          Requiere Authorization: Bearer <access_token> (httpClient interceptor lo añade).
- *          El backend calcula onboarding_completed = (nombre !== null && edad !== null).
+ * Requiere sesión activa; el interceptor de apiClient adjunta Authorization.
  */
 export async function completeProfile({ nombre, edad, perfil_github }) {
-  const { data: publicKeyPayload } = await httpClient.get('/auth/payload-public-key/');
+  if (!getAccessToken()) {
+    const err = new Error('Missing access token');
+    err.response = {
+      status: 401,
+      data: { detail: 'No hay sesión activa. Inicia sesión para completar tu perfil.' },
+    };
+    throw err;
+  }
+
+  const { data: publicKeyPayload } = await apiClient.get('/auth/payload-public-key/');
 
   const encryptedPayload = await encryptProfilePayload(
     {
@@ -71,7 +74,6 @@ export async function completeProfile({ nombre, edad, perfil_github }) {
     publicKeyPayload,
   );
 
-  const { data } = await httpClient.patch('/users/me/', encryptedPayload);
-
+  const { data } = await apiClient.patch('/users/me/', encryptedPayload);
   return data;
 }

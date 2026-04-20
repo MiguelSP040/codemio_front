@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import './CodeInput.css';
 
 /**
@@ -34,6 +35,10 @@ export default function CodeInput({
 }) {
   const [digits, setDigits] = useState(() => Array.from({ length }, () => ''));
   const inputsRef = useRef([]);
+  const digitKeys = useMemo(
+    () => Array.from({ length }, (_, i) => `digit-${i}`),
+    [length],
+  );
 
   // Sincroniza con value externo (modo controlado opcional)
   useEffect(() => {
@@ -70,7 +75,7 @@ export default function CodeInput({
 
   function handleChange(index, raw) {
     // Filtra no dígitos; toma último dígito si el usuario escribió varios
-    const onlyDigits = raw.replace(/\D/g, '');
+    const onlyDigits = raw.replaceAll(/\D/g, '');
     if (!onlyDigits) return;
 
     // Si pegó varios caracteres, reparte desde este índice
@@ -128,7 +133,7 @@ export default function CodeInput({
 
   function handlePaste(index, e) {
     const text = e.clipboardData.getData('text');
-    const onlyDigits = text.replace(/\D/g, '');
+    const onlyDigits = text.replaceAll(/\D/g, '');
     if (!onlyDigits) return;
 
     e.preventDefault();
@@ -153,14 +158,13 @@ export default function CodeInput({
   }
 
   return (
-    <div
+    <fieldset
       className={`code-input${error ? ' code-input--error' : ''}`}
-      role="group"
       aria-label={ariaLabel}
     >
       {digits.map((digit, index) => (
         <input
-          key={index}
+          key={digitKeys[index]}
           ref={(el) => (inputsRef.current[index] = el)}
           type="text"
           inputMode="numeric"
@@ -177,6 +181,17 @@ export default function CodeInput({
           onFocus={() => handleFocus(index)}
         />
       ))}
-    </div>
+    </fieldset>
   );
 }
+
+CodeInput.propTypes = {
+  length: PropTypes.number,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  onComplete: PropTypes.func,
+  error: PropTypes.bool,
+  disabled: PropTypes.bool,
+  autoFocus: PropTypes.bool,
+  ariaLabel: PropTypes.string,
+};

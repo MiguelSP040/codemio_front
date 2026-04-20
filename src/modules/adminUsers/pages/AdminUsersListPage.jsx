@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, listUsers } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -34,11 +36,7 @@ export default function AdminUsersListPage() {
       const data = await listUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudieron cargar los usuarios.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudieron cargar los usuarios.'));
     } finally {
       setLoading(false);
     }
@@ -68,14 +66,64 @@ export default function AdminUsersListPage() {
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo eliminar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo eliminar el usuario.'));
     } finally {
       setDeleting(false);
     }
+  }
+
+  function renderRows() {
+    if (loading) {
+      return [
+        <tr key="loading">
+          <td colSpan={6} className="admin-users-empty">
+            <LoadingState label="Cargando usuarios…" />
+          </td>
+        </tr>,
+      ];
+    }
+    if (filtered.length === 0) {
+      return [
+        <tr key="empty">
+          <td colSpan={6} className="admin-users-empty">
+            No hay usuarios para mostrar.
+          </td>
+        </tr>,
+      ];
+    }
+    return filtered.map((u) => (
+      <tr key={u.id}>
+        <td>
+          <Link className="admin-users-link" to={`/admin/users/${u.id}`}>
+            {u.nombre || '—'}
+          </Link>
+          <div className="admin-users-muted">{u.correo || '—'}</div>
+        </td>
+        <td>{u.edad ?? '—'}</td>
+        <td>{u.perfil_github || '—'}</td>
+        <td>{formatDate(u.fecha_registro)}</td>
+        <td>
+          <span className={`admin-users-pill ${u?.cognito?.email_verified ? 'admin-users-pill--ok' : 'admin-users-pill--warn'}`}>
+            {u?.cognito?.email_verified ? 'Verificado' : 'No verificado'}
+          </span>
+        </td>
+        <td className="admin-users-actions">
+          <button
+            type="button"
+            className="projects-card-btn projects-card-btn--delete"
+            onClick={() => setDeleteTarget(u)}
+            aria-label={`Eliminar usuario ${u.nombre}`}
+            title="Eliminar usuario"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    ));
   }
 
   return (
@@ -116,45 +164,7 @@ export default function AdminUsersListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="admin-users-empty">Cargando…</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
-            ) : (
-              filtered.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <Link className="admin-users-link" to={`/admin/users/${u.id}`}>
-                      {u.nombre || '—'}
-                    </Link>
-                    <div className="admin-users-muted">{u.correo || '—'}</div>
-                  </td>
-                  <td>{u.edad ?? '—'}</td>
-                  <td>{u.perfil_github || '—'}</td>
-                  <td>{formatDate(u.fecha_registro)}</td>
-                  <td>
-                    <span className={`admin-users-pill ${u?.cognito?.email_verified ? 'admin-users-pill--ok' : 'admin-users-pill--warn'}`}>
-                      {u?.cognito?.email_verified ? 'Verificado' : 'No verificado'}
-                    </span>
-                  </td>
-                  <td className="admin-users-actions">
-                    <button
-                      type="button"
-                      className="projects-card-btn projects-card-btn--delete"
-                      onClick={() => setDeleteTarget(u)}
-                      aria-label={`Eliminar usuario ${u.nombre}`}
-                      title="Eliminar usuario"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            {renderRows()}
           </tbody>
         </table>
       </div>

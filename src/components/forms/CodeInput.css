@@ -1,6 +1,10 @@
 /* ===== CodeInput — casillas de dígitos para OTP ===== */
 
 .code-input {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
   display: flex;
   justify-content: center;
   gap: var(--space-sm);

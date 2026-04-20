@@ -1,7 +1,8 @@
+import PropTypes from 'prop-types';
 import './AnalysisStatusCard.css';
 
 /**
- * @typedef {'idle' | 'queued' | 'processing' | 'completed' | 'error'} AnalysisStatus
+ * @typedef {'idle' | 'queued' | 'processing' | 'completed' | 'completed_with_warnings' | 'canceled' | 'error'} AnalysisStatus
  */
 
 /**
@@ -37,8 +38,20 @@ export const statusConfig = {
     badgeClass: 'analysis-status-badge--completed',
     cardClass: 'analysis-status-card--completed',
   },
+  completed_with_warnings: {
+    label: 'Completado con observaciones',
+    message: 'El análisis terminó con observaciones de calidad.',
+    badgeClass: 'analysis-status-badge--warning',
+    cardClass: 'analysis-status-card--warning',
+  },
+  canceled: {
+    label: 'Cancelado',
+    message: 'El análisis fue cancelado antes de completarse.',
+    badgeClass: 'analysis-status-badge--canceled',
+    cardClass: 'analysis-status-card--canceled',
+  },
   error: {
-    label: 'Error',
+    label: 'Fallo',
     message: 'Ocurrió un error durante el análisis.',
     badgeClass: 'analysis-status-badge--error',
     cardClass: 'analysis-status-card--error',
@@ -65,17 +78,30 @@ export default function AnalysisStatusCard({ analysisStatus, lastUpdated }) {
       <p className="analysis-status-message">{currentStatus.message}</p>
 
       {isProcessing && (
-        <div className="analysis-status-progress" role="status" aria-label="Análisis en progreso">
+        <output className="analysis-status-progress" aria-label="Análisis en progreso">
           <span className="analysis-status-spinner" aria-hidden="true" />
           <div className="analysis-status-progress-track" aria-hidden="true">
             <span className="analysis-status-progress-bar" />
           </div>
-        </div>
+        </output>
       )}
 
       <p className="analysis-status-updated">
-        Última actualización: {lastUpdated || 'sin registros aún'}
+        Última actualización: {lastUpdated || 'Sin registros aún'}
       </p>
     </section>
   );
 }
+
+AnalysisStatusCard.propTypes = {
+  analysisStatus: PropTypes.oneOf([
+    'idle',
+    'queued',
+    'processing',
+    'completed',
+    'completed_with_warnings',
+    'canceled',
+    'error',
+  ]),
+  lastUpdated: PropTypes.string,
+};

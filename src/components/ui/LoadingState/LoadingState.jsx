@@ -1,0 +1,53 @@
+import { useMemo } from 'react';
+import PropTypes from 'prop-types';
+import './LoadingState.css';
+
+export default function LoadingState({
+  variant = 'spinner',
+  label = 'Cargando...',
+  count = 3,
+  inline = false,
+  className = '',
+}) {
+  const placeholderIds = useMemo(
+    () => Array.from({ length: count }, () => crypto.randomUUID()),
+    [count],
+  );
+
+  if (variant === 'skeleton') {
+    return (
+      <output
+        className={`cm-skeleton-list ${className}`.trim()}
+        aria-live="polite"
+      >
+        {placeholderIds.map((id) => (
+          <div key={id} className="cm-skeleton-card" aria-hidden="true" />
+        ))}
+        <span className="cm-sr-only">{label}</span>
+      </output>
+    );
+  }
+
+  const wrapClass = [
+    'cm-spinner-wrap',
+    inline ? 'cm-spinner-wrap--inline' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <output className={wrapClass} aria-live="polite">
+      <span className="cm-spinner" aria-hidden="true" />
+      <span className="cm-spinner-label">{label}</span>
+    </output>
+  );
+}
+
+LoadingState.propTypes = {
+  variant: PropTypes.oneOf(['spinner', 'skeleton']),
+  label: PropTypes.string,
+  count: PropTypes.number,
+  inline: PropTypes.bool,
+  className: PropTypes.string,
+};

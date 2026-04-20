@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 function sidebarLabel(fileName) {
   return fileName.replace('.java', '');
 }
@@ -24,7 +26,14 @@ export default function ProjectDrawer({
         {isOpen ? '<' : '>'}
       </button>
 
-      {isOpen && <div className="dashboard-drawer-backdrop" onClick={onClose} />}
+      {isOpen && (
+        <button
+          type="button"
+          className="dashboard-drawer-backdrop"
+          aria-label="Cerrar panel de proyectos"
+          onClick={onClose}
+        />
+      )}
 
       <aside className={`dashboard-sidebar${isOpen ? ' dashboard-sidebar--open' : ' dashboard-sidebar--closed'}`}>
         <div className="dashboard-sidebar-header">
@@ -35,7 +44,7 @@ export default function ProjectDrawer({
         </div>
 
         <p className="dashboard-sidebar-caption">
-          Selecciona un proyecto para ver su analisis detallado.
+          Selecciona un proyecto para ver su análisis detallado.
         </p>
 
         <div className="dashboard-sidebar-list">
@@ -65,7 +74,7 @@ export default function ProjectDrawer({
                   <div className="dashboard-sidebar-item-stats">
                     <span className="dashboard-sidebar-item-stat">Score {analysis.score}</span>
                     <span className="dashboard-sidebar-item-stat">
-                      {analysis.summaryCards[0].value} criticos
+                      {analysis.summaryCards[0].value} críticos
                     </span>
                   </div>
                 </div>
@@ -77,3 +86,28 @@ export default function ProjectDrawer({
     </>
   );
 }
+
+ProjectDrawer.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  analysisFiles: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      fileName: PropTypes.string.isRequired,
+      filePath: PropTypes.string,
+      shortDescription: PropTypes.string,
+      score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      analysisStatus: PropTypes.string,
+      summaryCards: PropTypes.arrayOf(
+        PropTypes.shape({
+          value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        }),
+      ),
+    }),
+  ).isRequired,
+  selectedFileId: PropTypes.string,
+  onSelectFile: PropTypes.func.isRequired,
+  getStatusClass: PropTypes.func.isRequired,
+  getStatusLabel: PropTypes.func.isRequired,
+};

@@ -48,3 +48,9 @@ Thumbs.db
 *.bak
 *.tmp
 *.temp
+
+# Local planning / docs / scanner scripts (not for commit)
+.planning/
+Solved-issues.md
+TODO-solving.md
+run-sonar-local.sh

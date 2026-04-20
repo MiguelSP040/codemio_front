@@ -1,0 +1,261 @@
+.apm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: rgba(30, 58, 95, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.apm-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  border-top: 4px solid var(--color-primary);
+}
+
+.apm-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apm-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.apm-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  line-height: 1.4;
+}
+
+.apm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apm-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.apm-progress-count {
+  color: var(--color-text);
+}
+
+.apm-progress-percent {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.apm-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: var(--color-bg-alt);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.apm-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+  transition: width 500ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  position: relative;
+}
+
+.apm-progress-bar--active .apm-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.38) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 220% 100%;
+  animation: apm-shimmer 1.8s linear infinite;
+}
+
+@keyframes apm-shimmer {
+  0%   { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apm-progress-bar--active .apm-progress-fill::after {
+    animation: none;
+  }
+}
+
+.apm-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.apm-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.apm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 8px 12px;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+
+.apm-item-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apm-chip {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.apm-chip--uploading,
+.apm-chip--queued {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.apm-chip--running {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.apm-chip--done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.apm-chip--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.apm-chip--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.apm-chip--canceled {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.apm-errors {
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.8125rem;
+  color: var(--color-error);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.apm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.apm-btn {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.apm-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.22);
+}
+
+.apm-btn--ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.apm-btn--ghost:hover {
+  background: var(--color-bg-alt);
+}
+
+.apm-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.apm-btn--primary:hover {
+  background: var(--color-secondary);
+}
+
+@media (max-width: 560px) {
+  .apm-actions {
+    flex-direction: column-reverse;
+  }
+  .apm-btn {
+    width: 100%;
+  }
+  .apm-item-name {
+    max-width: 60%;
+  }
+}
