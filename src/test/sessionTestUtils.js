@@ -14,6 +14,10 @@ export class LocalStorageMock {
   setItem(key, value) {
     this.store[key] = String(value);
   }
+
+  removeItem(key) {
+    delete this.store[key];
+  }
 }
 
 export function setupLocalStorageMock() {
