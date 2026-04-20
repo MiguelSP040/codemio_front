@@ -131,8 +131,9 @@ httpClient.interceptors.response.use(
     const originalConfig = error.config || {};
     const status = error.response?.status;
     const isRefreshCall = (originalConfig.url || '').includes('/auth/refresh/');
+    const hadAuthHeader = Boolean(originalConfig.headers?.Authorization);
 
-    if (status !== 401 || originalConfig._retry || isRefreshCall) {
+    if (status !== 401 || originalConfig._retry || isRefreshCall || !hadAuthHeader) {
       return Promise.reject(error);
     }
 
