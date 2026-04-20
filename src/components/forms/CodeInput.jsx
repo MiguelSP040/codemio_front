@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import './CodeInput.css';
 
 /**
@@ -180,3 +181,14 @@ export default function CodeInput({
     </div>
   );
 }
+
+CodeInput.propTypes = {
+  length: PropTypes.number,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  onComplete: PropTypes.func,
+  error: PropTypes.bool,
+  disabled: PropTypes.bool,
+  autoFocus: PropTypes.bool,
+  ariaLabel: PropTypes.string,
+};

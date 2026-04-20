@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import toast from '../../../utils/toast';
 import ConfirmModal from '../../ui/ConfirmModal/ConfirmModal';
 import './FileUpload.css';
@@ -624,3 +625,19 @@ export default function FileUpload({
     </div>
   );
 }
+
+FileUpload.propTypes = {
+  onFilesReady: PropTypes.func,
+  onFilesChanged: PropTypes.func,
+  onClear: PropTypes.func,
+  onSubmit: PropTypes.func,
+  acceptedExtensions: PropTypes.arrayOf(PropTypes.string),
+  maxFileSizeMB: PropTypes.number,
+  maxZipSizeMB: PropTypes.number,
+  maxTotalSizeMB: PropTypes.number,
+  allowMixed: PropTypes.bool,
+  multiple: PropTypes.bool,
+  disabled: PropTypes.bool,
+  projectName: PropTypes.string,
+  submitLabel: PropTypes.string,
+};

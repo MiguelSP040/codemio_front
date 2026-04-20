@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 function sidebarLabel(fileName) {
   return fileName.replace('.java', '');
 }
@@ -77,3 +79,25 @@ export default function ProjectDrawer({
     </>
   );
 }
+
+ProjectDrawer.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  analysisFiles: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      fileName: PropTypes.string.isRequired,
+      filePath: PropTypes.string,
+      shortDescription: PropTypes.string,
+      score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      analysisStatus: PropTypes.string,
+      // TODO: refine summaryCards shape once internal structure is stable
+      summaryCards: PropTypes.array,
+    }),
+  ).isRequired,
+  selectedFileId: PropTypes.string,
+  onSelectFile: PropTypes.func.isRequired,
+  getStatusClass: PropTypes.func.isRequired,
+  getStatusLabel: PropTypes.func.isRequired,
+};

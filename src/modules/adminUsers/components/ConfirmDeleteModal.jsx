@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import '../pages/adminUsers.css';
 
 export default function ConfirmDeleteModal({
@@ -41,4 +42,15 @@ export default function ConfirmDeleteModal({
     </div>
   );
 }
+
+ConfirmDeleteModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  title: PropTypes.string,
+  description: PropTypes.string,
+  confirmText: PropTypes.string,
+  cancelText: PropTypes.string,
+  loading: PropTypes.bool,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+};
 

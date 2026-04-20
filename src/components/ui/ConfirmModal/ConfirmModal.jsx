@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import PropTypes from 'prop-types';
 import './ConfirmModal.css';
 
 /* Reusable custom confirmation modal.
@@ -134,3 +135,15 @@ export default function ConfirmModal({
 
   return createPortal(content, document.body);
 }
+
+ConfirmModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  title: PropTypes.string.isRequired,
+  message: PropTypes.node,
+  confirmText: PropTypes.string,
+  cancelText: PropTypes.string,
+  variant: PropTypes.oneOf(['default', 'danger', 'warning']),
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  busy: PropTypes.bool,
+};

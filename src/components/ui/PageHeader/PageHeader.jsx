@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import './PageHeader.css';
 
-export default function PageHeader({ 
+export default function PageHeader({
   eyebrow,
-  title, 
+  title,
   description,
   action
 }) {
@@ -19,3 +20,10 @@ export default function PageHeader({
     </header>
   );
 }
+
+PageHeader.propTypes = {
+  eyebrow: PropTypes.node,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.node,
+  action: PropTypes.node,
+};

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import './AnalysisStatusCard.css';
 
 /**
@@ -91,3 +92,16 @@ export default function AnalysisStatusCard({ analysisStatus, lastUpdated }) {
     </section>
   );
 }
+
+AnalysisStatusCard.propTypes = {
+  analysisStatus: PropTypes.oneOf([
+    'idle',
+    'queued',
+    'processing',
+    'completed',
+    'completed_with_warnings',
+    'canceled',
+    'error',
+  ]),
+  lastUpdated: PropTypes.string,
+};

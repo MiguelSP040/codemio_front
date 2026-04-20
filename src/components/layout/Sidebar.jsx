@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/images/codemio-logo.png';
 import './Sidebar.css';
@@ -146,3 +147,8 @@ export default function Sidebar({ isOpen, onClose }) {
     </>
   );
 }
+
+Sidebar.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
