@@ -28,9 +28,25 @@ export default function Sidebar({ isOpen, onClose }) {
   const role = user?.rol || user?.role || null;
   const isAdmin = role === 'admin';
 
+  function handleBackdropKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  }
+
   return (
     <>
-      {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
+      {isOpen && (
+        <div
+          className="sidebar-backdrop"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar menú"
+          onClick={onClose}
+          onKeyDown={handleBackdropKeyDown}
+        />
+      )}
 
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         {/* Logo */}

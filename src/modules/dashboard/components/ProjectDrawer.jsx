@@ -14,6 +14,13 @@ export default function ProjectDrawer({
   getStatusClass,
   getStatusLabel,
 }) {
+  function handleBackdropKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  }
+
   return (
     <>
       <button
@@ -26,7 +33,16 @@ export default function ProjectDrawer({
         {isOpen ? '<' : '>'}
       </button>
 
-      {isOpen && <div className="dashboard-drawer-backdrop" onClick={onClose} />}
+      {isOpen && (
+        <div
+          className="dashboard-drawer-backdrop"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar panel de proyectos"
+          onClick={onClose}
+          onKeyDown={handleBackdropKeyDown}
+        />
+      )}
 
       <aside className={`dashboard-sidebar${isOpen ? ' dashboard-sidebar--open' : ' dashboard-sidebar--closed'}`}>
         <div className="dashboard-sidebar-header">
