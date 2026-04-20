@@ -43,8 +43,7 @@ export async function login({ email, password }) {
  * Register a new user.
  * Currently uses a mock delay — swap with real API call when ready.
  */
-export async function register({ name, email, password }) {
-  void name;
+export async function register({ email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
   await authApi.post('/auth/register/', {
     email: normalizedEmail,

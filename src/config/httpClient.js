@@ -134,7 +134,7 @@ httpClient.interceptors.response.use(
     const hadAuthHeader = Boolean(originalConfig.headers?.Authorization);
 
     if (status !== 401 || originalConfig._retry || isRefreshCall || !hadAuthHeader) {
-      return Promise.reject(error);
+      throw error;
     }
 
     originalConfig._retry = true;
@@ -154,7 +154,7 @@ httpClient.interceptors.response.use(
       return httpClient(originalConfig);
     } catch (refreshErr) {
       if (typeof onSessionExpired === 'function') onSessionExpired();
-      return Promise.reject(refreshErr);
+      throw refreshErr;
     }
   },
 );

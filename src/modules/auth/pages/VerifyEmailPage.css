@@ -65,7 +65,6 @@
   width: 16px;
   height: 16px;
   border-width: 2px;
-  border-top-color: var(--color-secondary);
   border-color: rgba(70, 130, 180, 0.25);
   border-top-color: var(--color-secondary);
 }
