@@ -145,14 +145,14 @@ export default function DashboardHomePage() {
     if (loadingProjects) return <p className="dash-welcome-sub">Cargando proyectos…</p>;
     if (projects.length === 0) {
       return (
-        <div className="dash-empty" role="status">
+        <output className="dash-empty">
           <p className="dash-empty-text">
             Aún no tienes proyectos. Crea uno para empezar a analizar tu código Java.
           </p>
           <Link to="/projects" className="dash-action-btn dash-action-btn--open">
             Crear proyecto
           </Link>
-        </div>
+        </output>
       );
     }
     return (
