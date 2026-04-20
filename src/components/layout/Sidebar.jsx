@@ -28,23 +28,14 @@ export default function Sidebar({ isOpen, onClose }) {
   const role = user?.rol || user?.role || null;
   const isAdmin = role === 'admin';
 
-  function handleBackdropKeyDown(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  }
-
   return (
     <>
       {isOpen && (
-        <div
+        <button
+          type="button"
           className="sidebar-backdrop"
-          role="button"
-          tabIndex={0}
           aria-label="Cerrar menú"
           onClick={onClose}
-          onKeyDown={handleBackdropKeyDown}
         />
       )}
 

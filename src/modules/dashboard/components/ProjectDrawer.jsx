@@ -14,13 +14,6 @@ export default function ProjectDrawer({
   getStatusClass,
   getStatusLabel,
 }) {
-  function handleBackdropKeyDown(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  }
-
   return (
     <>
       <button
@@ -34,13 +27,11 @@ export default function ProjectDrawer({
       </button>
 
       {isOpen && (
-        <div
+        <button
+          type="button"
           className="dashboard-drawer-backdrop"
-          role="button"
-          tabIndex={0}
           aria-label="Cerrar panel de proyectos"
           onClick={onClose}
-          onKeyDown={handleBackdropKeyDown}
         />
       )}
 
@@ -108,8 +99,11 @@ ProjectDrawer.propTypes = {
       shortDescription: PropTypes.string,
       score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       analysisStatus: PropTypes.string,
-      // TODO: refine summaryCards shape once internal structure is stable
-      summaryCards: PropTypes.array,
+      summaryCards: PropTypes.arrayOf(
+        PropTypes.shape({
+          value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        }),
+      ),
     }),
   ).isRequired,
   selectedFileId: PropTypes.string,
