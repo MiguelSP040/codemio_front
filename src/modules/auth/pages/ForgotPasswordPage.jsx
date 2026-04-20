@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { forgotPassword } from '../services/authService';
 import { getAuthErrorMessage } from '../utils/authErrorMessages';
+import { isValidEmail } from '../../../utils/validation';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function validate(value) {
   if (!value.trim()) return 'Este campo es obligatorio.';
-  if (!EMAIL_REGEX.test(value)) return 'Ingresa un correo electrónico válido.';
+  if (!isValidEmail(value)) return 'Ingresa un correo electrónico válido.';
   return '';
 }
 

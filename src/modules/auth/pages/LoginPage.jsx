@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { login, githubAuth } from '../services/authService';
 import { getAuthErrorMessage } from '../utils/authErrorMessages';
+import { isValidEmail } from '../../../utils/validation';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function validate(field, value) {
   if (!value.trim()) return 'Este campo es obligatorio.';
-  if (field === 'email' && !EMAIL_REGEX.test(value)) return 'Ingresa un correo electrónico válido.';
+  if (field === 'email' && !isValidEmail(value)) return 'Ingresa un correo electrónico válido.';
   if (field === 'password' && value.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
   return '';
 }

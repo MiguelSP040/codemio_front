@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { githubAuth } from '../services/authService';
 import { sendVerificationCode } from '../services/onboardingService';
 import { getAuthErrorMessage } from '../utils/authErrorMessages';
+import { isValidEmail } from '../../../utils/validation';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function validate(value) {
   if (!value.trim()) return 'Este campo es obligatorio.';
-  if (!EMAIL_REGEX.test(value)) return 'Ingresa un correo electrónico válido.';
+  if (!isValidEmail(value)) return 'Ingresa un correo electrónico válido.';
   return '';
 }
 
