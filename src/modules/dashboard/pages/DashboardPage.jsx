@@ -6,6 +6,7 @@ import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
 import {
   fetchAnalysisRunsStatusBulk,
+  getAnalysisRun,
   isRetriableAnalysisError,
   listAnalysisRuns,
 } from '../../analysis/services/analysisService';
@@ -21,6 +22,7 @@ const RUNS_POLL_FAST_MS = 1000;
 const RUNS_POLL_SLOW_MS = 5000;
 
 const IN_FLIGHT_RUN_STATUSES = new Set(['PENDING', 'RUNNING', 'WAITING_SONAR_WEBHOOK']);
+const TERMINAL_RUN_STATUSES = new Set(['DONE', 'FAILED', 'CANCELED']);
 
 function runProgressSignature(run) {
   if (run?.id == null) return '';
@@ -57,6 +59,247 @@ function resolveRunsPollBackoff(errorCount, err) {
     return Math.min(60000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 5));
   }
   return Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 4));
+}
+
+function renderDashboardHeaderContent({
+  isEditingName,
+  repositoryName,
+  startEditName,
+  isAdmin,
+  projectOwnerEmail,
+  draftName,
+  setDraftName,
+  handleNameKeyDown,
+  saveProjectName,
+  savingName,
+  cancelEditName,
+  nameError,
+  projectLoading,
+  projectError,
+  runsRefreshError,
+  selectedAnalysis,
+}) {
+  return (
+    <div>
+      {!isEditingName ? (
+        <>
+          <div className="dashboard-repo-row">
+            <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
+            <button
+              type="button"
+              className="dashboard-edit-btn"
+              onClick={startEditName}
+              aria-label="Editar nombre del proyecto"
+              title="Editar nombre"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </div>
+          {isAdmin && projectOwnerEmail ? (
+            <p className="dashboard-subtitle">Propietario del proyecto: {projectOwnerEmail}</p>
+          ) : null}
+        </>
+      ) : (
+        <div className="dashboard-name-editor">
+          <label htmlFor="project-name" className="dashboard-name-label">
+            Nombre del proyecto
+          </label>
+          <div className="dashboard-name-controls">
+            <input
+              id="project-name"
+              className="dashboard-name-input"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={handleNameKeyDown}
+              maxLength={100}
+              autoFocus
+            />
+            <button
+              type="button"
+              className="dashboard-btn dashboard-btn--primary"
+              onClick={saveProjectName}
+              disabled={savingName}
+            >
+              {savingName ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              type="button"
+              className="dashboard-btn dashboard-btn--ghost"
+              onClick={cancelEditName}
+              disabled={savingName}
+            >
+              Cancelar
+            </button>
+          </div>
+          {nameError && <p className="dashboard-name-error">{nameError}</p>}
+        </div>
+      )}
+      {projectLoading && <LoadingState inline label="Cargando proyecto..." />}
+      {projectError && <p className="dashboard-subtitle">{projectError}</p>}
+      {runsRefreshError && <p className="dashboard-subtitle">{runsRefreshError}</p>}
+      {selectedAnalysis ? (
+        <>
+          <div className="dashboard-title-row">
+            <h1>{selectedAnalysis.fileName}</h1>
+            <span
+              className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
+            >
+              {analysisStatusLabel(selectedAnalysis.analysisStatus)}
+            </span>
+          </div>
+          <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
+          <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
+          {selectedAnalysis.failureMessage ? (
+            <p className="dashboard-subtitle">{selectedAnalysis.failureMessage}</p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <div className="dashboard-title-row">
+            <h1>Sin analisis todavia</h1>
+          </div>
+          <p className="dashboard-subtitle">
+            Sube archivos .java o .zip desde el panel de proyectos para ver resultados Sonar aqui.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function renderDashboardAnalysisSections({
+  selectedAnalysis,
+  projectFiles,
+  selectedFileId,
+  handleSelectFile,
+}) {
+  if (!selectedAnalysis) return null;
+  return (
+    <>
+      {projectFiles.length > 1 && (
+        <section
+          className="dashboard-file-tabs"
+          aria-label="Archivos analizados en este proyecto"
+        >
+          <p className="dashboard-file-tabs-label">
+            Archivos analizados ({projectFiles.length})
+          </p>
+          <div className="dashboard-file-tabs-list" role="tablist">
+            {projectFiles.map((file) => {
+              const isActive = file.id === selectedFileId;
+              return (
+                <button
+                  key={file.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`dashboard-file-tab${isActive ? ' dashboard-file-tab--active' : ''}`}
+                  onClick={() => handleSelectFile(file.id)}
+                  title={file.fileName}
+                >
+                  <span className="dashboard-file-tab-name">{file.fileName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <AnalysisStatusCard
+        analysisStatus={selectedAnalysis.analysisStatus}
+        lastUpdated={formatDateLabel(selectedAnalysis.lastUpdated)}
+      />
+
+      <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
+        {selectedAnalysis.summaryCards.map((item) => (
+          <article className="dashboard-summary-card" key={item.label}>
+            <p className="dashboard-summary-label">{item.label}</p>
+            <p className="dashboard-summary-value">{item.value}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="dashboard-findings" aria-label="Metricas sintacticas por archivo">
+        <header className="dashboard-section-header">
+          <h2>Metricas sintacticas</h2>
+          <p>Clases, metodos, parametros, herencia y llamadas entre clases.</p>
+        </header>
+        {selectedAnalysis.fileMetrics.length === 0 ? (
+          <p className="dashboard-subtitle dashboard-section-empty">
+            No hay detalle sintactico por archivo para este analisis.
+          </p>
+        ) : (
+          <div className="dashboard-findings-table-wrap">
+            <table className="dashboard-findings-table">
+              <thead>
+                <tr>
+                  <th>Archivo</th>
+                  <th>Clases</th>
+                  <th>Metodos</th>
+                  <th>Parametros</th>
+                  <th>Herencia</th>
+                  <th>Llamadas entre clases</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedAnalysis.fileMetrics.map((metric) => (
+                  <tr key={metric.filePath}>
+                    <td>{metric.filePath}</td>
+                    <td>{metric.classesCount}</td>
+                    <td>{metric.methodsCount}</td>
+                    <td>{metric.parametersCount}</td>
+                    <td>{metric.inheritanceCount}</td>
+                    <td>{metric.interclassCallsCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="dashboard-findings" aria-label="Hallazgos del análisis">
+        <header className="dashboard-section-header">
+          <h2>Hallazgos</h2>
+          <p>Resultados automáticos del análisis Sonar para el archivo seleccionado.</p>
+        </header>
+
+        {selectedAnalysis.findings.length === 0 ? (
+          <p className="dashboard-subtitle">
+            No hay hallazgos para este análisis.
+          </p>
+        ) : (
+          <div className="dashboard-findings-table-wrap">
+            <table className="dashboard-findings-table">
+              <thead>
+                <tr>
+                  <th>Severidad</th>
+                  <th>Archivo</th>
+                  <th>Regla</th>
+                  <th>Recomendación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedAnalysis.findings.map((finding, index) => (
+                  <tr key={`${finding.file}-${index}`}>
+                    <td>
+                      <span className={severityClass(finding.severity)}>{finding.severity}</span>
+                    </td>
+                    <td>{finding.file}</td>
+                    <td>{finding.rule}</td>
+                    <td>{finding.recommendation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
 }
 
 function mergeRunsFromStatusPoll(prevRuns, statusById) {
@@ -258,6 +501,8 @@ export default function DashboardPage() {
   const [runs, setRuns] = useState([]);
   const runsRef = useRef(runs);
   runsRef.current = runs;
+  const detailLoadedRunIdsRef = useRef(new Set());
+  const detailLoadingRunIdsRef = useRef(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -442,6 +687,43 @@ export default function DashboardPage() {
     [projectFiles, selectedFileId],
   );
 
+  useEffect(() => {
+    const selectedRunId = selectedAnalysis?.id?.startsWith('run-')
+      ? Number(selectedAnalysis.id.replace('run-', ''))
+      : null;
+    if (!selectedRunId || Number.isNaN(selectedRunId)) return;
+    const selectedRun = runs.find((item) => item?.id === selectedRunId);
+    const runStatus = String(selectedRun?.status || '').toUpperCase();
+    if (!TERMINAL_RUN_STATUSES.has(runStatus)) return;
+    const alreadyLoaded = detailLoadedRunIdsRef.current.has(selectedRunId);
+    const alreadyLoading = detailLoadingRunIdsRef.current.has(selectedRunId);
+    if (alreadyLoaded || alreadyLoading) return;
+
+    detailLoadingRunIdsRef.current.add(selectedRunId);
+    let cancelled = false;
+
+    async function hydrateRunDetail() {
+      try {
+        const detail = await getAnalysisRun(selectedRunId);
+        if (cancelled || !detail || detail.id == null) return;
+        setRuns((prev) =>
+          prev.map((item) => (item?.id === detail.id ? { ...item, ...detail } : item)),
+        );
+        detailLoadedRunIdsRef.current.add(selectedRunId);
+      } catch {
+        // Se reintentará en futuros polls/selecciones si sigue siendo necesario.
+      } finally {
+        detailLoadingRunIdsRef.current.delete(selectedRunId);
+      }
+    }
+
+    void hydrateRunDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [runs, selectedAnalysis]);
+
   return (
     <div className="dashboard-page">
       <ProjectDrawer
@@ -457,93 +739,24 @@ export default function DashboardPage() {
 
       <main className="dashboard-main">
         <section className="dashboard-header">
-          <div>
-            {!isEditingName ? (
-              <>
-                <div className="dashboard-repo-row">
-                  <p className="dashboard-eyebrow">Repositorio {repositoryName}</p>
-                  <button
-                    type="button"
-                    className="dashboard-edit-btn"
-                    onClick={startEditName}
-                    aria-label="Editar nombre del proyecto"
-                    title="Editar nombre"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                </div>
-                {isAdmin && projectOwnerEmail ? (
-                  <p className="dashboard-subtitle">Propietario del proyecto: {projectOwnerEmail}</p>
-                ) : null}
-              </>
-            ) : (
-              <div className="dashboard-name-editor">
-                <label htmlFor="project-name" className="dashboard-name-label">
-                  Nombre del proyecto
-                </label>
-                <div className="dashboard-name-controls">
-                  <input
-                    id="project-name"
-                    className="dashboard-name-input"
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    onKeyDown={handleNameKeyDown}
-                    maxLength={100}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    className="dashboard-btn dashboard-btn--primary"
-                    onClick={saveProjectName}
-                    disabled={savingName}
-                  >
-                    {savingName ? 'Guardando...' : 'Guardar'}
-                  </button>
-                  <button
-                    type="button"
-                    className="dashboard-btn dashboard-btn--ghost"
-                    onClick={cancelEditName}
-                    disabled={savingName}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-                {nameError && <p className="dashboard-name-error">{nameError}</p>}
-              </div>
-            )}
-            {projectLoading && <LoadingState inline label="Cargando proyecto..." />}
-            {projectError && <p className="dashboard-subtitle">{projectError}</p>}
-            {runsRefreshError && <p className="dashboard-subtitle">{runsRefreshError}</p>}
-            {selectedAnalysis ? (
-              <>
-                <div className="dashboard-title-row">
-                  <h1>{selectedAnalysis.fileName}</h1>
-                  <span
-                    className={`analysis-status-badge ${analysisStatusClass(selectedAnalysis.analysisStatus)}`}
-                  >
-                    {analysisStatusLabel(selectedAnalysis.analysisStatus)}
-                  </span>
-                </div>
-                <p className="dashboard-subtitle">{selectedAnalysis.filePath}</p>
-                <p className="dashboard-detail-description">{selectedAnalysis.shortDescription}</p>
-                {selectedAnalysis.failureMessage ? (
-                  <p className="dashboard-subtitle">{selectedAnalysis.failureMessage}</p>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className="dashboard-title-row">
-                  <h1>Sin analisis todavia</h1>
-                </div>
-                <p className="dashboard-subtitle">
-                  Sube archivos .java o .zip desde el panel de proyectos para ver resultados Sonar aqui.
-                </p>
-              </>
-            )}
-          </div>
+          {renderDashboardHeaderContent({
+            isEditingName,
+            repositoryName,
+            startEditName,
+            isAdmin,
+            projectOwnerEmail,
+            draftName,
+            setDraftName,
+            handleNameKeyDown,
+            saveProjectName,
+            savingName,
+            cancelEditName,
+            nameError,
+            projectLoading,
+            projectError,
+            runsRefreshError,
+            selectedAnalysis,
+          })}
           <div className="dashboard-score-card">
             <span className="dashboard-score-label">Score del archivo</span>
             <strong className="dashboard-score-value">
@@ -551,130 +764,12 @@ export default function DashboardPage() {
             </strong>
           </div>
         </section>
-
-        {selectedAnalysis ? (
-          <>
-            {projectFiles.length > 1 && (
-              <section
-                className="dashboard-file-tabs"
-                aria-label="Archivos analizados en este proyecto"
-              >
-                <p className="dashboard-file-tabs-label">
-                  Archivos analizados ({projectFiles.length})
-                </p>
-                <div className="dashboard-file-tabs-list" role="tablist">
-                  {projectFiles.map((file) => {
-                    const isActive = file.id === selectedFileId;
-                    return (
-                      <button
-                        key={file.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={isActive}
-                        className={`dashboard-file-tab${isActive ? ' dashboard-file-tab--active' : ''}`}
-                        onClick={() => handleSelectFile(file.id)}
-                        title={file.fileName}
-                      >
-                        <span className="dashboard-file-tab-name">{file.fileName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            <AnalysisStatusCard
-              analysisStatus={selectedAnalysis.analysisStatus}
-              lastUpdated={formatDateLabel(selectedAnalysis.lastUpdated)}
-            />
-
-            <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
-              {selectedAnalysis.summaryCards.map((item) => (
-                <article className="dashboard-summary-card" key={item.label}>
-                  <p className="dashboard-summary-label">{item.label}</p>
-                  <p className="dashboard-summary-value">{item.value}</p>
-                </article>
-              ))}
-            </section>
-
-            <section className="dashboard-findings" aria-label="Metricas sintacticas por archivo">
-              <header className="dashboard-section-header">
-                <h2>Metricas sintacticas</h2>
-                <p>Clases, metodos, parametros, herencia y llamadas entre clases.</p>
-              </header>
-              {selectedAnalysis.fileMetrics.length === 0 ? (
-                <p className="dashboard-subtitle dashboard-section-empty">
-                  No hay detalle sintactico por archivo para este analisis.
-                </p>
-              ) : (
-                <div className="dashboard-findings-table-wrap">
-                  <table className="dashboard-findings-table">
-                    <thead>
-                      <tr>
-                        <th>Archivo</th>
-                        <th>Clases</th>
-                        <th>Metodos</th>
-                        <th>Parametros</th>
-                        <th>Herencia</th>
-                        <th>Llamadas entre clases</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedAnalysis.fileMetrics.map((metric) => (
-                        <tr key={metric.filePath}>
-                          <td>{metric.filePath}</td>
-                          <td>{metric.classesCount}</td>
-                          <td>{metric.methodsCount}</td>
-                          <td>{metric.parametersCount}</td>
-                          <td>{metric.inheritanceCount}</td>
-                          <td>{metric.interclassCallsCount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-
-            <section className="dashboard-findings" aria-label="Hallazgos del análisis">
-              <header className="dashboard-section-header">
-                <h2>Hallazgos</h2>
-                <p>Resultados automáticos del análisis Sonar para el archivo seleccionado.</p>
-              </header>
-
-              {selectedAnalysis.findings.length === 0 ? (
-                <p className="dashboard-subtitle">
-                  No hay hallazgos para este análisis.
-                </p>
-              ) : (
-                <div className="dashboard-findings-table-wrap">
-                  <table className="dashboard-findings-table">
-                    <thead>
-                      <tr>
-                        <th>Severidad</th>
-                        <th>Archivo</th>
-                        <th>Regla</th>
-                        <th>Recomendación</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedAnalysis.findings.map((finding, index) => (
-                        <tr key={`${finding.file}-${index}`}>
-                          <td>
-                            <span className={severityClass(finding.severity)}>{finding.severity}</span>
-                          </td>
-                          <td>{finding.file}</td>
-                          <td>{finding.rule}</td>
-                          <td>{finding.recommendation}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          </>
-        ) : null}
+        {renderDashboardAnalysisSections({
+          selectedAnalysis,
+          projectFiles,
+          selectedFileId,
+          handleSelectFile,
+        })}
       </main>
     </div>
   );

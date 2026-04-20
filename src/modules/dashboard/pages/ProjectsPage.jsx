@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../../context/AuthContext';
@@ -461,58 +461,60 @@ export default function ProjectsPage() {
 
   progressPollBundleRef.current = progressPollBundle;
 
-  useAnalysisRunsPoll({
-    active: Boolean(progressPollBundle),
-    source: 'ProjectsPage',
-    poll: async () => {
-      const bundle = progressPollBundleRef.current;
-      if (!bundle?.trackedRunIds?.length) return PROGRESS_POLL_SLOW_MS;
-      try {
-        const runsById = await fetchRunsStateMapForTrackedIds(
-          bundle.projectId,
-          bundle.trackedRunIds,
-        );
-        setProgressItems((current) => {
-          const next = current.map((item) => mergeRunIntoItem(item, runsById));
-          const sig = (it) => `${it.runId}|${it.status}|${it.error || ''}`;
-          const changed =
-            next.length !== current.length ||
-            next.some((it, i) => sig(it) !== sig(current[i]));
-          if (changed) {
-            analysisProjectsLog('tracked_runs_updated', {
-              projectId: bundle.projectId,
-              idsCount: bundle.trackedRunIds.length,
-              trackedRunIds: bundle.trackedRunIds,
-            });
-          } else {
-            analysisProjectsLog('tracked_runs_no_change', {
-              projectId: bundle.projectId,
-              idsCount: bundle.trackedRunIds.length,
-            });
-          }
-          return next;
-        });
-        progressPollErrorsRef.current = 0;
-        const intense = hasIntenseRunStatusInMap(runsById);
-        if (progressPollIntenseRef.current !== intense) {
-          progressPollIntenseRef.current = intense;
-          analysisProjectsLog('runs_poll_strategy', {
+  const pollProgressRuns = useCallback(async () => {
+    const bundle = progressPollBundleRef.current;
+    if (!bundle?.trackedRunIds?.length) return PROGRESS_POLL_SLOW_MS;
+    try {
+      const runsById = await fetchRunsStateMapForTrackedIds(
+        bundle.projectId,
+        bundle.trackedRunIds,
+      );
+      setProgressItems((current) => {
+        const next = current.map((item) => mergeRunIntoItem(item, runsById));
+        const sig = (it) => `${it.runId}|${it.status}|${it.error || ''}`;
+        const changed =
+          next.length !== current.length ||
+          next.some((it, i) => sig(it) !== sig(current[i]));
+        if (changed) {
+          analysisProjectsLog('tracked_runs_updated', {
             projectId: bundle.projectId,
-            intense,
-            nextIntervalMs: intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS,
+            idsCount: bundle.trackedRunIds.length,
+            trackedRunIds: bundle.trackedRunIds,
+          });
+        } else {
+          analysisProjectsLog('tracked_runs_no_change', {
+            projectId: bundle.projectId,
             idsCount: bundle.trackedRunIds.length,
           });
         }
-        return intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS;
-      } catch (err) {
-        progressPollErrorsRef.current += 1;
-        const n = progressPollErrorsRef.current;
-        const base = isRetriableAnalysisError(err)
-          ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
-          : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
-        return base;
+        return next;
+      });
+      progressPollErrorsRef.current = 0;
+      const intense = hasIntenseRunStatusInMap(runsById);
+      if (progressPollIntenseRef.current !== intense) {
+        progressPollIntenseRef.current = intense;
+        analysisProjectsLog('runs_poll_strategy', {
+          projectId: bundle.projectId,
+          intense,
+          nextIntervalMs: intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS,
+          idsCount: bundle.trackedRunIds.length,
+        });
       }
-    },
+      return intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS;
+    } catch (err) {
+      progressPollErrorsRef.current += 1;
+      const n = progressPollErrorsRef.current;
+      const base = isRetriableAnalysisError(err)
+        ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
+        : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
+      return base;
+    }
+  }, []);
+
+  useAnalysisRunsPoll({
+    active: Boolean(progressPollBundle),
+    source: 'ProjectsPage',
+    poll: pollProgressRuns,
   });
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
