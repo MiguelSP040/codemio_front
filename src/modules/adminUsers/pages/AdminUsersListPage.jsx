@@ -72,6 +72,60 @@ export default function AdminUsersListPage() {
     }
   }
 
+  function renderRows() {
+    if (loading) {
+      return [
+        <tr key="loading">
+          <td colSpan={6} className="admin-users-empty">
+            <LoadingState label="Cargando usuarios…" />
+          </td>
+        </tr>,
+      ];
+    }
+    if (filtered.length === 0) {
+      return [
+        <tr key="empty">
+          <td colSpan={6} className="admin-users-empty">
+            No hay usuarios para mostrar.
+          </td>
+        </tr>,
+      ];
+    }
+    return filtered.map((u) => (
+      <tr key={u.id}>
+        <td>
+          <Link className="admin-users-link" to={`/admin/users/${u.id}`}>
+            {u.nombre || '—'}
+          </Link>
+          <div className="admin-users-muted">{u.correo || '—'}</div>
+        </td>
+        <td>{u.edad ?? '—'}</td>
+        <td>{u.perfil_github || '—'}</td>
+        <td>{formatDate(u.fecha_registro)}</td>
+        <td>
+          <span className={`admin-users-pill ${u?.cognito?.email_verified ? 'admin-users-pill--ok' : 'admin-users-pill--warn'}`}>
+            {u?.cognito?.email_verified ? 'Verificado' : 'No verificado'}
+          </span>
+        </td>
+        <td className="admin-users-actions">
+          <button
+            type="button"
+            className="projects-card-btn projects-card-btn--delete"
+            onClick={() => setDeleteTarget(u)}
+            aria-label={`Eliminar usuario ${u.nombre}`}
+            title="Eliminar usuario"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    ));
+  }
+
   return (
     <div className="admin-users-page">
       <PageHeader
@@ -110,51 +164,7 @@ export default function AdminUsersListPage() {
             </tr>
           </thead>
           <tbody>
-            {(() => {
-              if (loading) {
-                return (
-                  <tr><td colSpan={6} className="admin-users-empty"><LoadingState label="Cargando usuarios…" /></td></tr>
-                );
-              }
-              if (filtered.length === 0) {
-                return (
-                  <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
-                );
-              }
-              return filtered.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <Link className="admin-users-link" to={`/admin/users/${u.id}`}>
-                      {u.nombre || '—'}
-                    </Link>
-                    <div className="admin-users-muted">{u.correo || '—'}</div>
-                  </td>
-                  <td>{u.edad ?? '—'}</td>
-                  <td>{u.perfil_github || '—'}</td>
-                  <td>{formatDate(u.fecha_registro)}</td>
-                  <td>
-                    <span className={`admin-users-pill ${u?.cognito?.email_verified ? 'admin-users-pill--ok' : 'admin-users-pill--warn'}`}>
-                      {u?.cognito?.email_verified ? 'Verificado' : 'No verificado'}
-                    </span>
-                  </td>
-                  <td className="admin-users-actions">
-                    <button
-                      type="button"
-                      className="projects-card-btn projects-card-btn--delete"
-                      onClick={() => setDeleteTarget(u)}
-                      aria-label={`Eliminar usuario ${u.nombre}`}
-                      title="Eliminar usuario"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ));
-            })()}
+            {renderRows()}
           </tbody>
         </table>
       </div>

@@ -106,7 +106,7 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await act(async () => {
-      window.dispatchEvent(new Event('codemio:auth-expired'));
+      globalThis.dispatchEvent(new Event('codemio:auth-expired'));
     });
 
     expect(result.current.token).toBeNull();
