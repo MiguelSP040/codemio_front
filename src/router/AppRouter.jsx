@@ -1,14 +1,6 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import { AuthProvider, useAuth } from '../context/AuthContext';
-import {
-  setAccessTokenGetter,
-  setRefreshTokenGetter,
-  setRefreshEmailGetter,
-  attachAuthHandlers,
-} from '../config/httpClient';
-import toast from '../utils/toast';
+import { AuthProvider } from '../context/AuthContext';
 
 /* --- Layouts --- */
 import AuthenticatedLayout from '../components/layout/AuthenticatedLayout';
@@ -34,38 +26,10 @@ import AnalysisRunsPage from '../modules/analysis/pages/AnalysisRunsPage';
 import AdminUsersListPage from '../modules/adminUsers/pages/AdminUsersListPage';
 import AdminUserDetailPage from '../modules/adminUsers/pages/AdminUserDetailPage';
 
-function AuthBinder() {
-  const {
-    getAccessToken,
-    getRefreshToken,
-    getRefreshEmail,
-    clearAuth,
-    applyRefreshedTokens,
-  } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    setAccessTokenGetter(getAccessToken);
-    setRefreshTokenGetter(getRefreshToken);
-    setRefreshEmailGetter(getRefreshEmail);
-    attachAuthHandlers({
-      onRefreshSuccess: (tokens) => applyRefreshedTokens(tokens),
-      onSessionExpired: () => {
-        clearAuth();
-        toast.error('Tu sesión expiró, inicia sesión de nuevo', { id: 'session-expired' });
-        navigate('/login', { replace: true });
-      },
-    });
-  }, [getAccessToken, getRefreshToken, getRefreshEmail, clearAuth, applyRefreshedTokens, navigate]);
-
-  return null;
-}
-
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AuthBinder />
         <Routes>
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />

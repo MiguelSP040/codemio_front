@@ -1,6 +1,23 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  clearSession,
+  readSession,
+  saveSessionFromAuthPayload,
+  setSessionUser,
+} from '../modules/auth/services/sessionService';
+import toast from '../utils/toast';
 
 const AuthContext = createContext(null);
+
+function stateFromSession() {
+  const session = readSession();
+  if (!session) return { user: null, token: null, refreshToken: null };
+  return {
+    user: session.user || null,
+    token: session.accessToken || session.token || null,
+    refreshToken: session.refreshToken || null,
+  };
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
@@ -10,50 +27,36 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [auth, setAuth] = useState(() => {
-    const stored = localStorage.getItem('auth');
-    return stored ? JSON.parse(stored) : { user: null, token: null, refreshToken: null };
-  });
+  const [auth, setAuth] = useState(stateFromSession);
+
+  useEffect(() => {
+    const win = globalThis.window;
+    if (!win) return undefined;
+    function handleExpired() {
+      clearSession();
+      setAuth({ user: null, token: null, refreshToken: null });
+      toast.error('Tu sesión expiró, inicia sesión de nuevo', { id: 'session-expired' });
+    }
+    win.addEventListener('codemio:auth-expired', handleExpired);
+    return () => win.removeEventListener('codemio:auth-expired', handleExpired);
+  }, []);
 
   function loginAuth(data) {
-    /* Support both backend shape ({ tokens, usuario }) and flat shape ({ token, user }) */
-    const token = data?.tokens?.access_token || data?.token || null;
-    const refreshToken = data?.tokens?.refresh_token || data?.refreshToken || null;
-    const user = data?.usuario || data?.user || null;
-
-    const next = { user, token, refreshToken };
-    setAuth(next);
-    localStorage.setItem('auth', JSON.stringify(next));
+    saveSessionFromAuthPayload(data);
+    setAuth(stateFromSession());
   }
 
   function setUser(nextUser) {
-    setAuth((prev) => {
-      const next = { ...prev, user: nextUser };
-      localStorage.setItem('auth', JSON.stringify(next));
-      /* Mirror the updated user into the `codemio_auth` session so modules
-         reading via sessionService/apiClient see refreshed flags (e.g. onboarding_completed). */
-      try {
-        const rawCodemio = localStorage.getItem('codemio_auth');
-        if (rawCodemio) {
-          const parsed = JSON.parse(rawCodemio);
-          localStorage.setItem(
-            'codemio_auth',
-            JSON.stringify({ ...parsed, user: nextUser }),
-          );
-        }
-      } catch {
-        /* Secondary mirror is best-effort — primary store is the `auth` key. */
-      }
-      return next;
-    });
+    setSessionUser(nextUser);
+    setAuth((prev) => ({ ...prev, user: nextUser }));
   }
 
   function logout() {
+    clearSession();
     setAuth({ user: null, token: null, refreshToken: null });
-    localStorage.removeItem('auth');
   }
 
-  const isAuthenticated = !!auth.token;
+  const isAuthenticated = Boolean(auth.token);
   const onboardingCompleted = auth.user?.onboarding_completed === true;
   const contextValue = useMemo(
     () => ({ ...auth, isAuthenticated, onboardingCompleted, loginAuth, logout, setUser }),
