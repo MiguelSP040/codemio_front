@@ -10,7 +10,6 @@ const RUN_STATUS_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: 'PENDING', label: 'En cola' },
   { value: 'RUNNING', label: 'En proceso' },
-  { value: 'WAITING_SONAR_WEBHOOK', label: 'Esperando' },
   { value: 'DONE', label: 'Completado' },
   { value: 'FAILED', label: 'Fallido' },
   { value: 'CANCELED', label: 'Cancelado' },

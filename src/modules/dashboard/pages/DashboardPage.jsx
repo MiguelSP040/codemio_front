@@ -6,7 +6,6 @@ import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
 import {
   fetchAnalysisRunsStatusBulk,
-  getAnalysisRun,
   isRetriableAnalysisError,
   listAnalysisRuns,
 } from '../../analysis/services/analysisService';
@@ -22,7 +21,6 @@ const RUNS_POLL_FAST_MS = 1000;
 const RUNS_POLL_SLOW_MS = 5000;
 
 const IN_FLIGHT_RUN_STATUSES = new Set(['PENDING', 'RUNNING', 'WAITING_SONAR_WEBHOOK']);
-const TERMINAL_RUN_STATUSES = new Set(['DONE', 'FAILED', 'CANCELED']);
 
 function runProgressSignature(run) {
   if (run?.id == null) return '';
@@ -59,29 +57,6 @@ function resolveRunsPollBackoff(errorCount, err) {
     return Math.min(60000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 5));
   }
   return Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 4));
-}
-
-function mergeRunDetailIntoList(prevRuns, detail) {
-  return prevRuns.map((item) => (item?.id === detail.id ? { ...item, ...detail } : item));
-}
-
-async function hydrateRunDetail({
-  selectedRunId,
-  isCancelled,
-  setRuns,
-  detailLoadedRunIdsRef,
-  detailLoadingRunIdsRef,
-}) {
-  try {
-    const detail = await getAnalysisRun(selectedRunId);
-    if (isCancelled() || detail?.id == null) return;
-    setRuns((prev) => mergeRunDetailIntoList(prev, detail));
-    detailLoadedRunIdsRef.current.add(selectedRunId);
-  } catch {
-    // Se reintentará en futuros polls/selecciones si sigue siendo necesario.
-  } finally {
-    detailLoadingRunIdsRef.current.delete(selectedRunId);
-  }
 }
 
 function renderDashboardHeaderContent({
@@ -524,8 +499,6 @@ export default function DashboardPage() {
   const [runs, setRuns] = useState([]);
   const runsRef = useRef(runs);
   runsRef.current = runs;
-  const detailLoadedRunIdsRef = useRef(new Set());
-  const detailLoadingRunIdsRef = useRef(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -709,33 +682,6 @@ export default function DashboardPage() {
     () => projectFiles.find((analysis) => analysis.id === selectedFileId) ?? projectFiles[0] ?? null,
     [projectFiles, selectedFileId],
   );
-
-  useEffect(() => {
-    const selectedRunId = selectedAnalysis?.id?.startsWith('run-')
-      ? Number(selectedAnalysis.id.replace('run-', ''))
-      : null;
-    if (!selectedRunId || Number.isNaN(selectedRunId)) return;
-    const selectedRun = runs.find((item) => item?.id === selectedRunId);
-    const runStatus = String(selectedRun?.status || '').toUpperCase();
-    if (!TERMINAL_RUN_STATUSES.has(runStatus)) return;
-    const alreadyLoaded = detailLoadedRunIdsRef.current.has(selectedRunId);
-    const alreadyLoading = detailLoadingRunIdsRef.current.has(selectedRunId);
-    if (alreadyLoaded || alreadyLoading) return;
-
-    detailLoadingRunIdsRef.current.add(selectedRunId);
-    let cancelled = false;
-    void hydrateRunDetail({
-      selectedRunId,
-      isCancelled: () => cancelled,
-      setRuns,
-      detailLoadedRunIdsRef,
-      detailLoadingRunIdsRef,
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [runs, selectedAnalysis]);
 
   return (
     <div className="dashboard-page">
