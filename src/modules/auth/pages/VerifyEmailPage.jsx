@@ -114,9 +114,9 @@ export default function VerifyEmailPage() {
           </div>
         )}
         {info && !error && (
-          <div className="verify-info" role="status">
+          <output className="verify-info">
             {info}
-          </div>
+          </output>
         )}
 
         <div className="verify-code-wrap">

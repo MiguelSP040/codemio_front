@@ -78,12 +78,12 @@ export default function AnalysisStatusCard({ analysisStatus, lastUpdated }) {
       <p className="analysis-status-message">{currentStatus.message}</p>
 
       {isProcessing && (
-        <div className="analysis-status-progress" role="status" aria-label="Análisis en progreso">
+        <output className="analysis-status-progress" aria-label="Análisis en progreso">
           <span className="analysis-status-spinner" aria-hidden="true" />
           <div className="analysis-status-progress-track" aria-hidden="true">
             <span className="analysis-status-progress-bar" />
           </div>
-        </div>
+        </output>
       )}
 
       <p className="analysis-status-updated">

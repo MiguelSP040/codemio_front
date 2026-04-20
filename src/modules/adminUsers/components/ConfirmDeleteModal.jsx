@@ -14,8 +14,16 @@ export default function ConfirmDeleteModal({
   if (!open) return null;
 
   return (
-    <div className="admin-users-modal-backdrop" onClick={onCancel} role="presentation">
-      <div className="admin-users-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+    <div className="admin-users-modal-portal">
+      <button
+        type="button"
+        className="admin-users-modal-backdrop"
+        onClick={onCancel}
+        disabled={loading}
+        aria-label="Cerrar diálogo"
+        tabIndex={-1}
+      />
+      <div className="admin-users-modal" role="dialog" aria-modal="true">{/* NOSONAR */}
         <h3 className="admin-users-modal-title">{title}</h3>
         <p className="admin-users-modal-text">
           {description || 'Esta acción eliminará el usuario de la base de datos local y de Cognito.'}

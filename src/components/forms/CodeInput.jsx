@@ -158,9 +158,8 @@ export default function CodeInput({
   }
 
   return (
-    <div
+    <fieldset
       className={`code-input${error ? ' code-input--error' : ''}`}
-      role="group"
       aria-label={ariaLabel}
     >
       {digits.map((digit, index) => (
@@ -182,7 +181,7 @@ export default function CodeInput({
           onFocus={() => handleFocus(index)}
         />
       ))}
-    </div>
+    </fieldset>
   );
 }
 

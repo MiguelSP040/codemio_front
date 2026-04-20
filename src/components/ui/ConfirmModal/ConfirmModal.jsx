@@ -86,19 +86,21 @@ export default function ConfirmModal({
 
   if (!open) return null;
 
-  function handleOverlayMouseDown(e) {
+  function handleBackdropMouseDown() {
     if (busy) return;
-    if (e.target === e.currentTarget && typeof onCancel === 'function') {
-      onCancel();
-    }
+    if (typeof onCancel === 'function') onCancel();
   }
 
   const content = (
-    <div
-      className="cm-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      role="presentation"
-    >
+    <div className="cm-modal-portal">
+      <button
+        type="button"
+        className="cm-modal-backdrop-btn"
+        onMouseDown={handleBackdropMouseDown}
+        disabled={busy}
+        aria-label="Cerrar diálogo"
+        tabIndex={-1}
+      />
       <div
         ref={cardRef}
         className={`cm-modal-card cm-modal-card--${variant}`}

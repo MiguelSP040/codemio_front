@@ -447,7 +447,8 @@ export default function FileUpload({
       />
 
       {viewMode === 'dropzone' ? (
-        <div
+        <button
+          type="button"
           className={zoneClass}
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
@@ -455,7 +456,6 @@ export default function FileUpload({
           onDrop={handleDrop}
           onClick={openPicker}
           onKeyDown={handleZoneKeyDown}
-          role="button"
           tabIndex={disabled ? -1 : 0}
           aria-disabled={disabled || undefined}
           aria-label={
@@ -485,9 +485,10 @@ export default function FileUpload({
               Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)
             </li>
           </ul>
-        </div>
+        </button>
       ) : (
-        <div
+        <button
+          type="button"
           className={zoneClass + ' fu-dropzone--compact'}
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
@@ -495,8 +496,8 @@ export default function FileUpload({
           onDrop={handleDrop}
           onClick={openPicker}
           onKeyDown={handleZoneKeyDown}
-          role="button"
           tabIndex={disabled ? -1 : 0}
+          aria-disabled={disabled || undefined}
           aria-label="Arrastra mas archivos o haz clic para agregar"
         >
           <span className="fu-dropzone-compact-icon" aria-hidden="true">
@@ -505,7 +506,7 @@ export default function FileUpload({
           <span className="fu-dropzone-compact-text">
             {isDragging ? 'Suelta para agregar' : 'Arrastra mas clases .java o haz clic para agregar'}
           </span>
-        </div>
+        </button>
       )}
 
       {files.length > 0 && (

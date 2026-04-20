@@ -37,6 +37,7 @@
 
 /* Informational banner for resend success */
 .verify-info {
+  display: block;
   background: var(--color-bg-glow);
   color: var(--color-primary);
   border: 1px solid rgba(0, 195, 215, 0.25);

@@ -16,16 +16,15 @@ export default function LoadingState({
 
   if (variant === 'skeleton') {
     return (
-      <div
+      <output
         className={`cm-skeleton-list ${className}`.trim()}
-        role="status"
         aria-live="polite"
       >
         {placeholderIds.map((id) => (
           <div key={id} className="cm-skeleton-card" aria-hidden="true" />
         ))}
         <span className="cm-sr-only">{label}</span>
-      </div>
+      </output>
     );
   }
 
@@ -38,10 +37,10 @@ export default function LoadingState({
     .join(' ');
 
   return (
-    <div className={wrapClass} role="status" aria-live="polite">
+    <output className={wrapClass} aria-live="polite">
       <span className="cm-spinner" aria-hidden="true" />
       <span className="cm-spinner-label">{label}</span>
-    </div>
+    </output>
   );
 }
 
