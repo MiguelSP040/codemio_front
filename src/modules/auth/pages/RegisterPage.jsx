@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { githubAuth } from '../services/authService';
 import { sendVerificationCode } from '../services/onboardingService';
+import { getAuthErrorMessage } from '../utils/authErrorMessages';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 
@@ -51,11 +52,7 @@ export default function RegisterPage() {
       await sendVerificationCode({ email: email.trim().toLowerCase() });
       navigate('/verify-email', { state: { email: email.trim().toLowerCase() } });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'Algo salió mal. Inténtalo de nuevo.';
-      setServerError(msg);
+      setServerError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
