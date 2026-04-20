@@ -21,7 +21,7 @@ function emit(type, message, options = {}) {
   // parámetro del render callback (según versión de sonner) puede ser
   // undefined y toast.dismiss() no cierra la instancia correcta.
   const toastId = id ?? nextAutoId();
-  return sonnerToast.custom(
+  sonnerToast.custom(
     () =>
       renderCodemioToast({
         type,
@@ -35,22 +35,22 @@ function emit(type, message, options = {}) {
 
 export const toast = {
   success(message, options = {}) {
-    return emit('success', message, options);
+    emit('success', message, options);
   },
   error(message, options = {}) {
-    return emit('error', message, options);
+    emit('error', message, options);
   },
   warning(message, options = {}) {
-    return emit('warning', message, options);
+    emit('warning', message, options);
   },
   info(message, options = {}) {
-    return emit('info', message, options);
+    emit('info', message, options);
   },
   message(message, options = {}) {
-    return emit('default', message, options);
+    emit('default', message, options);
   },
   dismiss(id) {
-    return sonnerToast.dismiss(id);
+    sonnerToast.dismiss(id);
   },
 };
 
