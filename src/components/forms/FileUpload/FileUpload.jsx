@@ -277,19 +277,19 @@ export default function FileUpload({
     }
   }
 
+  function finalizeRemoval(id, onDone) {
+    setFiles((curr) => {
+      const next = curr.filter((e) => e.id !== id);
+      notifyChanged(next);
+      return next;
+    });
+    if (typeof onDone === 'function') onDone();
+  }
+
   function scheduleRemoval(id, onDone) {
     // Mark as removing so CSS plays the fade-out, then drop from state.
     setFiles((curr) => curr.map((e) => (e.id === id ? { ...e, removing: true } : e)));
-    setTimeout(() => {
-      setFiles((curr) => {
-        const next = curr.filter((e) => e.id !== id);
-        if (typeof onFilesChanged === 'function') {
-          onFilesChanged(next.filter((e) => !e.removing && !e.error).map((e) => e.file));
-        }
-        return next;
-      });
-      if (typeof onDone === 'function') onDone();
-    }, REMOVE_ANIM_MS);
+    setTimeout(() => finalizeRemoval(id, onDone), REMOVE_ANIM_MS);
   }
 
   function removeFile(id) {
