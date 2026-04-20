@@ -8,6 +8,7 @@ import {
   validateNombre,
   validatePerfilGithub,
 } from '../../../utils/validation';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './OnboardingPage.css';
@@ -78,11 +79,7 @@ export default function OnboardingPage() {
       setUser(updatedUser);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'Algo salió mal. Inténtalo de nuevo.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err));
     } finally {
       setLoading(false);
     }

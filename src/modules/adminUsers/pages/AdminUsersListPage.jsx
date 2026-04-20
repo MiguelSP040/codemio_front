@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, listUsers } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -34,11 +35,7 @@ export default function AdminUsersListPage() {
       const data = await listUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudieron cargar los usuarios.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudieron cargar los usuarios.'));
     } finally {
       setLoading(false);
     }
@@ -68,11 +65,7 @@ export default function AdminUsersListPage() {
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo eliminar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo eliminar el usuario.'));
     } finally {
       setDeleting(false);
     }

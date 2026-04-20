@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createProject } from '../services/projectService';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './CreateProjectPage.css';
 
 function validate(value) {
@@ -45,11 +46,7 @@ export default function CreateProjectPage() {
       const project = await createProject({ name: name.trim() });
       setCreated(project);
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'Algo salió mal. Inténtalo de nuevo.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err));
     } finally {
       setLoading(false);
     }

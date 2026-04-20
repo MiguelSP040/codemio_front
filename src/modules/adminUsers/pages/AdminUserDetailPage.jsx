@@ -9,6 +9,7 @@ import {
   validateNombre,
   validatePerfilGithub,
 } from '../../../utils/validation';
+import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -61,11 +62,7 @@ export default function AdminUserDetailPage() {
         perfil_github: data?.perfil_github ?? '',
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo cargar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo cargar el usuario.'));
     } finally {
       setLoading(false);
     }
@@ -127,11 +124,7 @@ export default function AdminUserDetailPage() {
         perfil_github: updated?.perfil_github ?? '',
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo guardar.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo guardar.'));
     } finally {
       setSaving(false);
     }
@@ -145,11 +138,7 @@ export default function AdminUserDetailPage() {
       await deleteUser(user.id);
       navigate('/admin/users', { replace: true });
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        'No se pudo eliminar el usuario.';
-      setServerError(msg);
+      setServerError(extractApiErrorMessage(err, 'No se pudo eliminar el usuario.'));
     } finally {
       setDeleting(false);
     }
