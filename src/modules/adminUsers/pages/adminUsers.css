@@ -292,8 +292,8 @@
 
 .admin-users-btn--danger {
   background: rgba(220, 53, 69, 0.10);
-  border-color: rgba(220, 53, 69, 0.25);
-  color: #b02a37;
+  border-color: rgba(220, 53, 69, 0.35);
+  color: #8b1f2b;
 }
 
 .admin-users-btn--ghost {

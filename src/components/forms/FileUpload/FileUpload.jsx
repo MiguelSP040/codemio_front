@@ -431,6 +431,37 @@ export default function FileUpload({
     .filter(Boolean)
     .join(' ');
 
+  const dragHandlers = {
+    onDragEnter: handleDragEnter,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+    onClick: openPicker,
+    onKeyDown: handleZoneKeyDown,
+    tabIndex: disabled ? -1 : 0,
+    'aria-disabled': disabled || undefined,
+  };
+
+  const dropzoneView =
+    viewMode === 'dropzone' ? (
+      <FullDropzone
+        zoneClass={zoneClass}
+        dragHandlers={dragHandlers}
+        projectName={projectName}
+        isDragging={isDragging}
+        acceptedExtensions={acceptedExtensions}
+        maxFileSizeMB={maxFileSizeMB}
+        maxZipSizeMB={maxZipSizeMB}
+        maxTotalSizeMB={maxTotalSizeMB}
+      />
+    ) : (
+      <CompactDropzone
+        zoneClass={zoneClass}
+        dragHandlers={dragHandlers}
+        isDragging={isDragging}
+      />
+    );
+
   return (
     <div className="fu-root" aria-label="Subir archivos">
       <input
@@ -446,172 +477,24 @@ export default function FileUpload({
         tabIndex={-1}
       />
 
-      {viewMode === 'dropzone' ? (
-        <button
-          type="button"
-          className={zoneClass}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={openPicker}
-          onKeyDown={handleZoneKeyDown}
-          tabIndex={disabled ? -1 : 0}
-          aria-disabled={disabled || undefined}
-          aria-label={
-            projectName
-              ? `Subir archivos al proyecto ${projectName}`
-              : 'Arrastra archivos o haz clic para seleccionar'
-          }
-        >
-          <div className="fu-dropzone-icon" aria-hidden="true">
-            <UploadIcon />
-          </div>
-          <p className="fu-dropzone-title">
-            {isDragging ? 'Suelta para agregar' : 'Arrastra tus clases .java o un .zip'}
-          </p>
-          <p className="fu-dropzone-sub">
-            o <span className="fu-dropzone-link">selecciona desde tu equipo</span>
-          </p>
-          {projectName && (
-            <p className="fu-dropzone-project">
-              Agregar archivos a <strong>{projectName}</strong>
-            </p>
-          )}
-          <ul className="fu-dropzone-rules" aria-hidden="true">
-            <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el código</li>
-            <li>Formatos aceptados: {acceptedExtensions.join(', ')}</li>
-            <li>
-              Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)
-            </li>
-          </ul>
-        </button>
-      ) : (
-        <button
-          type="button"
-          className={zoneClass + ' fu-dropzone--compact'}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={openPicker}
-          onKeyDown={handleZoneKeyDown}
-          tabIndex={disabled ? -1 : 0}
-          aria-disabled={disabled || undefined}
-          aria-label="Arrastra mas archivos o haz clic para agregar"
-        >
-          <span className="fu-dropzone-compact-icon" aria-hidden="true">
-            <UploadIcon />
-          </span>
-          <span className="fu-dropzone-compact-text">
-            {isDragging ? 'Suelta para agregar' : 'Arrastra mas clases .java o haz clic para agregar'}
-          </span>
-        </button>
-      )}
+      {dropzoneView}
 
-      {files.length > 0 && (
-        <div className="fu-list-wrap">
-          <div className="fu-list-header">
-            <div>
-              <p className="fu-list-title">
-                {visibleFiles.length === 1 ? '1 archivo' : `${visibleFiles.length} archivos`}
-                {validFiles.length !== visibleFiles.length && (
-                  <span className="fu-list-count-badge">
-                    {validFiles.length} valido{validFiles.length === 1 ? '' : 's'}
-                  </span>
-                )}
-              </p>
-              <p className={`fu-list-sub${totalExceeds ? ' fu-list-sub--over' : ''}`}>
-                Total {formatSize(totalBytes)} / {maxTotalSizeMB} MB
-              </p>
-            </div>
-            <button
-              type="button"
-              className="fu-clear-btn"
-              onClick={handleClearRequest}
-              disabled={disabled || visibleFiles.length === 0}
-              aria-label="Quitar todos los archivos"
-            >
-              <TrashIcon />
-              Limpiar
-            </button>
-          </div>
-
-          <ul className="fu-list" aria-label="Archivos seleccionados">
-            {files.map((entry) => {
-              const itemIsZip = isZip(entry.file);
-              const hasError = Boolean(entry.error);
-              const cls = [
-                'fu-item',
-                hasError ? 'fu-item--error' : '',
-                entry.removing ? 'fu-item--removing' : 'fu-item--entering',
-              ]
-                .filter(Boolean)
-                .join(' ');
-              return (
-                <li key={entry.id} className={cls}>
-                  <span
-                    className={`fu-item-icon${itemIsZip ? ' fu-item-icon--zip' : ''}`}
-                    aria-hidden="true"
-                  >
-                    {itemIsZip ? <ZipIcon /> : <JavaIcon />}
-                  </span>
-                  <div className="fu-item-info">
-                    <p className="fu-item-name" title={entry.file.name}>
-                      {entry.file.name}
-                    </p>
-                    <p className="fu-item-meta">
-                      <span>{formatSize(entry.file.size)}</span>
-                      {hasError ? (
-                        <span className="fu-item-error">· {entry.error}</span>
-                      ) : (
-                        <span className="fu-item-ok">
-                          <CheckIcon /> Valido
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="fu-item-remove"
-                    onClick={() => removeFile(entry.id)}
-                    disabled={disabled || entry.removing}
-                    aria-label={`Quitar ${entry.file.name}`}
-                  >
-                    <TrashIcon />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {multiple && (
-            <button
-              type="button"
-              className="fu-add-more"
-              onClick={openPicker}
-              disabled={disabled}
-            >
-              <PlusIcon />
-              Agregar mas archivos
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="fu-submit"
-            onClick={handleSubmit}
-            disabled={disabled || !hasValidFiles || totalExceeds}
-            aria-disabled={disabled || !hasValidFiles || totalExceeds}
-          >
-            <SendIcon />
-            {submitLabel}
-            {hasValidFiles && !totalExceeds && (
-              <span className="fu-submit-badge">{validFiles.length}</span>
-            )}
-          </button>
-        </div>
-      )}
+      <FileListSection
+        files={files}
+        visibleFiles={visibleFiles}
+        validFiles={validFiles}
+        totalBytes={totalBytes}
+        maxTotalSizeMB={maxTotalSizeMB}
+        totalExceeds={totalExceeds}
+        hasValidFiles={hasValidFiles}
+        multiple={multiple}
+        disabled={disabled}
+        submitLabel={submitLabel}
+        onClearRequest={handleClearRequest}
+        onRemoveFile={removeFile}
+        onAddMore={openPicker}
+        onSubmit={handleSubmit}
+      />
 
       <ConfirmModal
         open={confirmOpen}
@@ -626,6 +509,274 @@ export default function FileUpload({
     </div>
   );
 }
+
+function FullDropzone({
+  zoneClass,
+  dragHandlers,
+  projectName,
+  isDragging,
+  acceptedExtensions,
+  maxFileSizeMB,
+  maxZipSizeMB,
+  maxTotalSizeMB,
+}) {
+  const ariaLabel = projectName
+    ? `Subir archivos al proyecto ${projectName}`
+    : 'Arrastra archivos o haz clic para seleccionar';
+  const title = isDragging
+    ? 'Suelta para agregar'
+    : 'Arrastra tus clases .java o un .zip';
+  return (
+    <button
+      type="button"
+      className={zoneClass}
+      {...dragHandlers}
+      aria-label={ariaLabel}
+    >
+      <div className="fu-dropzone-icon" aria-hidden="true">
+        <UploadIcon />
+      </div>
+      <p className="fu-dropzone-title">{title}</p>
+      <p className="fu-dropzone-sub">
+        o <span className="fu-dropzone-link">selecciona desde tu equipo</span>
+      </p>
+      {projectName && (
+        <p className="fu-dropzone-project">
+          Agregar archivos a <strong>{projectName}</strong>
+        </p>
+      )}
+      <ul className="fu-dropzone-rules" aria-hidden="true">
+        <li>Puedes agregar varias clases .java del mismo proyecto, o un .zip con todo el código</li>
+        <li>Formatos aceptados: {acceptedExtensions.join(', ')}</li>
+        <li>
+          Hasta {maxFileSizeMB} MB por .java y {maxZipSizeMB} MB por .zip (total {maxTotalSizeMB} MB)
+        </li>
+      </ul>
+    </button>
+  );
+}
+
+FullDropzone.propTypes = {
+  zoneClass: PropTypes.string.isRequired,
+  dragHandlers: PropTypes.object.isRequired,
+  projectName: PropTypes.string,
+  isDragging: PropTypes.bool,
+  acceptedExtensions: PropTypes.arrayOf(PropTypes.string).isRequired,
+  maxFileSizeMB: PropTypes.number.isRequired,
+  maxZipSizeMB: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+};
+
+function CompactDropzone({ zoneClass, dragHandlers, isDragging }) {
+  const text = isDragging
+    ? 'Suelta para agregar'
+    : 'Arrastra mas clases .java o haz clic para agregar';
+  return (
+    <button
+      type="button"
+      className={zoneClass + ' fu-dropzone--compact'}
+      {...dragHandlers}
+      aria-label="Arrastra mas archivos o haz clic para agregar"
+    >
+      <span className="fu-dropzone-compact-icon" aria-hidden="true">
+        <UploadIcon />
+      </span>
+      <span className="fu-dropzone-compact-text">{text}</span>
+    </button>
+  );
+}
+
+CompactDropzone.propTypes = {
+  zoneClass: PropTypes.string.isRequired,
+  dragHandlers: PropTypes.object.isRequired,
+  isDragging: PropTypes.bool,
+};
+
+function FileItemStatus({ error }) {
+  if (error) return <span className="fu-item-error">· {error}</span>;
+  return (
+    <span className="fu-item-ok">
+      <CheckIcon /> Valido
+    </span>
+  );
+}
+
+FileItemStatus.propTypes = { error: PropTypes.string };
+
+function FileItem({ entry, disabled, onRemove }) {
+  const itemIsZip = isZip(entry.file);
+  const hasError = Boolean(entry.error);
+  const cls = [
+    'fu-item',
+    hasError ? 'fu-item--error' : '',
+    entry.removing ? 'fu-item--removing' : 'fu-item--entering',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <li className={cls}>
+      <span
+        className={`fu-item-icon${itemIsZip ? ' fu-item-icon--zip' : ''}`}
+        aria-hidden="true"
+      >
+        {itemIsZip ? <ZipIcon /> : <JavaIcon />}
+      </span>
+      <div className="fu-item-info">
+        <p className="fu-item-name" title={entry.file.name}>
+          {entry.file.name}
+        </p>
+        <p className="fu-item-meta">
+          <span>{formatSize(entry.file.size)}</span>
+          <FileItemStatus error={entry.error} />
+        </p>
+      </div>
+      <button
+        type="button"
+        className="fu-item-remove"
+        onClick={() => onRemove(entry.id)}
+        disabled={disabled || entry.removing}
+        aria-label={`Quitar ${entry.file.name}`}
+      >
+        <TrashIcon />
+      </button>
+    </li>
+  );
+}
+
+FileItem.propTypes = {
+  entry: PropTypes.object.isRequired,
+  disabled: PropTypes.bool,
+  onRemove: PropTypes.func.isRequired,
+};
+
+function FileListHeader({ visibleFiles, validFiles, totalBytes, maxTotalSizeMB, totalExceeds, disabled, onClearRequest }) {
+  const countLabel = visibleFiles.length === 1 ? '1 archivo' : `${visibleFiles.length} archivos`;
+  const showBadge = validFiles.length !== visibleFiles.length;
+  return (
+    <div className="fu-list-header">
+      <div>
+        <p className="fu-list-title">
+          {countLabel}
+          {showBadge && (
+            <span className="fu-list-count-badge">
+              {validFiles.length} valido{validFiles.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </p>
+        <p className={`fu-list-sub${totalExceeds ? ' fu-list-sub--over' : ''}`}>
+          Total {formatSize(totalBytes)} / {maxTotalSizeMB} MB
+        </p>
+      </div>
+      <button
+        type="button"
+        className="fu-clear-btn"
+        onClick={onClearRequest}
+        disabled={disabled || visibleFiles.length === 0}
+        aria-label="Quitar todos los archivos"
+      >
+        <TrashIcon />
+        Limpiar
+      </button>
+    </div>
+  );
+}
+
+FileListHeader.propTypes = {
+  visibleFiles: PropTypes.array.isRequired,
+  validFiles: PropTypes.array.isRequired,
+  totalBytes: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+  totalExceeds: PropTypes.bool,
+  disabled: PropTypes.bool,
+  onClearRequest: PropTypes.func.isRequired,
+};
+
+function FileListSection({
+  files,
+  visibleFiles,
+  validFiles,
+  totalBytes,
+  maxTotalSizeMB,
+  totalExceeds,
+  hasValidFiles,
+  multiple,
+  disabled,
+  submitLabel,
+  onClearRequest,
+  onRemoveFile,
+  onAddMore,
+  onSubmit,
+}) {
+  if (files.length === 0) return null;
+  const submitDisabled = disabled || !hasValidFiles || totalExceeds;
+  return (
+    <div className="fu-list-wrap">
+      <FileListHeader
+        visibleFiles={visibleFiles}
+        validFiles={validFiles}
+        totalBytes={totalBytes}
+        maxTotalSizeMB={maxTotalSizeMB}
+        totalExceeds={totalExceeds}
+        disabled={disabled}
+        onClearRequest={onClearRequest}
+      />
+
+      <ul className="fu-list" aria-label="Archivos seleccionados">
+        {files.map((entry) => (
+          <FileItem
+            key={entry.id}
+            entry={entry}
+            disabled={disabled}
+            onRemove={onRemoveFile}
+          />
+        ))}
+      </ul>
+
+      {multiple && (
+        <button
+          type="button"
+          className="fu-add-more"
+          onClick={onAddMore}
+          disabled={disabled}
+        >
+          <PlusIcon />
+          Agregar mas archivos
+        </button>
+      )}
+
+      <button
+        type="button"
+        className="fu-submit"
+        onClick={onSubmit}
+        disabled={submitDisabled}
+        aria-disabled={submitDisabled}
+      >
+        <SendIcon />
+        {submitLabel}
+        {hasValidFiles && !totalExceeds && (
+          <span className="fu-submit-badge">{validFiles.length}</span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+FileListSection.propTypes = {
+  files: PropTypes.array.isRequired,
+  visibleFiles: PropTypes.array.isRequired,
+  validFiles: PropTypes.array.isRequired,
+  totalBytes: PropTypes.number.isRequired,
+  maxTotalSizeMB: PropTypes.number.isRequired,
+  totalExceeds: PropTypes.bool,
+  hasValidFiles: PropTypes.bool,
+  multiple: PropTypes.bool,
+  disabled: PropTypes.bool,
+  submitLabel: PropTypes.string,
+  onClearRequest: PropTypes.func.isRequired,
+  onRemoveFile: PropTypes.func.isRequired,
+  onAddMore: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+};
 
 FileUpload.propTypes = {
   onFilesReady: PropTypes.func,
