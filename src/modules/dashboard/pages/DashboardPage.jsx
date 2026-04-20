@@ -23,7 +23,7 @@ const RUNS_POLL_SLOW_MS = 5000;
 const IN_FLIGHT_RUN_STATUSES = new Set(['PENDING', 'RUNNING', 'WAITING_SONAR_WEBHOOK']);
 
 function runProgressSignature(run) {
-  if (!run || run.id == null) return '';
+  if (run?.id == null) return '';
   return [
     run.id,
     run.status,
@@ -32,6 +32,31 @@ function runProgressSignature(run) {
     run.finished_at,
     run.error_summary,
   ].join('|');
+}
+
+function extractErrorMessage(err, fallback) {
+  const data = err?.response?.data;
+  return data?.detail || data?.message || fallback;
+}
+
+function collectInFlightRunIds(runs) {
+  return runs
+    .filter((r) => IN_FLIGHT_RUN_STATUSES.has(String(r?.status || '').toUpperCase()))
+    .map((r) => r.id)
+    .filter((id) => id != null);
+}
+
+function hasInFlightStatus(rowsIterable) {
+  return [...rowsIterable].some((row) =>
+    IN_FLIGHT_RUN_STATUSES.has(String(row?.status || '').toUpperCase()),
+  );
+}
+
+function resolveRunsPollBackoff(errorCount, err) {
+  if (isRetriableAnalysisError(err)) {
+    return Math.min(60000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 5));
+  }
+  return Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 4));
 }
 
 function mergeRunsFromStatusPoll(prevRuns, statusById) {
@@ -280,10 +305,7 @@ export default function DashboardPage() {
       if (!projectId) return RUNS_POLL_SLOW_MS;
       try {
         const currentRuns = runsRef.current;
-        const ids = currentRuns
-          .filter((r) => IN_FLIGHT_RUN_STATUSES.has(String(r?.status || '').toUpperCase()))
-          .map((r) => r.id)
-          .filter((id) => id != null);
+        const ids = collectInFlightRunIds(currentRuns);
         if (ids.length === 0) return RUNS_POLL_SLOW_MS;
         const bulkMap = await fetchAnalysisRunsStatusBulk(ids);
         setRuns((prev) => {
@@ -305,9 +327,7 @@ export default function DashboardPage() {
         });
         setRunsRefreshError('');
         runsPollErrorsRef.current = 0;
-        const intense = [...bulkMap.values()].some((row) =>
-          IN_FLIGHT_RUN_STATUSES.has(String(row?.status || '').toUpperCase()),
-        );
+        const intense = hasInFlightStatus(bulkMap.values());
         if (runsPollIntenseRef.current !== intense) {
           runsPollIntenseRef.current = intense;
           analysisDashboardLog('runs_poll_strategy', {
@@ -321,14 +341,9 @@ export default function DashboardPage() {
       } catch (err) {
         runsPollErrorsRef.current += 1;
         const n = runsPollErrorsRef.current;
-        const data = err.response?.data;
-        const msg =
-          data?.detail || data?.message || 'No se pudo refrescar el estado del análisis.';
+        const msg = extractErrorMessage(err, 'No se pudo refrescar el estado del análisis.');
         setRunsRefreshError(msg);
-        const base = isRetriableAnalysisError(err)
-          ? Math.min(60000, RUNS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
-          : Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
-        return base;
+        return resolveRunsPollBackoff(n, err);
       }
     }, [projectId]),
   });
