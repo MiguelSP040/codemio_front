@@ -126,6 +126,122 @@ function validateFile(file, { acceptedExtensions, maxFileSizeMB, maxZipSizeMB })
   return '';
 }
 
+/* ===== addFiles helpers ===== */
+function isFolderLike(file) {
+  // Folders arrive from DnD with size=0 and no type/extension.
+  return file.size === 0 && !file.type && !getExtension(file.name);
+}
+
+function checkMixedRejection(file, { allowMixed, hasZip, hasJava }) {
+  if (allowMixed) return null;
+  const fileIsZip = isZip(file);
+  const fileIsJava = isJava(file);
+  if (fileIsZip && hasJava) return 'mixed';
+  if (fileIsJava && hasZip) return 'mixed';
+  if (fileIsZip && hasZip) return 'multipleZip';
+  return null;
+}
+
+function getRejectionBucket(rejection) {
+  if (rejection === 'mixed') return 'mixedRejected';
+  if (rejection === 'multipleZip') return 'multipleZipRejected';
+  return null;
+}
+
+function updateTypeFlags(file, state) {
+  if (isZip(file)) state.hasZip = true;
+  if (isJava(file)) state.hasJava = true;
+}
+
+function classifyIncoming(incoming, existingEntries, opts) {
+  const activeExisting = existingEntries.filter((e) => !e.removing);
+  const state = {
+    existingKeys: new Set(activeExisting.map((e) => fileKey(e.file))),
+    hasZip: activeExisting.some((e) => isZip(e.file)),
+    hasJava: activeExisting.some((e) => isJava(e.file)),
+  };
+  const existingCount = activeExisting.length;
+  const counts = {
+    duplicates: 0,
+    folderRejected: 0,
+    mixedRejected: 0,
+    multipleZipRejected: 0,
+    invalidCount: 0,
+    addedCount: 0,
+  };
+  const toAdd = [];
+  let acceptedSoFar = 0;
+
+  for (const file of incoming) {
+    if (isFolderLike(file)) {
+      counts.folderRejected += 1;
+      continue;
+    }
+    const key = fileKey(file);
+    if (state.existingKeys.has(key)) {
+      counts.duplicates += 1;
+      continue;
+    }
+    state.existingKeys.add(key);
+
+    if (!opts.multiple && existingCount + acceptedSoFar >= 1) break;
+
+    const rejectionBucket = getRejectionBucket(
+      checkMixedRejection(file, {
+        allowMixed: opts.allowMixed,
+        hasZip: state.hasZip,
+        hasJava: state.hasJava,
+      }),
+    );
+    if (rejectionBucket) {
+      counts[rejectionBucket] += 1;
+      continue;
+    }
+
+    updateTypeFlags(file, state);
+
+    const error = validateFile(file, opts);
+    if (error) counts.invalidCount += 1;
+    else counts.addedCount += 1;
+
+    toAdd.push({ file, error, id: key, removing: false, entering: true });
+    acceptedSoFar += 1;
+  }
+
+  return { toAdd, counts };
+}
+
+function emitAddFilesToasts(counts) {
+  if (counts.addedCount > 0) {
+    toast.success(
+      counts.addedCount === 1 ? '1 archivo agregado' : `${counts.addedCount} archivos agregados`,
+    );
+  }
+  if (counts.folderRejected > 0) {
+    toast.error('Las carpetas no son soportadas. Selecciona archivos o un .zip.');
+  }
+  if (counts.mixedRejected > 0) {
+    toast.warning('No puedes combinar archivos .java con un .zip.');
+  }
+  if (counts.multipleZipRejected > 0) {
+    toast.warning('Solo puedes subir un archivo .zip a la vez.');
+  }
+  if (counts.duplicates > 0) {
+    toast.info(
+      counts.duplicates === 1
+        ? 'Se omitió 1 archivo duplicado'
+        : `Se omitieron ${counts.duplicates} archivos duplicados`,
+    );
+  }
+  if (counts.invalidCount > 0) {
+    toast.error(
+      counts.invalidCount === 1
+        ? '1 archivo no cumple con los requisitos'
+        : `${counts.invalidCount} archivos no cumplen con los requisitos`,
+    );
+  }
+}
+
 /* ===== Main component ===== */
 export default function FileUpload({
   onFilesReady,
@@ -174,107 +290,18 @@ export default function FileUpload({
     const incoming = Array.from(incomingList || []);
     if (incoming.length === 0) return;
 
-    const existingKeys = new Set(
-      files.filter((e) => !e.removing).map((entry) => fileKey(entry.file)),
-    );
-    const existingZip = files.some((e) => !e.removing && isZip(e.file));
-    const existingJava = files.some((e) => !e.removing && isJava(e.file));
+    const { toAdd, counts } = classifyIncoming(incoming, files, {
+      acceptedExtensions,
+      maxFileSizeMB,
+      maxZipSizeMB,
+      allowMixed,
+      multiple,
+    });
 
-    let duplicates = 0;
-    let folderRejected = 0;
-    let mixedRejected = 0;
-    let multipleZipRejected = 0;
-    let invalidCount = 0;
-    let addedCount = 0;
-
-    const next = [...files];
-    let sawIncomingZip = existingZip;
-    let sawIncomingJava = existingJava;
-
-    for (const file of incoming) {
-      // Folder rejection heuristic: folders come with size=0 and type=''
-      if (file.size === 0 && !file.type && !getExtension(file.name)) {
-        folderRejected += 1;
-        continue;
-      }
-
-      const key = fileKey(file);
-      if (existingKeys.has(key)) {
-        duplicates += 1;
-        continue;
-      }
-      existingKeys.add(key);
-
-      const fileIsZip = isZip(file);
-      const fileIsJava = isJava(file);
-
-      if (!multiple && next.filter((e) => !e.removing).length >= 1) {
-        break;
-      }
-
-      // Mixed-mode rules
-      if (!allowMixed) {
-        if (fileIsZip && (sawIncomingJava || next.some((e) => !e.removing && isJava(e.file)))) {
-          mixedRejected += 1;
-          continue;
-        }
-        if (fileIsJava && (sawIncomingZip || next.some((e) => !e.removing && isZip(e.file)))) {
-          mixedRejected += 1;
-          continue;
-        }
-        if (fileIsZip && next.some((e) => !e.removing && isZip(e.file))) {
-          multipleZipRejected += 1;
-          continue;
-        }
-      }
-
-      if (fileIsZip) sawIncomingZip = true;
-      if (fileIsJava) sawIncomingJava = true;
-
-      const error = validateFile(file, { acceptedExtensions, maxFileSizeMB, maxZipSizeMB });
-      if (error) invalidCount += 1;
-      else addedCount += 1;
-
-      next.push({ file, error, id: key, removing: false, entering: true });
-    }
-
+    const next = [...files, ...toAdd];
     setFiles(next);
     notifyChanged(next);
-
-    // Toast summary
-    if (addedCount > 0 && invalidCount === 0 && duplicates === 0 && folderRejected === 0 && mixedRejected === 0 && multipleZipRejected === 0) {
-      toast.success(
-        addedCount === 1 ? '1 archivo agregado' : `${addedCount} archivos agregados`,
-      );
-    } else if (addedCount > 0) {
-      toast.success(
-        addedCount === 1 ? '1 archivo agregado' : `${addedCount} archivos agregados`,
-      );
-    }
-
-    if (folderRejected > 0) {
-      toast.error('Las carpetas no son soportadas. Selecciona archivos o un .zip.');
-    }
-    if (mixedRejected > 0) {
-      toast.warning('No puedes combinar archivos .java con un .zip.');
-    }
-    if (multipleZipRejected > 0) {
-      toast.warning('Solo puedes subir un archivo .zip a la vez.');
-    }
-    if (duplicates > 0) {
-      toast.info(
-        duplicates === 1
-          ? 'Se omitió 1 archivo duplicado'
-          : `Se omitieron ${duplicates} archivos duplicados`,
-      );
-    }
-    if (invalidCount > 0) {
-      toast.error(
-        invalidCount === 1
-          ? '1 archivo no cumple con los requisitos'
-          : `${invalidCount} archivos no cumplen con los requisitos`,
-      );
-    }
+    emitAddFilesToasts(counts);
   }
 
   function finalizeRemoval(id, onDone) {
