@@ -27,7 +27,7 @@ export function sanitizePlainText(value) {
     return raw.slice(0, 10000).trim();
   }
   
-  const withoutTags = raw.replace(/<[^>]{0,1000}>/g, '');
+  const withoutTags = raw.replaceAll(/<[^>]{0,1000}>/g, '');
   return withoutTags.replace(HAS_CONTROL_CHARS_RE, '').trim();
 }
 
@@ -54,7 +54,7 @@ export function validateEdad(value, { required = true } = {}) {
   if (value === null || value === undefined || value === '') {
     return required ? 'Este campo es obligatorio.' : '';
   }
-  if (isNaN(value) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
+  if (Number.isNaN(Number(value)) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
   const n = Number(value);
   if (n < PROFILE_AGE_MIN) return 'La edad debe ser mayor que 0.';
   if (n > PROFILE_AGE_MAX) return `Ingresa una edad válida (máximo ${PROFILE_AGE_MAX}).`;

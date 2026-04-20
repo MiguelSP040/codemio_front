@@ -4,8 +4,8 @@ function pemToArrayBuffer(pem) {
   const b64 = pem
     .replace('-----BEGIN PUBLIC KEY-----', '')
     .replace('-----END PUBLIC KEY-----', '')
-    .replace(/\s+/g, '');
-  const bytes = Uint8Array.from(atob(b64), (char) => char.charCodeAt(0));
+    .replaceAll(/\s+/g, '');
+  const bytes = Uint8Array.from(atob(b64), (char) => char.codePointAt(0));
   return bytes.buffer;
 }
 
@@ -13,7 +13,7 @@ function toBase64(bytes) {
   let binary = '';
   const chunkSize = 0x8000;
   for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    binary += String.fromCodePoint(...bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
 }

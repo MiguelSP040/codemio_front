@@ -70,7 +70,7 @@ export default function CodeInput({
 
   function handleChange(index, raw) {
     // Filtra no dígitos; toma último dígito si el usuario escribió varios
-    const onlyDigits = raw.replace(/\D/g, '');
+    const onlyDigits = raw.replaceAll(/\D/g, '');
     if (!onlyDigits) return;
 
     // Si pegó varios caracteres, reparte desde este índice
@@ -128,7 +128,7 @@ export default function CodeInput({
 
   function handlePaste(index, e) {
     const text = e.clipboardData.getData('text');
-    const onlyDigits = text.replace(/\D/g, '');
+    const onlyDigits = text.replaceAll(/\D/g, '');
     if (!onlyDigits) return;
 
     e.preventDefault();
