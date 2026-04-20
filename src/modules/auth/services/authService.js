@@ -14,18 +14,6 @@ export async function login({ email, password }) {
 }
 
 /**
- * Registra una nueva cuenta y devuelve el payload de sesión del login posterior.
- */
-export async function register({ email, password }) {
-  const normalizedEmail = email.trim().toLowerCase();
-  await apiClient.post('/auth/register/', {
-    email: normalizedEmail,
-    password,
-  });
-  return login({ email: normalizedEmail, password });
-}
-
-/**
  * Start GitHub OAuth sign-up flow.
  * Pendiente: Replace with real OAuth redirect once the backend
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
