@@ -61,6 +61,29 @@ function resolveRunsPollBackoff(errorCount, err) {
   return Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(errorCount, 4));
 }
 
+function mergeRunDetailIntoList(prevRuns, detail) {
+  return prevRuns.map((item) => (item?.id === detail.id ? { ...item, ...detail } : item));
+}
+
+async function hydrateRunDetail({
+  selectedRunId,
+  isCancelled,
+  setRuns,
+  detailLoadedRunIdsRef,
+  detailLoadingRunIdsRef,
+}) {
+  try {
+    const detail = await getAnalysisRun(selectedRunId);
+    if (isCancelled() || detail?.id == null) return;
+    setRuns((prev) => mergeRunDetailIntoList(prev, detail));
+    detailLoadedRunIdsRef.current.add(selectedRunId);
+  } catch {
+    // Se reintentará en futuros polls/selecciones si sigue siendo necesario.
+  } finally {
+    detailLoadingRunIdsRef.current.delete(selectedRunId);
+  }
+}
+
 function renderDashboardHeaderContent({
   isEditingName,
   repositoryName,
@@ -701,23 +724,13 @@ export default function DashboardPage() {
 
     detailLoadingRunIdsRef.current.add(selectedRunId);
     let cancelled = false;
-
-    async function hydrateRunDetail() {
-      try {
-        const detail = await getAnalysisRun(selectedRunId);
-        if (cancelled || !detail || detail.id == null) return;
-        setRuns((prev) =>
-          prev.map((item) => (item?.id === detail.id ? { ...item, ...detail } : item)),
-        );
-        detailLoadedRunIdsRef.current.add(selectedRunId);
-      } catch {
-        // Se reintentará en futuros polls/selecciones si sigue siendo necesario.
-      } finally {
-        detailLoadingRunIdsRef.current.delete(selectedRunId);
-      }
-    }
-
-    void hydrateRunDetail();
+    void hydrateRunDetail({
+      selectedRunId,
+      isCancelled: () => cancelled,
+      setRuns,
+      detailLoadedRunIdsRef,
+      detailLoadingRunIdsRef,
+    });
 
     return () => {
       cancelled = true;
