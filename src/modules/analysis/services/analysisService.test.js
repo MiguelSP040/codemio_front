@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAnalysisRun, listAnalysisRuns } from './analysisService';
+import {
+  createAnalysisRun,
+  fetchAnalysisRunsStatusBulk,
+  fetchRunsStateMapForTrackedIds,
+  getAnalysisRunStatus,
+  listAnalysisRuns,
+} from './analysisService';
 import apiClient from '../../../services/apiClient';
 import { setCurrentSession, setupLocalStorageMock } from '../../../test/sessionTestUtils';
 
@@ -41,6 +47,15 @@ describe('analysisService', () => {
     );
   });
 
+  it('fetches analysis run status endpoint', async () => {
+    setCurrentSession('token-123');
+    apiClient.get.mockResolvedValue({ data: { id: 3, status: 'RUNNING' } });
+
+    await getAnalysisRunStatus(3);
+
+    expect(apiClient.get).toHaveBeenCalledWith('/analysis/runs/3/status/');
+  });
+
   it('sends active_only filter when requested', async () => {
     setCurrentSession('token-123');
     apiClient.get.mockResolvedValue({ data: { results: [] } });
@@ -55,5 +70,37 @@ describe('analysisService', () => {
         active_only: true,
       },
     });
+  });
+
+  it('fetches status_bulk in one request', async () => {
+    setCurrentSession('token-123');
+    apiClient.get.mockResolvedValue({
+      data: [
+        { id: 1, status: 'WAITING_SONAR_WEBHOOK', quality_gate_status: '' },
+        { id: 2, status: 'DONE', quality_gate_status: 'OK' },
+      ],
+    });
+
+    const map = await fetchAnalysisRunsStatusBulk([1, 2]);
+
+    expect(apiClient.get).toHaveBeenCalledWith('/analysis/runs/status_bulk/', {
+      params: { ids: '1,2' },
+    });
+    expect(map.get(1)?.status).toBe('WAITING_SONAR_WEBHOOK');
+    expect(map.get(2)?.status).toBe('DONE');
+  });
+
+  it('fetchRunsStateMapForTrackedIds prefers status_bulk', async () => {
+    setCurrentSession('token-123');
+    apiClient.get.mockResolvedValueOnce({
+      data: [{ id: 5, status: 'RUNNING', quality_gate_status: '' }],
+    });
+
+    const map = await fetchRunsStateMapForTrackedIds(10, [5]);
+
+    expect(apiClient.get).toHaveBeenCalledWith('/analysis/runs/status_bulk/', {
+      params: { ids: '5' },
+    });
+    expect(map.get(5)?.status).toBe('RUNNING');
   });
 });

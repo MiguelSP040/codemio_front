@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import PropTypes from 'prop-types';
 import './AnalysisProgressModal.css';
 
 const STATUS_LABELS = {
@@ -166,17 +165,3 @@ export default function AnalysisProgressModal({
 
   return createPortal(content, document.body);
 }
-
-AnalysisProgressModal.propTypes = {
-  open: PropTypes.bool,
-  items: PropTypes.arrayOf(
-    PropTypes.shape({
-      tempId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      fileName: PropTypes.string,
-      status: PropTypes.string,
-      error: PropTypes.string,
-    }),
-  ),
-  onClose: PropTypes.func,
-  onGoToDashboard: PropTypes.func,
-};

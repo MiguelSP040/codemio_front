@@ -131,6 +131,7 @@ function toRangeDate(dateInput, fallbackHour) {
 
 function normalizeRunStatus(status) {
   const normalized = String(status || '').toUpperCase();
+  if (normalized === 'WAITING_SONAR_WEBHOOK') return 'RUNNING';
   if (RUN_STATUS_LABELS[normalized]) return normalized;
   return 'PENDING';
 }

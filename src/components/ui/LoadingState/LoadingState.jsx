@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import './LoadingState.css';
 
 export default function LoadingState({
@@ -44,11 +43,3 @@ export default function LoadingState({
     </div>
   );
 }
-
-LoadingState.propTypes = {
-  variant: PropTypes.oneOf(['spinner', 'skeleton']),
-  label: PropTypes.string,
-  count: PropTypes.number,
-  inline: PropTypes.bool,
-  className: PropTypes.string,
-};

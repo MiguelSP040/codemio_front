@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -10,10 +10,12 @@ import {
 } from '../../projects/services/projectService';
 import {
   createAnalysisRun,
-  getAnalysisRun,
-  listAnalysisRuns,
+  fetchRunsStateMapForTrackedIds,
+  isRetriableAnalysisError,
 } from '../../analysis/services/analysisService';
+import { useAnalysisRunsPoll } from '../../../hooks/useAnalysisRunsPoll';
 import humanizeErrorMessage from '../../../utils/errorMessages';
+import { analysisProjectsLog } from '../../../utils/analysisInstrumentation';
 import FileUpload from '../../../components/forms/FileUpload/FileUpload';
 import ConfirmModal from '../../../components/ui/ConfirmModal/ConfirmModal';
 import AnalysisProgressModal from '../components/AnalysisProgressModal';
@@ -22,7 +24,8 @@ import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
-const PROGRESS_POLL_INTERVAL_MS = 4000;
+const PROGRESS_POLL_FAST_MS = 1000;
+const PROGRESS_POLL_SLOW_MS = 4000;
 
 function resolveItemStatusFromRun(run) {
   const rawStatus = String(run?.status || '').toUpperCase();
@@ -33,7 +36,7 @@ function resolveItemStatusFromRun(run) {
     }
     return 'done';
   }
-  if (rawStatus === 'RUNNING') return 'running';
+  if (rawStatus === 'RUNNING' || rawStatus === 'WAITING_SONAR_WEBHOOK') return 'running';
   if (rawStatus === 'FAILED') return 'failed';
   if (rawStatus === 'CANCELED') return 'canceled';
   return 'queued';
@@ -369,8 +372,12 @@ function mergeRunIntoItem(item, runsById) {
   return { ...item, status: nextStatus, error: nextError || item.error };
 }
 
-function makeProgressItemsUpdater(runsById) {
-  return (current) => current.map((item) => mergeRunIntoItem(item, runsById));
+function hasIntenseRunStatusInMap(runsById) {
+  for (const run of runsById.values()) {
+    const s = String(run?.status || '').toUpperCase();
+    if (s === 'PENDING' || s === 'RUNNING' || s === 'WAITING_SONAR_WEBHOOK') return true;
+  }
+  return false;
 }
 
 async function hasValidZipSignature(file) {
@@ -414,8 +421,82 @@ export default function ProjectsPage() {
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressItems, setProgressItems] = useState([]);
   const [progressProjectId, setProgressProjectId] = useState(null);
-  const pollingRef = useRef(null);
+  const progressPollBundleRef = useRef(null);
+  const progressPollErrorsRef = useRef(0);
+  const progressPollIntenseRef = useRef(null);
   const navigate = useNavigate();
+
+  const progressPollBundle = useMemo(() => {
+    if (!progressOpen || !progressProjectId) return null;
+    const trackedRunIds = progressItems
+      .map((item) => item.runId)
+      .filter((id) => id != null);
+    const anyPending = progressItems.some(
+      (item) =>
+        item.status === 'uploading' ||
+        item.status === 'queued' ||
+        item.status === 'running',
+    );
+    if (trackedRunIds.length === 0 || !anyPending) return null;
+    const key = `${progressProjectId}:${[...new Set(trackedRunIds)].sort().join(',')}`;
+    return { projectId: progressProjectId, trackedRunIds, key };
+  }, [progressOpen, progressProjectId, progressItems]);
+
+  progressPollBundleRef.current = progressPollBundle;
+
+  useAnalysisRunsPoll({
+    active: Boolean(progressPollBundle),
+    source: 'ProjectsPage',
+    poll: async () => {
+      const bundle = progressPollBundleRef.current;
+      if (!bundle?.trackedRunIds?.length) return PROGRESS_POLL_SLOW_MS;
+      try {
+        const runsById = await fetchRunsStateMapForTrackedIds(
+          bundle.projectId,
+          bundle.trackedRunIds,
+        );
+        setProgressItems((current) => {
+          const next = current.map((item) => mergeRunIntoItem(item, runsById));
+          const sig = (it) => `${it.runId}|${it.status}|${it.error || ''}`;
+          const changed =
+            next.length !== current.length ||
+            next.some((it, i) => sig(it) !== sig(current[i]));
+          if (changed) {
+            analysisProjectsLog('tracked_runs_updated', {
+              projectId: bundle.projectId,
+              idsCount: bundle.trackedRunIds.length,
+              trackedRunIds: bundle.trackedRunIds,
+            });
+          } else {
+            analysisProjectsLog('tracked_runs_no_change', {
+              projectId: bundle.projectId,
+              idsCount: bundle.trackedRunIds.length,
+            });
+          }
+          return next;
+        });
+        progressPollErrorsRef.current = 0;
+        const intense = hasIntenseRunStatusInMap(runsById);
+        if (progressPollIntenseRef.current !== intense) {
+          progressPollIntenseRef.current = intense;
+          analysisProjectsLog('runs_poll_strategy', {
+            projectId: bundle.projectId,
+            intense,
+            nextIntervalMs: intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS,
+            idsCount: bundle.trackedRunIds.length,
+          });
+        }
+        return intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS;
+      } catch (err) {
+        progressPollErrorsRef.current += 1;
+        const n = progressPollErrorsRef.current;
+        const base = isRetriableAnalysisError(err)
+          ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
+          : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
+        return base;
+      }
+    },
+  });
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
   const selectedProjectReadOnly = Boolean(
@@ -449,65 +530,6 @@ export default function ProjectsPage() {
       isMounted = false;
     };
   }, [isAdmin]);
-
-  useEffect(() => {
-    if (!progressOpen || !progressProjectId) return undefined;
-    const trackedRunIds = progressItems
-      .map((item) => item.runId)
-      .filter((id) => id != null);
-    const anyPending = progressItems.some(
-      (item) =>
-        item.status === 'uploading' ||
-        item.status === 'queued' ||
-        item.status === 'running',
-    );
-    if (trackedRunIds.length === 0 || !anyPending) return undefined;
-
-    let isMounted = true;
-    async function pollRuns() {
-      try {
-        const response = await listAnalysisRuns({
-          projectId: progressProjectId,
-          activeOnly: true,
-        });
-        if (!isMounted) return;
-        const runs = Array.isArray(response?.results) ? response.results : [];
-        const runsById = new Map(runs.map((run) => [run.id, run]));
-
-        /* `activeOnly` drops runs that lost the "active for this filename" flag
-           (e.g. when a newer upload replaces them). When that happens we still
-           need their final status to show in the modal, so fetch them one-by-one. */
-        const missingIds = trackedRunIds.filter((id) => !runsById.has(id));
-        if (missingIds.length > 0) {
-          await Promise.all(
-            missingIds.map(async (id) => {
-              try {
-                const run = await getAnalysisRun(id);
-                if (run) runsById.set(run.id, run);
-              } catch {
-                /* ignore — will retry on next tick */
-              }
-            }),
-          );
-          if (!isMounted) return;
-        }
-
-        setProgressItems(makeProgressItemsUpdater(runsById));
-      } catch {
-        // Silent retry; no toast to avoid noise during polling
-      }
-    }
-
-    pollRuns();
-    pollingRef.current = setInterval(pollRuns, PROGRESS_POLL_INTERVAL_MS);
-    return () => {
-      isMounted = false;
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [progressOpen, progressProjectId, progressItems]);
 
   function resetForm() {
     setName('');

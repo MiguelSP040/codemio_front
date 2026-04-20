@@ -34,7 +34,9 @@ function qualityGateLabel(value) {
 function statusClass(status) {
   const normalized = String(status || '').toUpperCase();
   if (normalized === 'DONE') return 'analysis-status-chip analysis-status-chip--done';
-  if (normalized === 'RUNNING') return 'analysis-status-chip analysis-status-chip--running';
+  if (normalized === 'RUNNING' || normalized === 'WAITING_SONAR_WEBHOOK') {
+    return 'analysis-status-chip analysis-status-chip--running';
+  }
   if (normalized === 'PENDING') return 'analysis-status-chip analysis-status-chip--pending';
   if (normalized === 'FAILED') return 'analysis-status-chip analysis-status-chip--failed';
   if (normalized === 'CANCELED') return 'analysis-status-chip analysis-status-chip--canceled';
@@ -94,7 +96,10 @@ export default function AnalysisRunsPage() {
     return {
       total: Number(totalRuns || 0),
       completed: runs.filter((run) => run?.status === 'DONE').length,
-      running: runs.filter((run) => run?.status === 'RUNNING' || run?.status === 'PENDING').length,
+      running: runs.filter((run) => {
+        const s = String(run?.status || '').toUpperCase();
+        return s === 'RUNNING' || s === 'PENDING' || s === 'WAITING_SONAR_WEBHOOK';
+      }).length,
       failed: runs.filter((run) => run?.status === 'FAILED').length,
     };
   }, [runs, totalRuns]);

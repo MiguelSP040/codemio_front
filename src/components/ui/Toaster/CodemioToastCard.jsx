@@ -2,7 +2,6 @@
    Sonner stays the engine (stacking, enter/exit animations, swipe-to-dismiss,
    auto-dismiss timers) but the visible element is 100% our design — no more
    fighting with library defaults. */
-import PropTypes from 'prop-types';
 
 function IconCheck() {
   return (
@@ -100,17 +99,3 @@ export default function CodemioToastCard({ type = 'default', title, description,
     </output>
   );
 }
-
-CodemioToastCard.propTypes = {
-  type: PropTypes.oneOf(['success', 'error', 'warning', 'info', 'default']),
-  title: PropTypes.node,
-  description: PropTypes.node,
-  onDismiss: PropTypes.func,
-};
-
-renderCodemioToast.propTypes = {
-  type: PropTypes.oneOf(['success', 'error', 'warning', 'info', 'default']),
-  title: PropTypes.node,
-  description: PropTypes.node,
-  onDismiss: PropTypes.func,
-};

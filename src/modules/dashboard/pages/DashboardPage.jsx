@@ -1,17 +1,57 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import AnalysisStatusCard from '../components/AnalysisStatusCard';
 import ProjectDrawer from '../components/ProjectDrawer';
 import { getProjectById, updateProject } from '../../projects/services/projectService';
-import { listAnalysisRuns } from '../../analysis/services/analysisService';
+import {
+  fetchAnalysisRunsStatusBulk,
+  isRetriableAnalysisError,
+  listAnalysisRuns,
+} from '../../analysis/services/analysisService';
+import { useAnalysisRunsPoll } from '../../../hooks/useAnalysisRunsPoll';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
+import { analysisDashboardLog } from '../../../utils/analysisInstrumentation';
 import { translateFindingMessage } from '../../../utils/sonarFindingTranslations';
 import humanizeErrorMessage from '../../../utils/errorMessages';
 import './DashboardPage.css';
 
 const DEFAULT_REPO_NAME = 'Proyecto';
-const RUNS_POLL_INTERVAL_MS = 4000;
+const RUNS_POLL_FAST_MS = 1000;
+const RUNS_POLL_SLOW_MS = 5000;
+
+const IN_FLIGHT_RUN_STATUSES = new Set(['PENDING', 'RUNNING', 'WAITING_SONAR_WEBHOOK']);
+
+function runProgressSignature(run) {
+  if (!run || run.id == null) return '';
+  return [
+    run.id,
+    run.status,
+    run.quality_gate_status,
+    run.findings_count,
+    run.finished_at,
+    run.error_summary,
+  ].join('|');
+}
+
+/** Evita setState si el servidor no cambió campos relevantes de progreso. */
+function mergeRunsFromStatusPoll(prevRuns, statusById) {
+  if (!Array.isArray(prevRuns) || prevRuns.length === 0) return prevRuns;
+  let changed = false;
+  const next = prevRuns.map((run) => {
+    const sid = run?.id;
+    if (sid == null) return run;
+    const inc = statusById.get(sid);
+    if (!inc || typeof inc !== 'object') return run;
+    const merged = { ...run, ...inc };
+    if (runProgressSignature(run) !== runProgressSignature(merged)) {
+      changed = true;
+      return merged;
+    }
+    return run;
+  });
+  return changed ? next : prevRuns;
+}
 
 function formatDateLabel(raw) {
   if (!raw) return '';
@@ -66,13 +106,14 @@ function analysisStatusLabel(analysisStatus) {
 }
 
 function resolveAnalysisStatus(runStatus, { qualityGateFailed, qualityGateWarn }) {
-  if (runStatus === 'DONE') {
+  const rs = String(runStatus || '').toUpperCase();
+  if (rs === 'DONE') {
     if (qualityGateFailed || qualityGateWarn) return 'completed_with_warnings';
     return 'completed';
   }
-  if (runStatus === 'RUNNING') return 'processing';
-  if (runStatus === 'CANCELED') return 'canceled';
-  if (runStatus === 'FAILED') return 'error';
+  if (rs === 'RUNNING' || rs === 'WAITING_SONAR_WEBHOOK') return 'processing';
+  if (rs === 'CANCELED') return 'canceled';
+  if (rs === 'FAILED') return 'error';
   return 'queued';
 }
 
@@ -191,6 +232,8 @@ export default function DashboardPage() {
   const [projectError, setProjectError] = useState('');
   const [runsRefreshError, setRunsRefreshError] = useState('');
   const [runs, setRuns] = useState([]);
+  const runsRef = useRef(runs);
+  runsRef.current = runs;
 
   useEffect(() => {
     let isMounted = true;
@@ -224,34 +267,72 @@ export default function DashboardPage() {
   }, [projectId]);
 
   const hasInProgressRuns = useMemo(
-    () => runs.some((run) => run?.status === 'PENDING' || run?.status === 'RUNNING'),
+    () => runs.some((run) => IN_FLIGHT_RUN_STATUSES.has(String(run?.status || '').toUpperCase())),
     [runs],
   );
 
-  useEffect(() => {
-    if (!projectId || !hasInProgressRuns) return undefined;
-    let isMounted = true;
+  const runsPollErrorsRef = useRef(0);
+  const runsPollIntenseRef = useRef(null);
 
-    const intervalId = setInterval(async () => {
+  useAnalysisRunsPoll({
+    active: Boolean(projectId && hasInProgressRuns),
+    source: 'DashboardPage',
+    poll: useCallback(async () => {
+      if (!projectId) return RUNS_POLL_SLOW_MS;
       try {
-        const runsResponse = await listAnalysisRuns({ projectId, activeOnly: true });
-        if (!isMounted) return;
-        const runItems = Array.isArray(runsResponse?.results) ? runsResponse.results : [];
-        setRuns(runItems);
+        const currentRuns = runsRef.current;
+        const ids = currentRuns
+          .filter((r) => IN_FLIGHT_RUN_STATUSES.has(String(r?.status || '').toUpperCase()))
+          .map((r) => r.id)
+          .filter((id) => id != null);
+        if (ids.length === 0) return RUNS_POLL_SLOW_MS;
+        const bulkMap = await fetchAnalysisRunsStatusBulk(ids);
+        setRuns((prev) => {
+          const next = mergeRunsFromStatusPoll(prev, bulkMap);
+          if (next === prev) {
+            analysisDashboardLog('runs_poll_no_change', {
+              projectId: Number(projectId),
+              idsCount: ids.length,
+              ids,
+            });
+          } else {
+            analysisDashboardLog('runs_poll_merged', {
+              projectId: Number(projectId),
+              idsCount: ids.length,
+              bulkResolvedCount: bulkMap.size,
+            });
+          }
+          return next;
+        });
         setRunsRefreshError('');
+        runsPollErrorsRef.current = 0;
+        const intense = [...bulkMap.values()].some((row) =>
+          IN_FLIGHT_RUN_STATUSES.has(String(row?.status || '').toUpperCase()),
+        );
+        if (runsPollIntenseRef.current !== intense) {
+          runsPollIntenseRef.current = intense;
+          analysisDashboardLog('runs_poll_strategy', {
+            projectId: Number(projectId),
+            intense,
+            nextIntervalMs: intense ? RUNS_POLL_FAST_MS : RUNS_POLL_SLOW_MS,
+            idsCount: ids.length,
+          });
+        }
+        return intense ? RUNS_POLL_FAST_MS : RUNS_POLL_SLOW_MS;
       } catch (err) {
-        if (!isMounted) return;
+        runsPollErrorsRef.current += 1;
+        const n = runsPollErrorsRef.current;
         const data = err.response?.data;
-        const msg = data?.detail || data?.message || 'No se pudo refrescar el estado del análisis.';
+        const msg =
+          data?.detail || data?.message || 'No se pudo refrescar el estado del análisis.';
         setRunsRefreshError(msg);
+        const base = isRetriableAnalysisError(err)
+          ? Math.min(60000, RUNS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
+          : Math.min(30000, RUNS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
+        return base;
       }
-    }, RUNS_POLL_INTERVAL_MS);
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-  }, [projectId, hasInProgressRuns]);
+    }, [projectId]),
+  });
 
   function startEditName() {
     setDraftName(repositoryName);
