@@ -34,7 +34,6 @@ function runProgressSignature(run) {
   ].join('|');
 }
 
-/** Evita setState si el servidor no cambió campos relevantes de progreso. */
 function mergeRunsFromStatusPoll(prevRuns, statusById) {
   if (!Array.isArray(prevRuns) || prevRuns.length === 0) return prevRuns;
   let changed = false;

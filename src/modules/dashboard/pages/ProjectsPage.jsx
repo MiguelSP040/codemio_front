@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuth } from '../../../context/AuthContext';
 import {
   createProject,
@@ -238,6 +239,19 @@ function ProjectCardEditingForm({
   );
 }
 
+ProjectCardEditingForm.propTypes = {
+  project: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+  }).isRequired,
+  draftName: PropTypes.string.isRequired,
+  setDraftName: PropTypes.func.isRequired,
+  handleNameKeyDown: PropTypes.func.isRequired,
+  editingLoading: PropTypes.bool.isRequired,
+  nameError: PropTypes.string.isRequired,
+  saveProjectName: PropTypes.func.isRequired,
+  cancelEditName: PropTypes.func.isRequired,
+};
+
 function renderProjectCard({
   project,
   selectedId,
@@ -438,7 +452,10 @@ export default function ProjectsPage() {
         item.status === 'running',
     );
     if (trackedRunIds.length === 0 || !anyPending) return null;
-    const key = `${progressProjectId}:${[...new Set(trackedRunIds)].sort().join(',')}`;
+    const key = `${progressProjectId}:${[...new Set(trackedRunIds)]
+      .sort((a, b) =>
+        String(a).localeCompare(String(b), 'en', { numeric: true, sensitivity: 'base' }))
+      .join(',')}`;
     return { projectId: progressProjectId, trackedRunIds, key };
   }, [progressOpen, progressProjectId, progressItems]);
 

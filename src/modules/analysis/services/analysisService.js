@@ -3,13 +3,15 @@ import { analysisServiceLog } from '../../../utils/analysisInstrumentation';
 import { getAccessToken } from '../../auth/services/sessionService';
 
 function perfNow() {
-  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (typeof performance === 'undefined') return Date.now();
+  return performance.now();
 }
 
 function ensureSessionToken() {
-  if (!getAccessToken()) {
-    throw new Error('Sesion expirada. Inicia sesion nuevamente.');
+  if (getAccessToken()) {
+    return;
   }
+  throw new Error('Sesion expirada. Inicia sesion nuevamente.');
 }
 
 export function isRetriableAnalysisError(err) {
@@ -69,7 +71,7 @@ export async function fetchAnalysisRunsStatusBulk(runIds) {
     });
     const rows = Array.isArray(data) ? data : [];
     rows.forEach((row) => {
-      if (row && row.id != null) {
+      if (row?.id != null) {
         map.set(row.id, analysisStatusPayloadToRunShape(row.id, row));
       }
     });

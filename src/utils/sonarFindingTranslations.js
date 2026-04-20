@@ -235,7 +235,7 @@ export function translateFindingMessage(rule, message) {
   }
 
   for (const { pattern, translate } of GENERIC_PATTERNS) {
-    const match = rawMessage.match(pattern);
+    const match = pattern.exec(rawMessage);
     if (match) {
       try {
         return translate(...match) || fallback;

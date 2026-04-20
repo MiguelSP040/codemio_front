@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 /* Custom toast card rendered via sonner's toast.custom().
    Sonner stays the engine (stacking, enter/exit animations, swipe-to-dismiss,
    auto-dismiss timers) but the visible element is 100% our design — no more
@@ -99,3 +101,10 @@ export default function CodemioToastCard({ type = 'default', title, description,
     </output>
   );
 }
+
+CodemioToastCard.propTypes = {
+  type: PropTypes.oneOf(['success', 'error', 'warning', 'info', 'default']),
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  onDismiss: PropTypes.func.isRequired,
+};

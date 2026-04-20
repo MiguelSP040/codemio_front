@@ -2,20 +2,17 @@ import { useEffect, useRef } from 'react';
 import { analysisPollLog } from '../utils/analysisInstrumentation';
 
 function perfNow() {
-  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (typeof performance === 'undefined') return Date.now();
+  return performance.now();
 }
 
 export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
-  const pollRef = useRef(poll);
-  pollRef.current = poll;
   const timeoutRef = useRef(null);
-  const activeRef = useRef(active);
-  activeRef.current = active;
 
   useEffect(() => {
-    if (!active) {
+    if (active !== true) {
       if (timeoutRef.current != null) {
-        window.clearTimeout(timeoutRef.current);
+        globalThis.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
       return undefined;
@@ -25,7 +22,7 @@ export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
 
     function clearTimer() {
       if (timeoutRef.current != null) {
-        window.clearTimeout(timeoutRef.current);
+        globalThis.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
     }
@@ -33,13 +30,13 @@ export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
     function schedule(ms) {
       clearTimer();
       const delay = Number.isFinite(ms) && ms > 0 ? ms : 4000;
-      timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = globalThis.setTimeout(() => {
         void runTick();
       }, delay);
     }
 
     async function runTick() {
-      if (cancelled || !activeRef.current) return;
+      if (cancelled || active !== true) return;
       const tickStart = perfNow();
       analysisPollLog('tick:start', { source, hidden: document.hidden });
       if (document.hidden) {
@@ -48,7 +45,7 @@ export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
       }
       let nextMs = 4000;
       try {
-        nextMs = await pollRef.current();
+        nextMs = await poll();
         const durationMs = Math.round(perfNow() - tickStart);
         analysisPollLog('tick:success', {
           source,
@@ -84,12 +81,12 @@ export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
           analysisPollLog('tick:backoff', { source, nextMs, reason: 'error_path' });
         }
       }
-      if (cancelled || !activeRef.current) return;
+      if (cancelled || active !== true) return;
       schedule(nextMs);
     }
 
     function onVisible() {
-      if (!document.hidden && activeRef.current && !cancelled) {
+      if (!document.hidden && active === true && !cancelled) {
         clearTimer();
         void runTick();
       }
@@ -103,5 +100,5 @@ export function useAnalysisRunsPoll({ active, poll, source = 'unknown' }) {
       document.removeEventListener('visibilitychange', onVisible);
       clearTimer();
     };
-  }, [active]);
+  }, [active, poll, source]);
 }

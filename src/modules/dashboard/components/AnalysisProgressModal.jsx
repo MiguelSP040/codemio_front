@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import PropTypes from 'prop-types';
 import './AnalysisProgressModal.css';
 
 const STATUS_LABELS = {
@@ -87,12 +88,11 @@ export default function AnalysisProgressModal({
   const subtitle = pickSubtitle({ allDone, anyFailed });
 
   const content = (
-    <div className="apm-overlay" role="presentation">
-      <div
+    <div className="apm-overlay">
+      <dialog
         ref={cardRef}
         className="apm-card"
-        role="dialog"
-        aria-modal="true"
+        open
         aria-labelledby="apm-title"
       >
         <header className="apm-header">
@@ -159,9 +159,21 @@ export default function AnalysisProgressModal({
             </button>
           ) : null}
         </footer>
-      </div>
+      </dialog>
     </div>
   );
 
   return createPortal(content, document.body);
 }
+
+AnalysisProgressModal.propTypes = {
+  open: PropTypes.bool,
+  items: PropTypes.arrayOf(PropTypes.shape({
+    tempId: PropTypes.string.isRequired,
+    fileName: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    error: PropTypes.string,
+  })),
+  onClose: PropTypes.func.isRequired,
+  onGoToDashboard: PropTypes.func,
+};
