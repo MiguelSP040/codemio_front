@@ -1,20 +1,20 @@
-import httpClient from '../../../config/httpClient';
+import apiClient from '../../../services/apiClient';
 
 export async function listUsers() {
-  const { data } = await httpClient.get('/users/');
+  const { data } = await apiClient.get('/users/');
   return data;
 }
 
 export async function getUserById(userId) {
-  const { data } = await httpClient.get(`/users/${userId}/`);
+  const { data } = await apiClient.get(`/users/${userId}/`);
   return data;
 }
 
 export async function updateUser(userId, payload) {
-  const { data } = await httpClient.patch(`/users/${userId}/`, payload);
+  const { data } = await apiClient.patch(`/users/${userId}/`, payload);
   return data;
 }
 
 export async function deleteUser(userId) {
-  await httpClient.delete(`/users/${userId}/`);
+  await apiClient.delete(`/users/${userId}/`);
 }

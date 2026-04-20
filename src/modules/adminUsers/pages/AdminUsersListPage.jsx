@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, listUsers } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -117,7 +118,7 @@ export default function AdminUsersListPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="admin-users-empty">Cargando…</td></tr>
+              <tr><td colSpan={6} className="admin-users-empty"><LoadingState label="Cargando usuarios..." /></td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
             ) : (

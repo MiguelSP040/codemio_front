@@ -24,7 +24,7 @@ La aplicación frontend proporciona una interfaz intuitiva para:
 - **Gestión de usuarios:** Registro, autenticación y administración de perfiles
 - **Dashboard de proyectos:** Visualización y gestión de proyectos Java
 - **Carga de archivos:** Interface para subir archivos `.java` individuales o proyectos `.zip`
-- **Visualización de métricas:** Dashboards interactivos mostrando resultados del análisis de código
+- **Visualización de métricas:** Dashboards interactivos mostrando resultados de SonarCloud (score, severidades y hallazgos)
 - **Evaluación de calidad:** Representación visual de métricas y rangos de buenas prácticas
 - **Gestión de proyectos:** CRUD completo de proyectos y archivos
 
@@ -303,6 +303,15 @@ npm run lint -- --fix
 npm run build
 ```
 
+## ☁️ SonarCloud en CI
+
+Este proyecto incluye el workflow `.github/workflows/sonarcloud.yml` para análisis del repositorio.
+
+- Configura `SONAR_TOKEN` como secret en GitHub.
+- Mantén `sonar-project.properties` sincronizado con rutas reales del frontend.
+- El análisis SonarCloud en frontend usa código del repositorio; el runtime de análisis de archivos vive en backend.
+- El dashboard consume métricas y hallazgos normalizados persistidos por el backend (`AnalysisRun` / `AnalysisFinding`).
+
 ---
 
 ## 🔒 Seguridad
@@ -310,6 +319,10 @@ npm run build
 - Nunca commitees el archivo `.env`
 - Las variables de entorno con prefijo `VITE_` son **públicas** (se incluyen en el build)
 - No incluyas secretos o tokens en variables `VITE_*`
+- El token de SonarCloud se mantiene solo en backend/CI, nunca en frontend
+- Antes de enviar `.zip`, el cliente valida firma ZIP y reglas de tamaño/extensión; el backend revalida todo.
+- Las llamadas a análisis usan `Authorization: Bearer <JWT>` y fallan temprano si la sesión expiró.
+- Si necesitas diagnosticar fallos SonarCloud, revisa logs de GitHub Actions y no expongas secretos en issues públicos
 - Mantén las dependencias actualizadas
 - Revisa las alertas de seguridad de GitHub
 

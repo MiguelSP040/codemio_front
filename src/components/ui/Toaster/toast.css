@@ -1,12 +1,12 @@
-/* ===== Sonner Toaster — Codemio theme =====
-   Premium, breathable, responsive toasts.
-   We override sonner's --width var so the default 356px grows on comfortable
-   screens and shrinks gracefully on mobile — no more cramped cards.
+/* ===== Sonner Toaster — Codemio custom render =====
+   Renderizamos la card con toast.custom(), así que aquí solo:
+   1) neutralizamos el shell visual de sonner (padding/border/bg/shadow)
+   2) estilamos nuestra card .cm-toast con look premium
 */
 
 .codemio-toaster {
   --font-family: var(--font-sans);
-  --width: 400px;
+  --width: 440px;
 }
 
 @media (max-width: 640px) {
@@ -15,195 +15,180 @@
   }
 }
 
-/* ===== Base toast card ===== */
-.codemio-toaster [data-sonner-toast] {
-  font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text);
-  padding: 18px 20px;
-  gap: 14px;
-  align-items: flex-start;
-  box-shadow:
-    0 16px 40px -10px rgba(30, 58, 95, 0.22),
-    0 4px 12px -4px rgba(30, 58, 95, 0.12);
+/* Reset sonner shell — nuestra card es la superficie visible */
+.codemio-toaster[data-sonner-toaster] [data-sonner-toast] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  width: var(--width);
+}
+
+/* ===== Card custom ===== */
+.cm-toast {
   position: relative;
-  overflow: hidden;
-}
-
-/* Entrance pop */
-.codemio-toaster [data-sonner-toast][data-mounted='true'] {
-  animation: cm-toast-pop 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes cm-toast-pop {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ===== Content wrapper (title + description) ===== */
-.codemio-toaster [data-sonner-toast] [data-content] {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 44px 18px 20px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow:
+    0 20px 48px -16px rgba(30, 58, 95, 0.28),
+    0 6px 16px -6px rgba(30, 58, 95, 0.14),
+    0 0 0 1px rgba(30, 58, 95, 0.02);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  backdrop-filter: saturate(140%);
+}
+
+/* Top accent bar — gradient por variante */
+.cm-toast__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--cm-accent-from, var(--color-primary)), var(--cm-accent-to, var(--color-secondary)));
+}
+
+/* Icon badge — 44x44 con gradiente */
+.cm-toast__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--cm-accent-from, var(--color-primary)) 0%, var(--cm-accent-to, var(--color-secondary)) 100%);
+  box-shadow:
+    0 6px 14px -4px var(--cm-accent-shadow, rgba(30, 58, 95, 0.32)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  margin-top: 2px;
+}
+
+.cm-toast__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Body (title + description) */
+.cm-toast__body {
   flex: 1;
   min-width: 0;
-  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
 }
 
-.codemio-toaster [data-sonner-toast] [data-title] {
-  font-weight: 700;
+.cm-toast__title {
+  margin: 0;
   font-size: 0.9375rem;
-  line-height: 1.4;
+  font-weight: 650;
+  line-height: 1.45;
   color: var(--color-text);
   letter-spacing: -0.005em;
   word-break: break-word;
 }
 
-.codemio-toaster [data-sonner-toast] [data-description] {
+.cm-toast__desc {
+  margin: 0;
   font-size: 0.8125rem;
   line-height: 1.5;
   color: var(--color-text-light);
+  word-break: break-word;
 }
 
-/* ===== Icon chip ===== */
-.codemio-toaster [data-sonner-toast] [data-icon] {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+/* Close button */
+.cm-toast__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-light);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  margin: 1px 0 0 0;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
 }
 
-.codemio-toaster [data-sonner-toast] [data-icon] svg {
-  width: 18px;
-  height: 18px;
+.cm-toast__close svg {
+  width: 14px;
+  height: 14px;
 }
 
-/* ===== Close button ===== */
-.codemio-toaster [data-sonner-toast] [data-close-button] {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-light);
-  border-radius: var(--radius-full);
-  width: 24px;
-  height: 24px;
-  top: 10px;
-  right: 10px;
-  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.codemio-toaster [data-sonner-toast] [data-close-button]:hover {
+.cm-toast__close:hover {
   color: var(--color-text);
   background: var(--color-bg-alt);
-  border-color: var(--color-text-light);
-  transform: scale(1.06);
+  transform: scale(1.08);
 }
 
-/* ===== Variant: success ===== */
-.codemio-toaster [data-sonner-toast][data-type='success'] {
-  border-left: 6px solid var(--color-success);
-  background: linear-gradient(90deg, rgba(50, 205, 50, 0.08) 0%, var(--color-bg) 42%);
-  box-shadow:
-    0 16px 40px -10px rgba(46, 139, 87, 0.28),
-    0 4px 12px -4px rgba(46, 139, 87, 0.18);
+.cm-toast__close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.codemio-toaster [data-sonner-toast][data-type='success'] [data-icon] {
-  background: rgba(50, 205, 50, 0.14);
-  color: var(--secondary-dark-green);
+/* ===== Variantes ===== */
+.cm-toast--success {
+  --cm-accent-from: #34d399;
+  --cm-accent-to: var(--secondary-dark-green);
+  --cm-accent-shadow: rgba(46, 139, 87, 0.38);
+  background: linear-gradient(135deg, rgba(46, 139, 87, 0.045) 0%, var(--color-bg) 55%);
 }
 
-.codemio-toaster [data-sonner-toast][data-type='success'] [data-title] {
-  color: var(--secondary-dark-green);
+.cm-toast--error {
+  --cm-accent-from: #f87171;
+  --cm-accent-to: var(--color-error);
+  --cm-accent-shadow: rgba(220, 38, 38, 0.38);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, var(--color-bg) 55%);
 }
 
-/* ===== Variant: error ===== */
-.codemio-toaster [data-sonner-toast][data-type='error'] {
-  border-left: 6px solid var(--color-error);
-  background: linear-gradient(90deg, rgba(220, 38, 38, 0.08) 0%, var(--color-bg) 42%);
-  box-shadow:
-    0 16px 40px -10px rgba(220, 38, 38, 0.28),
-    0 4px 12px -4px rgba(220, 38, 38, 0.18);
-}
-
-.codemio-toaster [data-sonner-toast][data-type='error'] [data-icon] {
-  background: rgba(220, 38, 38, 0.14);
+.cm-toast--error .cm-toast__title {
   color: var(--color-error);
 }
 
-.codemio-toaster [data-sonner-toast][data-type='error'] [data-title] {
-  color: var(--color-error);
+.cm-toast--warning {
+  --cm-accent-from: #f5b478;
+  --cm-accent-to: #b77b49;
+  --cm-accent-shadow: rgba(183, 123, 73, 0.4);
+  background: linear-gradient(135deg, rgba(217, 160, 111, 0.08) 0%, var(--color-bg) 55%);
 }
 
-/* ===== Variant: warning ===== */
-.codemio-toaster [data-sonner-toast][data-type='warning'] {
-  border-left: 6px solid var(--color-warning);
-  background: linear-gradient(90deg, rgba(217, 160, 111, 0.12) 0%, var(--color-bg) 42%);
-  box-shadow:
-    0 16px 40px -10px rgba(217, 160, 111, 0.32),
-    0 4px 12px -4px rgba(217, 160, 111, 0.2);
-}
-
-.codemio-toaster [data-sonner-toast][data-type='warning'] [data-icon] {
-  background: rgba(217, 160, 111, 0.18);
-  color: #b77b49;
-}
-
-.codemio-toaster [data-sonner-toast][data-type='warning'] [data-title] {
+.cm-toast--warning .cm-toast__title {
   color: #8a5a33;
 }
 
-/* ===== Variant: info ===== */
-.codemio-toaster [data-sonner-toast][data-type='info'] {
-  border-left: 6px solid var(--color-secondary);
-  background: linear-gradient(90deg, rgba(70, 130, 180, 0.1) 0%, var(--color-bg) 42%);
-  box-shadow:
-    0 16px 40px -10px rgba(30, 58, 95, 0.26),
-    0 4px 12px -4px rgba(30, 58, 95, 0.16);
+.cm-toast--info {
+  --cm-accent-from: var(--color-secondary);
+  --cm-accent-to: var(--color-primary);
+  --cm-accent-shadow: rgba(30, 58, 95, 0.35);
+  background: linear-gradient(135deg, rgba(70, 130, 180, 0.06) 0%, var(--color-bg) 55%);
 }
 
-.codemio-toaster [data-sonner-toast][data-type='info'] [data-icon] {
-  background: rgba(70, 130, 180, 0.14);
+.cm-toast--info .cm-toast__title {
   color: var(--color-primary);
 }
 
-.codemio-toaster [data-sonner-toast][data-type='info'] [data-title] {
-  color: var(--color-primary);
+.cm-toast--default {
+  --cm-accent-from: var(--color-primary);
+  --cm-accent-to: var(--color-secondary);
+  --cm-accent-shadow: rgba(30, 58, 95, 0.3);
 }
 
-/* ===== Default (no data-type) — neutral Codemio look ===== */
-.codemio-toaster [data-sonner-toast]:not([data-type]),
-.codemio-toaster [data-sonner-toast][data-type='default'] {
-  border-left: 6px solid var(--color-primary);
-}
-
-/* ===== Action button inside toast ===== */
-.codemio-toaster [data-sonner-toast] [data-button] {
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  border: none;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-
-.codemio-toaster [data-sonner-toast] [data-button]:hover {
-  background: var(--color-secondary);
-}
-
+/* Respeta prefers-reduced-motion (sonner ya lo hace por defecto, esto es seguro) */
 @media (prefers-reduced-motion: reduce) {
-  .codemio-toaster [data-sonner-toast][data-mounted='true'] {
-    animation-duration: 0.01ms;
+  .cm-toast__close {
+    transition: none;
   }
 }
