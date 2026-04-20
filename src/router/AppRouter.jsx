@@ -11,7 +11,6 @@ import {
 import toast from '../utils/toast';
 
 /* --- Layouts --- */
-import MainLayout from '../components/layout/MainLayout';
 import AuthenticatedLayout from '../components/layout/AuthenticatedLayout';
 import AdminRoute from '../components/layout/AdminRoute';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
@@ -29,6 +28,7 @@ import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
 import DashboardHomePage from '../modules/dashboard/pages/DashboardHomePage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
 import ProjectsPage from '../modules/dashboard/pages/ProjectsPage';
+import AnalysisRunsPage from '../modules/analysis/pages/AnalysisRunsPage';
 
 /* --- Admin Pages --- */
 import AdminUsersListPage from '../modules/adminUsers/pages/AdminUsersListPage';
@@ -85,6 +85,7 @@ export default function AppRouter() {
             <Route element={<AuthenticatedLayout />}>
               <Route path="/dashboard" element={<DashboardHomePage />} />
               <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/analysis" element={<AnalysisRunsPage />} />
               <Route path="/projects/:projectId/dashboard" element={<DashboardPage />} />
 
               {/* Admin-only */}

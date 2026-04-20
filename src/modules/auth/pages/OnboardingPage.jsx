@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { completeProfile } from '../services/onboardingService';
+import { useAuth } from '../../../context/AuthContext';
 import {
   sanitizePlainText,
   validateEdad,
@@ -32,12 +32,15 @@ const INITIAL_TOUCHED = { nombre: false, edad: false, perfil_github: false };
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { isAuthenticated, onboardingCompleted, setUser } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState(INITIAL_ERRORS);
   const [touched, setTouched] = useState(INITIAL_TOUCHED);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (onboardingCompleted) return <Navigate to="/dashboard" replace />;
 
   function handleChange(e) {
     const { name, value } = e.target;

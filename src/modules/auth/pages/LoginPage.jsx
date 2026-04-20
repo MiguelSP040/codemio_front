@@ -60,7 +60,7 @@ export default function LoginPage() {
       const data = await login(form);
       loginAuth(data);
       const needsOnboarding = data?.usuario?.onboarding_completed === false;
-      navigate('/dashboard', { state: { needsOnboarding } });
+      navigate('/dashboard', { state: { needsOnboarding }, replace: true });
     } catch (err) {
       setServerError(getAuthErrorMessage(err));
     } finally {

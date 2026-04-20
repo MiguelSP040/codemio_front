@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, listUsers } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import { extractApiErrorMessage } from '../../../utils/apiErrors';
 import './adminUsers.css';
 
@@ -110,7 +111,7 @@ export default function AdminUsersListPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="admin-users-empty">Cargando usuarios…</td></tr>
+              <tr><td colSpan={6} className="admin-users-empty"><LoadingState label="Cargando usuarios…" /></td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="admin-users-empty">No hay usuarios para mostrar.</td></tr>
             ) : (

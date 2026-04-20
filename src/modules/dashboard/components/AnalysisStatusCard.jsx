@@ -1,7 +1,7 @@
 import './AnalysisStatusCard.css';
 
 /**
- * @typedef {'idle' | 'queued' | 'processing' | 'completed' | 'error'} AnalysisStatus
+ * @typedef {'idle' | 'queued' | 'processing' | 'completed' | 'completed_with_warnings' | 'canceled' | 'error'} AnalysisStatus
  */
 
 /**
@@ -36,6 +36,18 @@ export const statusConfig = {
     message: 'El análisis terminó correctamente.',
     badgeClass: 'analysis-status-badge--completed',
     cardClass: 'analysis-status-card--completed',
+  },
+  completed_with_warnings: {
+    label: 'Completado con observaciones',
+    message: 'El análisis terminó con observaciones de calidad.',
+    badgeClass: 'analysis-status-badge--warning',
+    cardClass: 'analysis-status-card--warning',
+  },
+  canceled: {
+    label: 'Cancelado',
+    message: 'El análisis fue cancelado antes de completarse.',
+    badgeClass: 'analysis-status-badge--canceled',
+    cardClass: 'analysis-status-card--canceled',
   },
   error: {
     label: 'Fallo',

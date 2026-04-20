@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
+import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import {
   sanitizePlainText,
   validateEdad,
@@ -182,7 +183,7 @@ export default function AdminUserDetailPage() {
       {serverError && <div className="admin-users-error" role="alert">{serverError}</div>}
 
       {loading ? (
-        <div className="admin-users-card">Cargando usuario…</div>
+        <div className="admin-users-card"><LoadingState label="Cargando usuario…" /></div>
       ) : !user ? (
         <div className="admin-users-card">No encontramos el usuario.</div>
       ) : (
