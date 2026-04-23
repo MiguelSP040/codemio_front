@@ -8,22 +8,10 @@ import {
   setSessionUser,
 } from '../modules/auth/services/sessionService';
 import { getSocialSession, logoutSocialSession } from '../modules/auth/services/authService';
+import { socialDebugEnabled, socialSessionLogSummary } from '../modules/auth/utils/socialAuthDebug';
 import toast from '../utils/toast';
 
 const AuthContext = createContext(null);
-function socialDebugEnabled() {
-  return String(import.meta.env.VITE_SOCIAL_AUTH_DEBUG_LOGS || 'false').toLowerCase() === 'true';
-}
-
-function socialSessionLogSummary(data) {
-  const alphabetical = (a, b) => String(a).localeCompare(String(b));
-  return {
-    hasUsuario: Boolean(data?.usuario),
-    hasClaims: Boolean(data?.claims),
-    usuarioKeys: data?.usuario ? Object.keys(data.usuario).sort(alphabetical) : [],
-    claimKeys: data?.claims ? Object.keys(data.claims).sort(alphabetical) : [],
-  };
-}
 
 function stateFromSession() {
   const session = readSession();
