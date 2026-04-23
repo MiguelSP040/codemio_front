@@ -5,6 +5,7 @@ import {
   setCurrentSession,
   setupLocalStorageMock,
 } from '../test/sessionTestUtils';
+import { getSocialSession } from '../modules/auth/services/authService';
 
 vi.mock('../utils/toast', () => ({
   default: {
@@ -17,6 +18,11 @@ vi.mock('../utils/toast', () => ({
   },
 }));
 
+vi.mock('../modules/auth/services/authService', () => ({
+  getSocialSession: vi.fn().mockRejectedValue(new Error('no social session')),
+  logoutSocialSession: vi.fn().mockResolvedValue({ detail: 'ok' }),
+}));
+
 function wrapper({ children }) {
   return <AuthProvider>{children}</AuthProvider>;
 }
@@ -24,6 +30,7 @@ function wrapper({ children }) {
 describe('AuthContext', () => {
   beforeEach(() => {
     setupLocalStorageMock();
+    vi.unstubAllEnvs();
   });
 
   it('useAuth throws when used outside the provider', () => {
@@ -120,5 +127,19 @@ describe('AuthContext', () => {
       </AuthProvider>,
     );
     expect(getByText('hola')).toBeInTheDocument();
+  });
+
+  it('emite logs de debug cuando falla social bootstrap', async () => {
+    vi.stubEnv('VITE_SOCIAL_AUTH_DEBUG_LOGS', 'true');
+    getSocialSession.mockRejectedValueOnce(new Error('network down'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <AuthProvider>
+        <p>hola</p>
+      </AuthProvider>,
+    );
+    await act(async () => {});
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });

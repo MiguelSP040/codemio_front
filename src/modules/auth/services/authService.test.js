@@ -32,11 +32,16 @@ describe('authService', () => {
   });
 
   describe('githubAuth', () => {
-    it('logs placeholder message', async () => {
-      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    it('redirige al endpoint backend de OAuth', async () => {
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'window', {
+        value: { location: { assign } },
+        configurable: true,
+      });
+      vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8000/');
+      vi.stubEnv('VITE_SOCIAL_AUTH_DEBUG_LOGS', 'false');
       await githubAuth();
-      expect(spy).toHaveBeenCalledWith('[authService] GitHub OAuth not implemented yet');
-      spy.mockRestore();
+      expect(assign).toHaveBeenCalledWith('http://localhost:8000/auth/github/');
     });
   });
 

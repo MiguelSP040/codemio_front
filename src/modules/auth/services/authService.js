@@ -1,4 +1,13 @@
 import apiClient from '../../../services/apiClient';
+import { socialDebugEnabled, socialSessionLogSummary } from '../utils/socialAuthDebug';
+
+function trimTrailingSlashes(value = '') {
+  let output = value;
+  while (output.endsWith('/')) {
+    output = output.slice(0, -1);
+  }
+  return output;
+}
 
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
@@ -19,7 +28,33 @@ export async function login({ email, password }) {
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
  */
 export async function githubAuth() {
-  console.log('[authService] GitHub OAuth not implemented yet');
+  const apiBase = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || '');
+  if (socialDebugEnabled()) {
+    console.log(`[social-oauth] redirecting to ${apiBase}/auth/github/`);
+  }
+  globalThis.window.location.assign(`${apiBase}/auth/github/`);
+}
+
+export async function getSocialSession() {
+  if (socialDebugEnabled()) {
+    console.log('[social-oauth] probing social session via /auth/social/session/');
+  }
+  const { data } = await apiClient.get('/auth/social/session/');
+  if (socialDebugEnabled()) {
+    console.log('[social-oauth] social session response summary', socialSessionLogSummary(data));
+  }
+  return data;
+}
+
+export async function logoutSocialSession() {
+  if (socialDebugEnabled()) {
+    console.log('[social-oauth] posting /auth/social/logout/');
+  }
+  const { data } = await apiClient.post('/auth/social/logout/');
+  if (socialDebugEnabled()) {
+    console.log('[social-oauth] social logout response received');
+  }
+  return data;
 }
 
 /**
