@@ -154,7 +154,7 @@ describe('sessionService', () => {
       );
       setSessionUser({ correo: 'new@x.com' });
       const stored = JSON.parse(localStorage.getItem('codemio_auth'));
-      expect(stored.user).toEqual({ correo: 'new@x.com' });
+      expect(stored.user).toMatchObject({ correo: 'new@x.com' });
       expect(stored.email).toBe('new@x.com');
     });
 

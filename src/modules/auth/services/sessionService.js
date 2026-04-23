@@ -85,19 +85,15 @@ export function saveSessionFromAuthPayload(payload) {
 export function saveSocialSession({ usuario, claims }) {
   const safeUser = sanitizeUser(usuario);
   const safeClaims = sanitizeSocialClaims(claims);
-  localStorage.setItem(
-    AUTH_STORAGE_KEY,
-    JSON.stringify({
-      user: safeUser,
-      accessToken: null,
-      refreshToken: null,
-      tokenType: 'Bearer',
-      expiresIn: null,
-      email: safeUser?.correo || safeClaims?.email || null,
-      socialClaims: safeClaims,
-    }),
-  );
-  localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+  return {
+    user: safeUser,
+    accessToken: null,
+    refreshToken: null,
+    tokenType: 'Bearer',
+    expiresIn: null,
+    email: safeUser?.correo || safeClaims?.email || null,
+    socialClaims: safeClaims,
+  };
 }
 
 export function updateTokens({ accessToken, refreshToken }) {

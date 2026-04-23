@@ -16,11 +16,12 @@ function socialDebugEnabled() {
 }
 
 function socialSessionLogSummary(data) {
+  const alphabetical = (a, b) => String(a).localeCompare(String(b));
   return {
     hasUsuario: Boolean(data?.usuario),
     hasClaims: Boolean(data?.claims),
-    usuarioKeys: data?.usuario ? Object.keys(data.usuario).sort() : [],
-    claimKeys: data?.claims ? Object.keys(data.claims).sort() : [],
+    usuarioKeys: data?.usuario ? Object.keys(data.usuario).sort(alphabetical) : [],
+    claimKeys: data?.claims ? Object.keys(data.claims).sort(alphabetical) : [],
   };
 }
 
@@ -68,8 +69,12 @@ export function AuthProvider({ children }) {
         if (socialDebugEnabled()) {
           console.log('[social-oauth] auth bootstrap got session summary', socialSessionLogSummary(data));
         }
-        saveSocialSession({ usuario: data.usuario, claims: data.claims });
-        setAuth(stateFromSession());
+        const socialSession = saveSocialSession({ usuario: data.usuario, claims: data.claims });
+        setAuth({
+          user: socialSession?.user || data.usuario || null,
+          token: null,
+          refreshToken: null,
+        });
       })
       .catch(() => {
         if (socialDebugEnabled()) {
