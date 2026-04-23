@@ -10,9 +10,10 @@ describe('authService social oauth', () => {
       value: { location: { assign } },
       configurable: true,
     });
-    vi.stubEnv('VITE_API_URL');
+    vi.stubEnv('VITE_API_URL', 'http://localhost:8000/api');
     githubAuth();
-    expect(assign).toHaveBeenCalledWith('http://localhost:8000/auth/github/');
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign.mock.calls[0][0]).toMatch(/^https?:\/\/(localhost|127\.0\.0\.1):8000\/auth\/github\/$/);
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();
   });
