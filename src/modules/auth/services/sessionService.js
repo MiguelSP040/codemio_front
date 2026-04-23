@@ -28,7 +28,7 @@ export function getSessionEmail() {
 
 export function saveSessionFromAuthPayload(payload) {
   const tokens = payload?.tokens || {};
-  if (!tokens?.access_token && !payload?.token) return;
+  if (!tokens?.access_token && !payload?.token && !payload?.usuario && !payload?.user) return;
   const accessToken = tokens.access_token || payload.token;
   const refreshToken = tokens.refresh_token || payload.refreshToken || null;
   const user = payload?.usuario || payload?.user || null;
@@ -41,6 +41,22 @@ export function saveSessionFromAuthPayload(payload) {
       tokenType: tokens.token_type || payload?.tokenType || 'Bearer',
       expiresIn: tokens.expires_in ?? payload?.expiresIn ?? null,
       email: user?.correo || user?.email || null,
+    }),
+  );
+  localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+}
+
+export function saveSocialSession({ usuario, claims }) {
+  localStorage.setItem(
+    AUTH_STORAGE_KEY,
+    JSON.stringify({
+      user: usuario || null,
+      accessToken: null,
+      refreshToken: null,
+      tokenType: 'Bearer',
+      expiresIn: null,
+      email: usuario?.correo || claims?.email || null,
+      socialClaims: claims || null,
     }),
   );
   localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
