@@ -4,6 +4,23 @@ function socialDebugEnabled() {
   return String(import.meta.env.VITE_SOCIAL_AUTH_DEBUG_LOGS || 'false').toLowerCase() === 'true';
 }
 
+function socialSessionLogSummary(data) {
+  return {
+    hasUsuario: Boolean(data?.usuario),
+    hasClaims: Boolean(data?.claims),
+    usuarioKeys: data?.usuario ? Object.keys(data.usuario).sort() : [],
+    claimKeys: data?.claims ? Object.keys(data.claims).sort() : [],
+  };
+}
+
+function trimTrailingSlashes(value) {
+  let output = value || '';
+  while (output.endsWith('/')) {
+    output = output.slice(0, -1);
+  }
+  return output;
+}
+
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
  * La sesión se persiste en localStorage vía AuthContext.loginAuth.
@@ -23,7 +40,7 @@ export async function login({ email, password }) {
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
  */
 export async function githubAuth() {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+  const apiBase = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || '');
   if (socialDebugEnabled()) {
     console.log(`[social-oauth] redirecting to ${apiBase}/auth/github/`);
   }
@@ -36,7 +53,7 @@ export async function getSocialSession() {
   }
   const { data } = await apiClient.get('/auth/social/session/');
   if (socialDebugEnabled()) {
-    console.log('[social-oauth] social session response', data);
+    console.log('[social-oauth] social session response summary', socialSessionLogSummary(data));
   }
   return data;
 }
@@ -47,7 +64,7 @@ export async function logoutSocialSession() {
   }
   const { data } = await apiClient.post('/auth/social/logout/');
   if (socialDebugEnabled()) {
-    console.log('[social-oauth] social logout response', data);
+    console.log('[social-oauth] social logout response received');
   }
   return data;
 }

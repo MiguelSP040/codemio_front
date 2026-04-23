@@ -15,6 +15,15 @@ function socialDebugEnabled() {
   return String(import.meta.env.VITE_SOCIAL_AUTH_DEBUG_LOGS || 'false').toLowerCase() === 'true';
 }
 
+function socialSessionLogSummary(data) {
+  return {
+    hasUsuario: Boolean(data?.usuario),
+    hasClaims: Boolean(data?.claims),
+    usuarioKeys: data?.usuario ? Object.keys(data.usuario).sort() : [],
+    claimKeys: data?.claims ? Object.keys(data.claims).sort() : [],
+  };
+}
+
 function stateFromSession() {
   const session = readSession();
   if (!session) return { user: null, token: null, refreshToken: null };
@@ -57,14 +66,14 @@ export function AuthProvider({ children }) {
       .then((data) => {
         if (!isMounted || !data?.usuario) return;
         if (socialDebugEnabled()) {
-          console.log('[social-oauth] auth bootstrap got session', data);
+          console.log('[social-oauth] auth bootstrap got session summary', socialSessionLogSummary(data));
         }
         saveSocialSession({ usuario: data.usuario, claims: data.claims });
         setAuth(stateFromSession());
       })
-      .catch((error) => {
+      .catch(() => {
         if (socialDebugEnabled()) {
-          console.error('[social-oauth] auth bootstrap failed', error);
+          console.error('[social-oauth] auth bootstrap failed');
         }
       });
     return () => {
@@ -86,9 +95,9 @@ export function AuthProvider({ children }) {
     if (socialDebugEnabled()) {
       console.log('[social-oauth] logout requested');
     }
-    logoutSocialSession().catch((error) => {
+    logoutSocialSession().catch(() => {
       if (socialDebugEnabled()) {
-        console.error('[social-oauth] social logout failed', error);
+        console.error('[social-oauth] social logout failed');
       }
     });
     clearSession();

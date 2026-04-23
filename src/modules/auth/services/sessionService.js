@@ -1,6 +1,42 @@
 const AUTH_STORAGE_KEY = 'codemio_auth';
 const LEGACY_AUTH_STORAGE_KEY = 'auth';
 
+function safeString(value, maxLength = 255) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
+
+function safeNullableNumber(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function sanitizeUser(user) {
+  if (!user || typeof user !== 'object') return null;
+  return {
+    correo: safeString(user.correo || user.email),
+    rol: safeString(user.rol || user.role, 50),
+    nombre: safeString(user.nombre || user.name),
+    edad: safeNullableNumber(user.edad),
+    perfil_github: safeString(user.perfil_github, 255),
+    sub_cognito: safeString(user.sub_cognito || user.sub, 128),
+    onboarding_completed: user.onboarding_completed === true,
+  };
+}
+
+function sanitizeSocialClaims(claims) {
+  if (!claims || typeof claims !== 'object') return null;
+  return {
+    email: safeString(claims.email),
+    email_verified: claims.email_verified === true,
+    name: safeString(claims.name),
+    picture: safeString(claims.picture, 1024),
+    sub: safeString(claims.sub, 128),
+  };
+}
+
 export function readSession() {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
   if (!raw) return null;
@@ -31,7 +67,7 @@ export function saveSessionFromAuthPayload(payload) {
   if (!tokens?.access_token && !payload?.token && !payload?.usuario && !payload?.user) return;
   const accessToken = tokens.access_token || payload.token;
   const refreshToken = tokens.refresh_token || payload.refreshToken || null;
-  const user = payload?.usuario || payload?.user || null;
+  const user = sanitizeUser(payload?.usuario || payload?.user);
   localStorage.setItem(
     AUTH_STORAGE_KEY,
     JSON.stringify({
@@ -47,16 +83,18 @@ export function saveSessionFromAuthPayload(payload) {
 }
 
 export function saveSocialSession({ usuario, claims }) {
+  const safeUser = sanitizeUser(usuario);
+  const safeClaims = sanitizeSocialClaims(claims);
   localStorage.setItem(
     AUTH_STORAGE_KEY,
     JSON.stringify({
-      user: usuario || null,
+      user: safeUser,
       accessToken: null,
       refreshToken: null,
       tokenType: 'Bearer',
       expiresIn: null,
-      email: usuario?.correo || claims?.email || null,
-      socialClaims: claims || null,
+      email: safeUser?.correo || safeClaims?.email || null,
+      socialClaims: safeClaims,
     }),
   );
   localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
@@ -79,12 +117,13 @@ export function updateTokens({ accessToken, refreshToken }) {
 export function setSessionUser(user) {
   const current = readSession();
   if (!current) return;
+  const safeUser = sanitizeUser(user);
   localStorage.setItem(
     AUTH_STORAGE_KEY,
     JSON.stringify({
       ...current,
-      user,
-      email: user?.correo || user?.email || current.email || null,
+      user: safeUser,
+      email: safeUser?.correo || current.email || null,
     }),
   );
   localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
