@@ -1,4 +1,5 @@
 import apiClient from '../../../services/apiClient';
+import API_BASE_URL from '../../../config/api';
 import { socialDebugEnabled, socialSessionLogSummary } from '../utils/socialAuthDebug';
 
 function trimTrailingSlashes(value = '') {
@@ -10,11 +11,11 @@ function trimTrailingSlashes(value = '') {
 }
 
 function backendOriginFromApiUrl() {
-  const apiUrl = trimTrailingSlashes(import.meta.env.VITE_API_URL);
+  const apiUrl = trimTrailingSlashes(API_BASE_URL || 'http://127.0.0.1:8000');
   try {
     return new URL(apiUrl).origin;
   } catch {
-    return trimTrailingSlashes(apiUrl);
+    return trimTrailingSlashes(apiUrl) || 'http://127.0.0.1:8000';
   }
 }
 
