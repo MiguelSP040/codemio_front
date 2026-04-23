@@ -3,9 +3,12 @@ import PropTypes from 'prop-types';
 import {
   clearSession,
   readSession,
+  saveSocialSession,
   saveSessionFromAuthPayload,
   setSessionUser,
 } from '../modules/auth/services/sessionService';
+import { getSocialSession, logoutSocialSession } from '../modules/auth/services/authService';
+import { socialDebugEnabled, socialSessionLogSummary } from '../modules/auth/utils/socialAuthDebug';
 import toast from '../utils/toast';
 
 const AuthContext = createContext(null);
@@ -42,6 +45,35 @@ export function AuthProvider({ children }) {
     return () => win.removeEventListener('codemio:auth-expired', handleExpired);
   }, []);
 
+  useEffect(() => {
+    if (auth.user || auth.token) return;
+    let isMounted = true;
+    if (socialDebugEnabled()) {
+      console.log('[social-oauth] auth bootstrap started');
+    }
+    getSocialSession()
+      .then((data) => {
+        if (!isMounted || !data?.usuario) return;
+        if (socialDebugEnabled()) {
+          console.log('[social-oauth] auth bootstrap got session summary', socialSessionLogSummary(data));
+        }
+        const socialSession = saveSocialSession({ usuario: data.usuario, claims: data.claims });
+        setAuth({
+          user: socialSession?.user || data.usuario || null,
+          token: null,
+          refreshToken: null,
+        });
+      })
+      .catch(() => {
+        if (socialDebugEnabled()) {
+          console.error('[social-oauth] auth bootstrap failed');
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [auth.user, auth.token]);
+
   function loginAuth(data) {
     saveSessionFromAuthPayload(data);
     setAuth(stateFromSession());
@@ -53,11 +85,19 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    if (socialDebugEnabled()) {
+      console.log('[social-oauth] logout requested');
+    }
+    logoutSocialSession().catch(() => {
+      if (socialDebugEnabled()) {
+        console.error('[social-oauth] social logout failed');
+      }
+    });
     clearSession();
     setAuth({ user: null, token: null, refreshToken: null });
   }
 
-  const isAuthenticated = Boolean(auth.token);
+  const isAuthenticated = Boolean(auth.token || auth.user);
   const onboardingCompleted = auth.user?.onboarding_completed === true;
   const contextValue = useMemo(
     () => ({ ...auth, isAuthenticated, onboardingCompleted, loginAuth, logout, setUser }),
