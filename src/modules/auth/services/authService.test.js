@@ -38,7 +38,7 @@ describe('authService', () => {
         value: { location: { assign } },
         configurable: true,
       });
-      vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8000/');
+      vi.stubEnv('VITE_API_URL');
       vi.stubEnv('VITE_SOCIAL_AUTH_DEBUG_LOGS', 'false');
       await githubAuth();
       expect(assign).toHaveBeenCalledWith('http://localhost:8000/auth/github/');

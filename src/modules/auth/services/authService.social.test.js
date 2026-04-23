@@ -10,7 +10,7 @@ describe('authService social oauth', () => {
       value: { location: { assign } },
       configurable: true,
     });
-    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8000/');
+    vi.stubEnv('VITE_API_URL');
     githubAuth();
     expect(assign).toHaveBeenCalledWith('http://localhost:8000/auth/github/');
     expect(logSpy).toHaveBeenCalled();

@@ -9,6 +9,15 @@ function trimTrailingSlashes(value = '') {
   return output;
 }
 
+function backendOriginFromApiUrl() {
+  const apiUrl = trimTrailingSlashes(import.meta.env.VITE_API_URL);
+  try {
+    return new URL(apiUrl).origin;
+  } catch {
+    return trimTrailingSlashes(apiUrl);
+  }
+}
+
 /**
  * Inicia sesión del usuario con correo electrónico y contraseña.
  * La sesión se persiste en localStorage vía AuthContext.loginAuth.
@@ -28,7 +37,7 @@ export async function login({ email, password }) {
  *       exposes a GitHub OAuth endpoint (e.g. GET /auth/github/).
  */
 export async function githubAuth() {
-  const apiBase = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || '');
+  const apiBase = backendOriginFromApiUrl();
   if (socialDebugEnabled()) {
     console.log(`[social-oauth] redirecting to ${apiBase}/auth/github/`);
   }
