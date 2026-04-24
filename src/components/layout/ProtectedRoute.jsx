@@ -6,7 +6,8 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const loginTarget = `/login${location.search || ''}`;
+    return <Navigate to={loginTarget} replace />;
   }
 
   if (!onboardingCompleted && location.pathname !== '/onboarding') {
