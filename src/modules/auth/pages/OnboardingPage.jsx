@@ -2,28 +2,18 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { completeProfile } from '../services/onboardingService';
 import { useAuth } from '../../../context/AuthContext';
-import {
-  sanitizePlainText,
-  validateEdad,
-  validateNombre,
-  validatePerfilGithub,
-} from '../../../utils/validation';
+import { sanitizePlainText } from '../../../utils/validation';
 import { extractApiErrorMessage } from '../../../utils/apiErrors';
+import {
+  INITIAL_PROFILE_ERRORS,
+  INITIAL_PROFILE_FORM,
+  INITIAL_PROFILE_TOUCHED,
+  PROFILE_FIELDS,
+  validateProfileField,
+} from '../../../utils/profileFields';
 import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './OnboardingPage.css';
-
-function validate(field, value) {
-  switch (field) {
-    case 'nombre':
-      return validateNombre(value, { required: true });
-    case 'edad':
-      return validateEdad(value, { required: true });
-    case 'perfil_github':
-      return validatePerfilGithub(value, { required: false });
-  }
-  return '';
-}
 
 function normalizeAgeInput(value) {
   return String(value ?? '').replaceAll(/\D/g, '').slice(0, 3);
@@ -34,18 +24,12 @@ function handleAgeKeyDown(e) {
     e.preventDefault();
   }
 }
-
-const FIELDS = ['nombre', 'edad', 'perfil_github'];
-const INITIAL_FORM = { nombre: '', edad: '', perfil_github: '' };
-const INITIAL_ERRORS = { nombre: '', edad: '', perfil_github: '' };
-const INITIAL_TOUCHED = { nombre: false, edad: false, perfil_github: false };
-
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, onboardingCompleted, setUser } = useAuth();
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [errors, setErrors] = useState(INITIAL_ERRORS);
-  const [touched, setTouched] = useState(INITIAL_TOUCHED);
+  const [form, setForm] = useState(INITIAL_PROFILE_FORM);
+  const [errors, setErrors] = useState(INITIAL_PROFILE_ERRORS);
+  const [touched, setTouched] = useState(INITIAL_PROFILE_TOUCHED);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -59,7 +43,10 @@ export default function OnboardingPage() {
     setServerError('');
 
     if (touched[name]) {
-      setErrors((prev) => ({ ...prev, [name]: validate(name, nextValue) }));
+      setErrors((prev) => ({
+        ...prev,
+        [name]: validateProfileField(name, nextValue, { edadRequired: true }),
+      }));
     }
   }
 
@@ -69,22 +56,28 @@ export default function OnboardingPage() {
     setForm((prev) => ({ ...prev, edad: pasted }));
     setServerError('');
     if (touched.edad) {
-      setErrors((prev) => ({ ...prev, edad: validate('edad', pasted) }));
+      setErrors((prev) => ({
+        ...prev,
+        edad: validateProfileField('edad', pasted, { edadRequired: true }),
+      }));
     }
   }
 
   function handleBlur(e) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-    setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validateProfileField(name, value, { edadRequired: true }),
+    }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     const newErrors = {};
-    for (const field of FIELDS) {
-      newErrors[field] = validate(field, form[field]);
+    for (const field of PROFILE_FIELDS) {
+      newErrors[field] = validateProfileField(field, form[field], { edadRequired: true });
     }
     setErrors(newErrors);
     setTouched({ nombre: true, edad: true, perfil_github: true });

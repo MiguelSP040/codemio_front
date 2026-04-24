@@ -5,13 +5,9 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
-import {
-  sanitizePlainText,
-  validateEdad,
-  validateNombre,
-  validatePerfilGithub,
-} from '../../../utils/validation';
+import { sanitizePlainText } from '../../../utils/validation';
 import { extractApiErrorMessage } from '../../../utils/apiErrors';
+import { validateProfileField } from '../../../utils/profileFields';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -20,19 +16,6 @@ function formatDate(value) {
     return new Date(value).toLocaleString();
   } catch {
     return String(value);
-  }
-}
-
-function validate(field, value) {
-  switch (field) {
-    case 'nombre':
-      return validateNombre(value, { required: true });
-    case 'edad':
-      return validateEdad(value, { required: false });
-    case 'perfil_github':
-      return validatePerfilGithub(value, { required: false });
-    default:
-      return '';
   }
 }
 
@@ -45,7 +28,6 @@ function handleAgeKeyDown(e) {
     e.preventDefault();
   }
 }
-
 function renderEnabled(enabled) {
   if (enabled === null || enabled === undefined) return '—';
   return enabled ? 'Sí' : 'No';
@@ -118,7 +100,10 @@ export default function AdminUserDetailPage() {
     setForm((prev) => ({ ...prev, [name]: nextValue }));
     setServerError('');
     if (touched[name]) {
-      setErrors((prev) => ({ ...prev, [name]: validate(name, nextValue) }));
+      setErrors((prev) => ({
+        ...prev,
+        [name]: validateProfileField(name, nextValue, { edadRequired: false }),
+      }));
     }
   }
 
@@ -128,23 +113,29 @@ export default function AdminUserDetailPage() {
     setForm((prev) => ({ ...prev, edad: pasted }));
     setServerError('');
     if (touched.edad) {
-      setErrors((prev) => ({ ...prev, edad: validate('edad', pasted) }));
+      setErrors((prev) => ({
+        ...prev,
+        edad: validateProfileField('edad', pasted, { edadRequired: false }),
+      }));
     }
   }
 
   function handleBlur(e) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-    setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validateProfileField(name, value, { edadRequired: false }),
+    }));
   }
 
   async function handleSave() {
     if (!user || saving) return;
 
     const nextErrors = {
-      nombre: validate('nombre', form.nombre),
-      edad: validate('edad', form.edad),
-      perfil_github: validate('perfil_github', form.perfil_github),
+      nombre: validateProfileField('nombre', form.nombre, { edadRequired: false }),
+      edad: validateProfileField('edad', form.edad, { edadRequired: false }),
+      perfil_github: validateProfileField('perfil_github', form.perfil_github, { edadRequired: false }),
     };
     setErrors(nextErrors);
     setTouched({ nombre: true, edad: true, perfil_github: true });
