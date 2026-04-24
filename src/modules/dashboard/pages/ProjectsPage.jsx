@@ -403,6 +403,18 @@ function hasWaitingWebhookRunInMap(runsById) {
   return false;
 }
 
+function resolveProjectsPollInterval(intense) {
+  if (intense) return PROGRESS_POLL_FAST_MS;
+  return PROGRESS_POLL_SLOW_MS;
+}
+
+function resolveProjectsPollBackoff(attempt, err) {
+  if (isRetriableAnalysisError(err)) {
+    return Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(attempt, 5));
+  }
+  return Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(attempt, 4));
+}
+
 async function hasValidZipSignature(file) {
   try {
     const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());

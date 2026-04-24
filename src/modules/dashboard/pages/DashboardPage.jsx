@@ -397,6 +397,11 @@ function resolveQualityGateMessage(runStatus, { qualityGateFailed, qualityGateWa
   return '';
 }
 
+function resolveDashboardRunsPollInterval(intense) {
+  if (intense) return RUNS_POLL_FAST_MS;
+  return RUNS_POLL_SLOW_MS;
+}
+
 function mapRunToFile(run) {
   const findings = Array.isArray(run?.findings) ? run.findings : [];
   const metrics = run?.metrics || {};
