@@ -558,6 +558,10 @@ export default function DashboardPage() {
         const ids = collectInFlightRunIds(currentRuns);
         if (ids.length === 0) return RUNS_POLL_SLOW_MS;
         const bulkMap = await fetchAnalysisRunsStatusBulk(ids);
+        const terminalDetected = [...bulkMap.values()].some((row) => {
+          const s = String(row?.status || '').toUpperCase();
+          return s === 'DONE' || s === 'FAILED' || s === 'CANCELED';
+        });
         setRuns((prev) => {
           const next = mergeRunsFromStatusPoll(prev, bulkMap);
           if (next === prev) {
@@ -575,6 +579,15 @@ export default function DashboardPage() {
           }
           return next;
         });
+        if (terminalDetected) {
+          const fullResponse = await listAnalysisRuns({ projectId, activeOnly: true });
+          const fullRows = Array.isArray(fullResponse?.results) ? fullResponse.results : [];
+          setRuns(fullRows);
+          analysisDashboardLog('runs_poll_refetch_full_after_terminal', {
+            projectId: Number(projectId),
+            resolvedCount: fullRows.length,
+          });
+        }
         setRunsRefreshError('');
         runsPollErrorsRef.current = 0;
         const intense = hasInFlightStatus(bulkMap.values());
