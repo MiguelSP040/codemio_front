@@ -389,6 +389,11 @@ function resolveQualityGateMessage(runStatus, { qualityGateFailed, qualityGateWa
   return '';
 }
 
+function resolveDashboardRunsPollInterval(intense) {
+  if (intense) return RUNS_POLL_FAST_MS;
+  return RUNS_POLL_SLOW_MS;
+}
+
 function mapRunToFile(run) {
   const findings = Array.isArray(run?.findings) ? run.findings : [];
   const metrics = run?.metrics || {};
@@ -569,16 +574,17 @@ export default function DashboardPage() {
         setRunsRefreshError('');
         runsPollErrorsRef.current = 0;
         const intense = hasInFlightStatus(bulkMap.values());
+        const nextIntervalMs = resolveDashboardRunsPollInterval(intense);
         if (runsPollIntenseRef.current !== intense) {
           runsPollIntenseRef.current = intense;
           analysisDashboardLog('runs_poll_strategy', {
             projectId: Number(projectId),
             intense,
-            nextIntervalMs: intense ? RUNS_POLL_FAST_MS : RUNS_POLL_SLOW_MS,
+            nextIntervalMs,
             idsCount: ids.length,
           });
         }
-        return intense ? RUNS_POLL_FAST_MS : RUNS_POLL_SLOW_MS;
+        return nextIntervalMs;
       } catch (err) {
         runsPollErrorsRef.current += 1;
         const n = runsPollErrorsRef.current;

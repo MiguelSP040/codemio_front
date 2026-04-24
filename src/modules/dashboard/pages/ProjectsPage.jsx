@@ -394,6 +394,18 @@ function hasIntenseRunStatusInMap(runsById) {
   return false;
 }
 
+function resolveProjectsPollInterval(intense) {
+  if (intense) return PROGRESS_POLL_FAST_MS;
+  return PROGRESS_POLL_SLOW_MS;
+}
+
+function resolveProjectsPollBackoff(attempt, err) {
+  if (isRetriableAnalysisError(err)) {
+    return Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(attempt, 5));
+  }
+  return Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(attempt, 4));
+}
+
 async function hasValidZipSignature(file) {
   try {
     const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
@@ -494,23 +506,21 @@ export default function ProjectsPage() {
         });
         progressPollErrorsRef.current = 0;
         const intense = hasIntenseRunStatusInMap(runsById);
+        const nextIntervalMs = resolveProjectsPollInterval(intense);
         if (progressPollIntenseRef.current !== intense) {
           progressPollIntenseRef.current = intense;
           analysisProjectsLog('runs_poll_strategy', {
             projectId: bundle.projectId,
             intense,
-            nextIntervalMs: intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS,
+            nextIntervalMs,
             idsCount: bundle.trackedRunIds.length,
           });
         }
-        return intense ? PROGRESS_POLL_FAST_MS : PROGRESS_POLL_SLOW_MS;
+        return nextIntervalMs;
       } catch (err) {
         progressPollErrorsRef.current += 1;
         const n = progressPollErrorsRef.current;
-        const base = isRetriableAnalysisError(err)
-          ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
-          : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
-        return base;
+        return resolveProjectsPollBackoff(n, err);
       }
     },
   });
