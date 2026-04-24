@@ -263,18 +263,18 @@ export default function AdminUserDetailPage() {
             </div>
 
             <div className="admin-users-field">
-              <label className="admin-users-label" htmlFor="perfil_github">Perfil GitHub</label>
+              <label className="admin-users-label" htmlFor="perfil_github">Usuario de GitHub</label>
               <input
                 id="perfil_github"
                 name="perfil_github"
                 type="text"
                 className={inputClass(errors.perfil_github)}
                 value={form.perfil_github}
-                maxLength={255}
+                maxLength={39}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}
-                placeholder="usuario o URL"
+                placeholder="usuario"
               />
               <FieldError show={touched.perfil_github} message={errors.perfil_github} />
               <p className="admin-users-muted">
