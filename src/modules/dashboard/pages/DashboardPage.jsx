@@ -17,8 +17,9 @@ import humanizeErrorMessage from '../../../utils/errorMessages';
 import './DashboardPage.css';
 
 const DEFAULT_REPO_NAME = 'Proyecto';
-const RUNS_POLL_FAST_MS = 1000;
-const RUNS_POLL_SLOW_MS = 5000;
+const RUNS_POLL_FAST_MS = 3000;
+const RUNS_POLL_SLOW_MS = 8000;
+const RUNS_POLL_WEBHOOK_MS = 40000;
 
 const IN_FLIGHT_RUN_STATUSES = new Set(['PENDING', 'RUNNING', 'WAITING_SONAR_WEBHOOK']);
 
@@ -47,8 +48,15 @@ function collectInFlightRunIds(runs) {
 }
 
 function hasInFlightStatus(rowsIterable) {
+  return [...rowsIterable].some((row) => {
+    const s = String(row?.status || '').toUpperCase();
+    return s === 'PENDING' || s === 'RUNNING';
+  });
+}
+
+function hasWaitingWebhookStatus(rowsIterable) {
   return [...rowsIterable].some((row) =>
-    IN_FLIGHT_RUN_STATUSES.has(String(row?.status || '').toUpperCase()),
+    String(row?.status || '').toUpperCase() === 'WAITING_SONAR_WEBHOOK',
   );
 }
 
@@ -574,12 +582,21 @@ export default function DashboardPage() {
         setRunsRefreshError('');
         runsPollErrorsRef.current = 0;
         const intense = hasInFlightStatus(bulkMap.values());
-        const nextIntervalMs = resolveDashboardRunsPollInterval(intense);
-        if (runsPollIntenseRef.current !== intense) {
-          runsPollIntenseRef.current = intense;
+        const waitingWebhook = hasWaitingWebhookStatus(bulkMap.values());
+        const nextIntervalMs = intense 
+          ? RUNS_POLL_FAST_MS 
+          : waitingWebhook 
+            ? RUNS_POLL_WEBHOOK_MS 
+            : RUNS_POLL_SLOW_MS;
+        
+        const currentStrategy = runsPollIntenseRef.current;
+        const newStrategy = intense ? 'intense' : waitingWebhook ? 'webhook' : 'slow';
+        
+        if (currentStrategy !== newStrategy) {
+          runsPollIntenseRef.current = newStrategy;
           analysisDashboardLog('runs_poll_strategy', {
             projectId: Number(projectId),
-            intense,
+            strategy: newStrategy,
             nextIntervalMs,
             idsCount: ids.length,
           });

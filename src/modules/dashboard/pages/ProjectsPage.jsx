@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../../context/AuthContext';
@@ -25,8 +25,9 @@ import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import toast from '../../../utils/toast';
 import './ProjectsPage.css';
 
-const PROGRESS_POLL_FAST_MS = 1000;
-const PROGRESS_POLL_SLOW_MS = 4000;
+const PROGRESS_POLL_FAST_MS = 3000;
+const PROGRESS_POLL_SLOW_MS = 8000;
+const PROGRESS_POLL_WEBHOOK_MS = 40000;
 
 function resolveItemStatusFromRun(run) {
   const rawStatus = String(run?.status || '').toUpperCase();
@@ -389,7 +390,15 @@ function mergeRunIntoItem(item, runsById) {
 function hasIntenseRunStatusInMap(runsById) {
   for (const run of runsById.values()) {
     const s = String(run?.status || '').toUpperCase();
-    if (s === 'PENDING' || s === 'RUNNING' || s === 'WAITING_SONAR_WEBHOOK') return true;
+    if (s === 'PENDING' || s === 'RUNNING') return true;
+  }
+  return false;
+}
+
+function hasWaitingWebhookRunInMap(runsById) {
+  for (const run of runsById.values()) {
+    const s = String(run?.status || '').toUpperCase();
+    if (s === 'WAITING_SONAR_WEBHOOK') return true;
   }
   return false;
 }
@@ -473,56 +482,70 @@ export default function ProjectsPage() {
 
   progressPollBundleRef.current = progressPollBundle;
 
-  useAnalysisRunsPoll({
-    active: Boolean(progressPollBundle),
-    source: 'ProjectsPage',
-    poll: async () => {
-      const bundle = progressPollBundleRef.current;
-      if (!bundle?.trackedRunIds?.length) return PROGRESS_POLL_SLOW_MS;
-      try {
-        const runsById = await fetchRunsStateMapForTrackedIds(
-          bundle.projectId,
-          bundle.trackedRunIds,
-        );
-        setProgressItems((current) => {
-          const next = current.map((item) => mergeRunIntoItem(item, runsById));
-          const sig = (it) => `${it.runId}|${it.status}|${it.error || ''}`;
-          const changed =
-            next.length !== current.length ||
-            next.some((it, i) => sig(it) !== sig(current[i]));
-          if (changed) {
-            analysisProjectsLog('tracked_runs_updated', {
-              projectId: bundle.projectId,
-              idsCount: bundle.trackedRunIds.length,
-              trackedRunIds: bundle.trackedRunIds,
-            });
-          } else {
-            analysisProjectsLog('tracked_runs_no_change', {
-              projectId: bundle.projectId,
-              idsCount: bundle.trackedRunIds.length,
-            });
-          }
-          return next;
-        });
-        progressPollErrorsRef.current = 0;
-        const intense = hasIntenseRunStatusInMap(runsById);
-        const nextIntervalMs = resolveProjectsPollInterval(intense);
-        if (progressPollIntenseRef.current !== intense) {
-          progressPollIntenseRef.current = intense;
-          analysisProjectsLog('runs_poll_strategy', {
+  const pollFunction = useCallback(async () => {
+    const bundle = progressPollBundleRef.current;
+    if (!bundle?.trackedRunIds?.length) return PROGRESS_POLL_SLOW_MS;
+    try {
+      const runsById = await fetchRunsStateMapForTrackedIds(
+        bundle.projectId,
+        bundle.trackedRunIds,
+      );
+      setProgressItems((current) => {
+        const next = current.map((item) => mergeRunIntoItem(item, runsById));
+        const sig = (it) => `${it.runId}|${it.status}|${it.error || ''}`;
+        const changed =
+          next.length !== current.length ||
+          next.some((it, i) => sig(it) !== sig(current[i]));
+        if (changed) {
+          analysisProjectsLog('tracked_runs_updated', {
             projectId: bundle.projectId,
-            intense,
-            nextIntervalMs,
+            idsCount: bundle.trackedRunIds.length,
+            trackedRunIds: bundle.trackedRunIds,
+          });
+        } else {
+          analysisProjectsLog('tracked_runs_no_change', {
+            projectId: bundle.projectId,
             idsCount: bundle.trackedRunIds.length,
           });
         }
-        return nextIntervalMs;
-      } catch (err) {
-        progressPollErrorsRef.current += 1;
-        const n = progressPollErrorsRef.current;
-        return resolveProjectsPollBackoff(n, err);
+        return next;
+      });
+      progressPollErrorsRef.current = 0;
+      const intense = hasIntenseRunStatusInMap(runsById);
+      const waitingWebhook = hasWaitingWebhookRunInMap(runsById);
+      const nextIntervalMs = intense 
+        ? PROGRESS_POLL_FAST_MS 
+        : waitingWebhook 
+          ? PROGRESS_POLL_WEBHOOK_MS 
+          : PROGRESS_POLL_SLOW_MS;
+      
+      const currentStrategy = progressPollIntenseRef.current;
+      const newStrategy = intense ? 'intense' : waitingWebhook ? 'webhook' : 'slow';
+      
+      if (currentStrategy !== newStrategy) {
+        progressPollIntenseRef.current = newStrategy;
+        analysisProjectsLog('runs_poll_strategy', {
+          projectId: bundle.projectId,
+          strategy: newStrategy,
+          nextIntervalMs,
+          idsCount: bundle.trackedRunIds.length,
+        });
       }
-    },
+      return nextIntervalMs;
+    } catch (err) {
+      progressPollErrorsRef.current += 1;
+      const n = progressPollErrorsRef.current;
+      const base = isRetriableAnalysisError(err)
+        ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
+        : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
+      return base;
+    }
+  }, []);
+
+  useAnalysisRunsPoll({
+    active: Boolean(progressPollBundle),
+    source: 'ProjectsPage',
+    poll: pollFunction,
   });
 
   const selectedProject = projects.find((p) => p.id === selectedId) || null;
