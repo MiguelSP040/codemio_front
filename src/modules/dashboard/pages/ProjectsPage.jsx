@@ -403,11 +403,6 @@ function hasWaitingWebhookRunInMap(runsById) {
   return false;
 }
 
-function resolveProjectsPollInterval(intense) {
-  if (intense) return PROGRESS_POLL_FAST_MS;
-  return PROGRESS_POLL_SLOW_MS;
-}
-
 function resolveProjectsPollBackoff(attempt, err) {
   if (isRetriableAnalysisError(err)) {
     return Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(attempt, 5));
@@ -513,14 +508,20 @@ export default function ProjectsPage() {
       progressPollErrorsRef.current = 0;
       const intense = hasIntenseRunStatusInMap(runsById);
       const waitingWebhook = hasWaitingWebhookRunInMap(runsById);
-      const nextIntervalMs = intense 
-        ? PROGRESS_POLL_FAST_MS 
-        : waitingWebhook 
-          ? PROGRESS_POLL_WEBHOOK_MS 
-          : PROGRESS_POLL_SLOW_MS;
+        let nextIntervalMs = PROGRESS_POLL_SLOW_MS;
+        if (intense) {
+          nextIntervalMs = PROGRESS_POLL_FAST_MS;
+        } else if (waitingWebhook) {
+          nextIntervalMs = PROGRESS_POLL_WEBHOOK_MS;
+        }
       
       const currentStrategy = progressPollIntenseRef.current;
-      const newStrategy = intense ? 'intense' : waitingWebhook ? 'webhook' : 'slow';
+        let newStrategy = 'slow';
+        if (intense) {
+          newStrategy = 'intense';
+        } else if (waitingWebhook) {
+          newStrategy = 'webhook';
+        }
       
       if (currentStrategy !== newStrategy) {
         progressPollIntenseRef.current = newStrategy;
@@ -535,10 +536,7 @@ export default function ProjectsPage() {
     } catch (err) {
       progressPollErrorsRef.current += 1;
       const n = progressPollErrorsRef.current;
-      const base = isRetriableAnalysisError(err)
-        ? Math.min(60000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 5))
-        : Math.min(30000, PROGRESS_POLL_SLOW_MS * 2 ** Math.min(n, 4));
-      return base;
+        return resolveProjectsPollBackoff(n, err);
     }
   }, []);
 

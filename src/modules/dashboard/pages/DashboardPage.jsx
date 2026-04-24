@@ -397,11 +397,6 @@ function resolveQualityGateMessage(runStatus, { qualityGateFailed, qualityGateWa
   return '';
 }
 
-function resolveDashboardRunsPollInterval(intense) {
-  if (intense) return RUNS_POLL_FAST_MS;
-  return RUNS_POLL_SLOW_MS;
-}
-
 function mapRunToFile(run) {
   const findings = Array.isArray(run?.findings) ? run.findings : [];
   const metrics = run?.metrics || {};
@@ -583,14 +578,20 @@ export default function DashboardPage() {
         runsPollErrorsRef.current = 0;
         const intense = hasInFlightStatus(bulkMap.values());
         const waitingWebhook = hasWaitingWebhookStatus(bulkMap.values());
-        const nextIntervalMs = intense 
-          ? RUNS_POLL_FAST_MS 
-          : waitingWebhook 
-            ? RUNS_POLL_WEBHOOK_MS 
-            : RUNS_POLL_SLOW_MS;
+        let nextIntervalMs = RUNS_POLL_SLOW_MS;
+        if (intense) {
+          nextIntervalMs = RUNS_POLL_FAST_MS;
+        } else if (waitingWebhook) {
+          nextIntervalMs = RUNS_POLL_WEBHOOK_MS;
+        }
         
         const currentStrategy = runsPollIntenseRef.current;
-        const newStrategy = intense ? 'intense' : waitingWebhook ? 'webhook' : 'slow';
+        let newStrategy = 'slow';
+        if (intense) {
+          newStrategy = 'intense';
+        } else if (waitingWebhook) {
+          newStrategy = 'webhook';
+        }
         
         if (currentStrategy !== newStrategy) {
           runsPollIntenseRef.current = newStrategy;
