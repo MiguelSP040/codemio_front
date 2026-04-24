@@ -9,7 +9,7 @@ function normalizeMessage(input) {
 
   // Strip simple HTML tags if they come in as part of an error payload.
   // Use atomic pattern to prevent ReDoS: match < followed by non-< and non-> chars, then >.
-  const stripped = text.replace(/<(?:[^<>])*>/g, ' ').replaceAll(/\s+/g, ' ').trim();
+  const stripped = text.replaceAll(/<(?:[^<>])*>/g, ' ').replaceAll(/\s+/g, ' ').trim();
   if (!stripped) return '';
 
   if (stripped.length > MAX_ERROR_LENGTH) {
