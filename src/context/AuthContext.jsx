@@ -3,11 +3,14 @@ import PropTypes from 'prop-types';
 import {
   clearSession,
   readSession,
-  saveSocialSession,
   saveSessionFromAuthPayload,
   setSessionUser,
 } from '../modules/auth/services/sessionService';
-import { getSocialSession, logoutSocialSession } from '../modules/auth/services/authService';
+import {
+  exchangeSocialBootstrapCode,
+  getSocialSession,
+  logoutSocialSession,
+} from '../modules/auth/services/authService';
 import { socialDebugEnabled, socialSessionLogSummary } from '../modules/auth/utils/socialAuthDebug';
 import toast from '../utils/toast';
 
@@ -48,8 +51,30 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (auth.user || auth.token) return;
     let isMounted = true;
+    const socialBootstrapCode = new URLSearchParams(globalThis.window?.location?.search || '').get(
+      'social_code',
+    );
     if (socialDebugEnabled()) {
       console.log('[social-oauth] auth bootstrap started');
+    }
+    if (socialBootstrapCode) {
+      exchangeSocialBootstrapCode(socialBootstrapCode)
+        .then((payload) => {
+          if (!isMounted || !payload) return;
+          saveSessionFromAuthPayload(payload);
+          setAuth(stateFromSession());
+          const nextUrl = new URL(globalThis.window.location.href);
+          nextUrl.searchParams.delete('social_code');
+          globalThis.window.history.replaceState({}, '', nextUrl.toString());
+        })
+        .catch(() => {
+          if (socialDebugEnabled()) {
+            console.error('[social-oauth] social code exchange failed');
+          }
+        });
+      return () => {
+        isMounted = false;
+      };
     }
     getSocialSession()
       .then((data) => {
@@ -57,9 +82,13 @@ export function AuthProvider({ children }) {
         if (socialDebugEnabled()) {
           console.log('[social-oauth] auth bootstrap got session summary', socialSessionLogSummary(data));
         }
-        const socialSession = saveSocialSession({ usuario: data.usuario, claims: data.claims });
+        const socialSession = {
+          usuario: data.usuario,
+          tokens: {},
+        };
+        saveSessionFromAuthPayload(socialSession);
         setAuth({
-          user: socialSession?.user || data.usuario || null,
+          user: data.usuario || null,
           token: null,
           refreshToken: null,
         });
