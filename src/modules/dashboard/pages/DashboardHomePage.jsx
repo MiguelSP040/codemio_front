@@ -86,6 +86,42 @@ const staticStats = [
     color: 'var(--color-secondary)',
     bg: 'rgba(70, 130, 180, 0.12)',
   },
+  {
+    label: 'Tasa de finalizacion',
+    value: '0%',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 6L9 17l-5-5" />
+      </svg>
+    ),
+    color: 'var(--secondary-dark-green)',
+    bg: 'rgba(46, 139, 87, 0.08)',
+  },
+  {
+    label: 'Analisis fallidos',
+    value: 0,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    ),
+    color: 'var(--color-error)',
+    bg: 'rgba(185, 28, 28, 0.08)',
+  },
+  {
+    label: 'Analisis en proceso',
+    value: 0,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7" />
+        <polyline points="21 3 21 9 15 9" />
+      </svg>
+    ),
+    color: 'var(--secondary-medium-blue)',
+    bg: 'rgba(70, 130, 180, 0.12)',
+  },
 ];
 
 function getGreeting() {
@@ -135,6 +171,37 @@ function normalizeRunStatus(status) {
   if (normalized === 'WAITING_SONAR_WEBHOOK') return 'RUNNING';
   if (RUN_STATUS_LABELS[normalized]) return normalized;
   return 'PENDING';
+}
+
+function computeHealthLabel(avgScore) {
+  if (avgScore >= 85) return { label: 'Excelente', tone: 'good' };
+  if (avgScore >= 70) return { label: 'Estable', tone: 'warning' };
+  return { label: 'Atencion requerida', tone: 'critical' };
+}
+
+function buildRecommendations({
+  completionRate,
+  failedRuns,
+  severityDistribution,
+  averageScore,
+}) {
+  const recommendations = [];
+  if (completionRate < 70) {
+    recommendations.push('Hay baja tasa de finalizacion. Revisa cuellos de botella en ejecucion y tiempos de analisis.');
+  }
+  if (failedRuns > 0) {
+    recommendations.push('Se detectaron analisis fallidos. Prioriza revisar errores recientes y reintentos.');
+  }
+  if (severityDistribution.critical > 0 || severityDistribution.high > 0) {
+    recommendations.push('Existen hallazgos de severidad alta/critica. Atiende primero esos proyectos para reducir riesgo.');
+  }
+  if (averageScore < 75) {
+    recommendations.push('El score promedio esta bajo. Refuerza mantenibilidad y reduce code smells en modulos clave.');
+  }
+  if (recommendations.length === 0) {
+    recommendations.push('Buen estado general. Mantener monitoreo continuo y analisis periodico de nuevos cambios.');
+  }
+  return recommendations.slice(0, 4);
 }
 
 function buildDonutSegments(statusCounts) {
@@ -248,6 +315,9 @@ function withUpdatedStatValue(stat, {
   averageScore,
   totalSyntacticMethods,
   totalFilesAnalyzed,
+  completionRate,
+  failedRunsCount,
+  runningRunsCount,
 }) {
   if (stat.label === 'Proyectos') {
     return { ...stat, value: projectCount };
@@ -263,6 +333,15 @@ function withUpdatedStatValue(stat, {
   }
   if (stat.label === 'Metodos sintacticos') {
     return { ...stat, value: totalSyntacticMethods };
+  }
+  if (stat.label === 'Tasa de finalizacion') {
+    return { ...stat, value: `${completionRate}%` };
+  }
+  if (stat.label === 'Analisis fallidos') {
+    return { ...stat, value: failedRunsCount };
+  }
+  if (stat.label === 'Analisis en proceso') {
+    return { ...stat, value: runningRunsCount };
   }
   return stat;
 }
@@ -371,6 +450,17 @@ export default function DashboardHomePage() {
     );
   }
 
+  const totalRunsInRange = runsInRange.length;
+  const completedRuns = Number(statusCounts.DONE || 0);
+  const failedRuns = Number(statusCounts.FAILED || 0);
+  const runningRuns = Number(statusCounts.RUNNING || 0);
+  const completionRate = totalRunsInRange > 0
+    ? Math.round((completedRuns / totalRunsInRange) * 100)
+    : 0;
+  const failureRate = totalRunsInRange > 0
+    ? Math.round((failedRuns / totalRunsInRange) * 100)
+    : 0;
+
   const stats = useMemo(
     () => staticStats.map((stat) => withUpdatedStatValue(stat, {
       projectCount,
@@ -378,8 +468,20 @@ export default function DashboardHomePage() {
       averageScore,
       totalSyntacticMethods,
       totalFilesAnalyzed,
+      completionRate,
+      failedRunsCount: failedRuns,
+      runningRunsCount: runningRuns,
     })),
-    [projectCount, totalIssues, averageScore, totalSyntacticMethods, totalFilesAnalyzed],
+    [
+      projectCount,
+      totalIssues,
+      averageScore,
+      totalSyntacticMethods,
+      totalFilesAnalyzed,
+      completionRate,
+      failedRuns,
+      runningRuns,
+    ],
   );
 
   useEffect(() => {
@@ -552,6 +654,26 @@ export default function DashboardHomePage() {
     ['Medios', severityDistribution.medium, '#f59e0b'],
     ['Bajos', severityDistribution.low, '#10b981'],
   ];
+  const health = computeHealthLabel(averageScore);
+  const recommendations = buildRecommendations({
+    completionRate,
+    failedRuns,
+    severityDistribution,
+    averageScore,
+  });
+  const recentRuns = useMemo(
+    () => [...runsInRange]
+      .sort((a, b) => {
+        const left = new Date(b?.finished_at || b?.started_at || b?.created_at || 0).getTime();
+        const right = new Date(a?.finished_at || a?.started_at || a?.created_at || 0).getTime();
+        return left - right;
+      })
+      .slice(0, 6),
+    [runsInRange],
+  );
+  const averageRunsPerDay = runsTimeline.length > 0
+    ? (runsTimeline.reduce((acc, item) => acc + Number(item.count || 0), 0) / runsTimeline.length)
+    : 0;
   const donutContent = (() => {
     if (runsLoading) return <LoadingState label="Cargando grafica..." />;
     if (donutData.total === 0) return <p className="dash-welcome-sub">No hay analisis en el rango seleccionado.</p>;
@@ -728,6 +850,67 @@ export default function DashboardHomePage() {
             </div>
           </article>
         </div>
+      </section>
+
+      <section className="dash-insights-grid" aria-label="Salud y actividad del dashboard">
+        <article className="dash-insight-card">
+          <h3>Salud general</h3>
+          <div className="dash-insight-kpis">
+            <div>
+              <span>Tasa de finalizacion</span>
+              <strong>{completionRate}%</strong>
+            </div>
+            <div>
+              <span>Tasa de fallos</span>
+              <strong>{failureRate}%</strong>
+            </div>
+            <div>
+              <span>En ejecucion</span>
+              <strong>{runningRuns}</strong>
+            </div>
+            <div>
+              <span>Estado de calidad</span>
+              <strong className={`dash-health-${health.tone}`}>{health.label}</strong>
+            </div>
+          </div>
+          <p className="dash-insight-foot">
+            Promedio de ejecuciones por dia: <strong>{averageRunsPerDay.toFixed(1)}</strong>
+          </p>
+        </article>
+
+        <article className="dash-insight-card">
+          <h3>Actividad reciente</h3>
+          {recentRuns.length === 0 ? (
+            <p className="dash-welcome-sub">No hay actividad reciente en el rango seleccionado.</p>
+          ) : (
+            <ul className="dash-recent-runs">
+              {recentRuns.map((run) => {
+                const status = normalizeRunStatus(run?.status);
+                const stamp = run?.finished_at || run?.started_at || run?.created_at;
+                return (
+                  <li key={`${run?.id}-${run?.created_at || ''}`}>
+                    <div>
+                      <p>{run?.original_filename || `Run ${run?.id || '-'}`}</p>
+                      <small>{formatLastActivity(stamp)}</small>
+                    </div>
+                    <span className={`dash-run-chip dash-run-chip--${status.toLowerCase()}`}>
+                      {RUN_STATUS_LABELS[status]}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </article>
+
+        <article className="dash-insight-card">
+          <h3>Prioridades recomendadas</h3>
+          <ul className="dash-recommendations">
+            {recommendations.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        </article>
       </section>
 
       {/* Recent Projects */}

@@ -18,6 +18,24 @@ function normalizeMessage(input) {
   return stripped;
 }
 
+function firstMessageFromValue(value) {
+  if (typeof value === 'string') return normalizeMessage(value);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = firstMessageFromValue(item);
+      if (nested) return nested;
+    }
+    return '';
+  }
+  if (value && typeof value === 'object') {
+    for (const nestedValue of Object.values(value)) {
+      const nested = firstMessageFromValue(nestedValue);
+      if (nested) return nested;
+    }
+  }
+  return '';
+}
+
 export function extractApiErrorMessage(err, fallback = 'Algo salió mal. Inténtalo de nuevo.') {
   const data = err?.response?.data;
   if (!data) return fallback;
@@ -31,6 +49,9 @@ export function extractApiErrorMessage(err, fallback = 'Algo salió mal. Intént
 
   const message = normalizeMessage(data?.message);
   if (message) return message;
+
+  const fieldError = firstMessageFromValue(data);
+  if (fieldError) return fieldError;
 
   return fallback;
 }

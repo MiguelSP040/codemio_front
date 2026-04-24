@@ -13,7 +13,6 @@ import { useAnalysisRunsPoll } from '../../../hooks/useAnalysisRunsPoll';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import { validateProjectName } from '../../../utils/validation';
 import { analysisDashboardLog } from '../../../utils/analysisInstrumentation';
-import { translateFindingMessage } from '../../../utils/sonarFindingTranslations';
 import humanizeErrorMessage from '../../../utils/errorMessages';
 import './DashboardPage.css';
 
@@ -184,6 +183,27 @@ function renderDashboardAnalysisSections({
   handleSelectFile,
 }) {
   if (!selectedAnalysis) return null;
+
+  const qualityGateCard = selectedAnalysis.summaryCards.find((item) => item.label === 'Quality Gate');
+  const coverageCard = selectedAnalysis.healthCards.find((item) => item.label === 'Cobertura');
+  const duplicationCard = selectedAnalysis.healthCards.find((item) => item.label === 'Duplicacion');
+
+  const parsePercent = (value) => {
+    const parsed = Number.parseFloat(String(value ?? '').replace('%', '').trim());
+    return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 0;
+  };
+
+  const coveragePercent = parsePercent(coverageCard?.value);
+  const duplicationPercent = parsePercent(duplicationCard?.value);
+
+  const syntaxSummaryItems = [
+    { label: 'Clases', value: selectedAnalysis.syntaxMetrics.classesCount },
+    { label: 'Metodos', value: selectedAnalysis.syntaxMetrics.methodsCount },
+    { label: 'Parametros', value: selectedAnalysis.syntaxMetrics.parametersCount },
+    { label: 'Herencias', value: selectedAnalysis.syntaxMetrics.inheritanceCount },
+    { label: 'Llamadas entre clases', value: selectedAnalysis.syntaxMetrics.interclassCallsCount },
+  ];
+
   return (
     <>
       {projectFiles.length > 1 && (
@@ -220,6 +240,83 @@ function renderDashboardAnalysisSections({
         lastUpdated={formatDateLabel(selectedAnalysis.lastUpdated)}
       />
 
+      <section className="dashboard-overview-grid" aria-label="Resumen principal del análisis">
+        <article className="dashboard-overview-card">
+          <p className="dashboard-overview-label">Quality Gate</p>
+          <p className="dashboard-overview-value">{qualityGateCard?.value ?? 'N/A'}</p>
+        </article>
+        <article className="dashboard-overview-card">
+          <p className="dashboard-overview-label">Score del archivo</p>
+          <p className="dashboard-overview-value">{selectedAnalysis.score}</p>
+        </article>
+      </section>
+
+      <section className="dashboard-health-grid" aria-label="Indicadores clave del análisis">
+        <article className="dashboard-health-card">
+          <div className="dashboard-health-top">
+            <span>Cobertura</span>
+            <strong>{coverageCard?.value ?? '0.0%'}</strong>
+          </div>
+          <div className="dashboard-health-meter" aria-hidden="true">
+            <div className="dashboard-health-meter-fill dashboard-health-meter-fill--coverage" style={{ width: `${coveragePercent}%` }} />
+          </div>
+        </article>
+
+        <article className="dashboard-health-card">
+          <div className="dashboard-health-top">
+            <span>Duplicacion</span>
+            <strong>{duplicationCard?.value ?? '0.0%'}</strong>
+          </div>
+          <div className="dashboard-health-meter" aria-hidden="true">
+            <div className="dashboard-health-meter-fill dashboard-health-meter-fill--duplication" style={{ width: `${duplicationPercent}%` }} />
+          </div>
+        </article>
+      </section>
+
+      <section className="dashboard-findings" aria-label="Desglose por herramienta">
+        <header className="dashboard-section-header">
+          <h2>Desglose por herramienta</h2>
+          <p>Resumen de hallazgos por Semgrep, Lizard, javalang, PMD y SpotBugs.</p>
+        </header>
+        <div className="dashboard-severity-legend" role="note" aria-label="Guía de severidades">
+          <span><strong>Crítico:</strong> Riesgo alto que requiere corrección prioritaria.</span>
+          <span><strong>Alto:</strong> Problema importante que puede afectar calidad o seguridad.</span>
+          <span><strong>Medio:</strong> Hallazgo relevante, recomendable atender pronto.</span>
+          <span><strong>Bajo:</strong> Mejora menor o recomendación de estilo/mantenimiento.</span>
+        </div>
+        <div className="dashboard-tool-grid">
+          {selectedAnalysis.toolSummary.map((toolItem) => (
+            <article key={toolItem.tool} className="dashboard-tool-card">
+              <div className="dashboard-tool-card-head">
+                <h3>{toolItem.displayName}</h3>
+                <strong>{toolItem.totalFindings}</strong>
+              </div>
+              <p className="dashboard-tool-meta">
+                Archivos afectados: {toolItem.affectedFilesCount}
+              </p>
+              <div className="dashboard-tool-severity">
+                <span>Crítico: {toolItem.bySeverity.critical}</span>
+                <span>Alto: {toolItem.bySeverity.high}</span>
+                <span>Medio: {toolItem.bySeverity.medium}</span>
+                <span>Bajo: {toolItem.bySeverity.low}</span>
+              </div>
+              {toolItem.topRules.length > 0 ? (
+                <ul className="dashboard-tool-rules">
+                  {toolItem.topRules.map((ruleItem) => (
+                    <li key={`${toolItem.tool}-${ruleItem.rule}`}>
+                      <span title={ruleItem.rule}>{ruleItem.rule}</span>
+                      <strong>{ruleItem.count}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="dashboard-tool-empty">Sin hallazgos.</p>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="dashboard-summary-grid" aria-label="Métricas resumen del proyecto">
         {selectedAnalysis.summaryCards.map((item) => (
           <article className="dashboard-summary-card" key={item.label}>
@@ -227,6 +324,21 @@ function renderDashboardAnalysisSections({
             <p className="dashboard-summary-value">{item.value}</p>
           </article>
         ))}
+      </section>
+
+      <section className="dashboard-findings" aria-label="Resumen sintactico del análisis">
+        <header className="dashboard-section-header">
+          <h2>Resumen sintactico</h2>
+          <p>Vista compacta de clases, metodos, parametros, herencia y llamadas entre clases.</p>
+        </header>
+        <div className="dashboard-syntax-summary-grid">
+          {syntaxSummaryItems.map((item) => (
+            <article key={item.label} className="dashboard-syntax-summary-item">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="dashboard-findings" aria-label="Metricas sintacticas por archivo">
@@ -249,6 +361,8 @@ function renderDashboardAnalysisSections({
                   <th>Parametros</th>
                   <th>Herencia</th>
                   <th>Llamadas entre clases</th>
+                  <th>Complejidad estimada</th>
+                  <th>Detalle</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,44 +374,8 @@ function renderDashboardAnalysisSections({
                     <td>{metric.parametersCount}</td>
                     <td>{metric.inheritanceCount}</td>
                     <td>{metric.interclassCallsCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="dashboard-findings" aria-label="Hallazgos del análisis">
-        <header className="dashboard-section-header">
-          <h2>Hallazgos</h2>
-          <p>Resultados automáticos del análisis Sonar para el archivo seleccionado.</p>
-        </header>
-
-        {selectedAnalysis.findings.length === 0 ? (
-          <p className="dashboard-subtitle">
-            No hay hallazgos para este análisis.
-          </p>
-        ) : (
-          <div className="dashboard-findings-table-wrap">
-            <table className="dashboard-findings-table">
-              <thead>
-                <tr>
-                  <th>Severidad</th>
-                  <th>Archivo</th>
-                  <th>Regla</th>
-                  <th>Recomendación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedAnalysis.findings.map((finding, index) => (
-                  <tr key={`${finding.file}-${index}`}>
-                    <td>
-                      <span className={severityClass(finding.severity)}>{finding.severity}</span>
-                    </td>
-                    <td>{finding.file}</td>
-                    <td>{finding.rule}</td>
-                    <td>{finding.recommendation}</td>
+                    <td>{metric.bigOHint || 'Desconocida'}</td>
+                    <td>{metric.bigOReason || 'Sin evidencia suficiente.'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -348,17 +426,6 @@ function normalizeQualityGateLabel(status) {
   return 'N/A';
 }
 
-function severityClass(severity) {
-  const normalized = String(severity || '').toUpperCase();
-  if (severity === 'Crítico' || normalized === 'CRITICAL' || normalized === 'HIGH') {
-    return 'dashboard-badge dashboard-badge--critical';
-  }
-  if (severity === 'Advertencia' || normalized === 'MEDIUM') {
-    return 'dashboard-badge dashboard-badge--warning';
-  }
-  return 'dashboard-badge dashboard-badge--info';
-}
-
 function analysisStatusClass(analysisStatus) {
   if (analysisStatus === 'queued') return 'analysis-status-badge--queued';
   if (analysisStatus === 'processing') return 'analysis-status-badge--processing';
@@ -399,7 +466,6 @@ function resolveQualityGateMessage(runStatus, { qualityGateFailed, qualityGateWa
 }
 
 function mapRunToFile(run) {
-  const findings = Array.isArray(run?.findings) ? run.findings : [];
   const metrics = run?.metrics || {};
   const bugs = Number(run?.bugs ?? metrics?.bugs ?? 0);
   const vulnerabilities = Number(run?.vulnerabilities ?? metrics?.vulnerabilities ?? 0);
@@ -417,6 +483,12 @@ function mapRunToFile(run) {
     run?.interclass_calls_count ?? metrics?.interclass_calls_count ?? 0,
   );
   const fileMetrics = Array.isArray(run?.file_metrics) ? run.file_metrics : [];
+  const ncloc = Number(run?.ncloc ?? metrics?.ncloc ?? 0);
+  const reliabilityRating = Number(run?.reliability_rating ?? metrics?.reliability_rating ?? 0);
+  const securityRating = Number(run?.security_rating ?? metrics?.security_rating ?? 0);
+  const maintainabilityRating = Number(
+    run?.maintainability_rating ?? metrics?.maintainability_rating ?? 0,
+  );
   const qualityGate = run?.quality_gate_status || metrics?.quality_gate_status || '';
   const normalizedQualityGate = String(qualityGate || '').toUpperCase();
   const qualityGateFailed = normalizedQualityGate === 'FAILED' || normalizedQualityGate === 'ERROR';
@@ -437,6 +509,19 @@ function mapRunToFile(run) {
     ? `Estado: ${run.status}. ${statusMessage}`
     : `Estado: ${run.status}. Quality gate: ${normalizeQualityGateLabel(qualityGate)}.`;
 
+  const rawToolSummary = Array.isArray(run?.tool_summary) ? run.tool_summary : [];
+  const toolOrder = ['semgrep', 'lizard', 'javalang', 'pmd', 'spotbugs'];
+  const toolLabels = {
+    semgrep: 'Semgrep',
+    lizard: 'Lizard',
+    javalang: 'javalang',
+    pmd: 'PMD',
+    spotbugs: 'SpotBugs',
+  };
+  const toolSummaryMap = new Map(
+    rawToolSummary.map((item) => [String(item?.tool || '').toLowerCase(), item]),
+  );
+
   return {
     id: `run-${run.id}`,
     repositoryName: run.original_filename || DEFAULT_REPO_NAME,
@@ -447,19 +532,20 @@ function mapRunToFile(run) {
     analysisStatus: resolveAnalysisStatus(run.status, { qualityGateFailed, qualityGateWarn }),
     lastUpdated: run.finished_at || run.started_at || run.created_at || '',
     failureMessage: statusMessage,
-    summaryCards: [
+    healthCards: [
       { label: 'Quality Gate', value: normalizeQualityGateLabel(qualityGate) },
+      { label: 'Cobertura', value: formatPercent(coverage) },
+      { label: 'Duplicacion', value: formatPercent(duplicatedDensity) },
+    ],
+    summaryCards: [
       { label: 'Bugs', value: bugs },
       { label: 'Vulnerabilidades', value: vulnerabilities },
       { label: 'Code smells', value: codeSmells },
       { label: 'Complejidad', value: complexity },
-      { label: 'Cobertura', value: formatPercent(coverage) },
-      { label: 'Duplicacion', value: formatPercent(duplicatedDensity) },
-      { label: 'Clases', value: classesCount },
-      { label: 'Metodos', value: methodsCount },
-      { label: 'Parametros', value: parametersCount },
-      { label: 'Herencias', value: inheritanceCount },
-      { label: 'Llamadas entre clases', value: interclassCallsCount },
+      { label: 'NLOC', value: ncloc },
+      { label: 'Calificacion de confiabilidad', value: reliabilityRating || 'N/A' },
+      { label: 'Calificacion de seguridad', value: securityRating || 'N/A' },
+      { label: 'Calificacion de mantenibilidad', value: maintainabilityRating || 'N/A' },
     ],
     syntaxMetrics: {
       classesCount,
@@ -475,15 +561,29 @@ function mapRunToFile(run) {
       parametersCount: Number(item.parameters_count || 0),
       inheritanceCount: Number(item.inheritance_count || 0),
       interclassCallsCount: Number(item.interclass_calls_count || 0),
+      bigOHint: String(item.big_o_hint || ''),
+      bigOReason: String(item.big_o_reason || ''),
     })),
-    findings: findings.map((finding) => {
-      const rawRule = finding.rule || finding.finding_type || 'N/A';
-      const rawMessage = finding.message_es || finding.message || '';
+    toolSummary: toolOrder.map((tool) => {
+      const item = toolSummaryMap.get(tool) || {};
+      const bySeverity = item.by_severity || {};
       return {
-        severity: finding.severity || 'LOW',
-        file: finding.file_path || run.original_filename || '',
-        rule: rawRule,
-        recommendation: translateFindingMessage(rawRule, rawMessage),
+        tool,
+        displayName: toolLabels[tool] || tool,
+        totalFindings: Number(item.total_findings || 0),
+        affectedFilesCount: Number(item.affected_files_count || 0),
+        bySeverity: {
+          critical: Number(bySeverity.critical || 0),
+          high: Number(bySeverity.high || 0),
+          medium: Number(bySeverity.medium || 0),
+          low: Number(bySeverity.low || 0),
+        },
+        topRules: Array.isArray(item.top_rules)
+          ? item.top_rules.map((ruleItem) => ({
+            rule: String(ruleItem?.rule || 'N/A'),
+            count: Number(ruleItem?.count || 0),
+          }))
+          : [],
       };
     }),
   };
@@ -558,6 +658,10 @@ export default function DashboardPage() {
         const ids = collectInFlightRunIds(currentRuns);
         if (ids.length === 0) return RUNS_POLL_SLOW_MS;
         const bulkMap = await fetchAnalysisRunsStatusBulk(ids);
+        const terminalDetected = [...bulkMap.values()].some((row) => {
+          const s = String(row?.status || '').toUpperCase();
+          return s === 'DONE' || s === 'FAILED' || s === 'CANCELED';
+        });
         setRuns((prev) => {
           const next = mergeRunsFromStatusPoll(prev, bulkMap);
           if (next === prev) {
@@ -575,6 +679,15 @@ export default function DashboardPage() {
           }
           return next;
         });
+        if (terminalDetected) {
+          const fullResponse = await listAnalysisRuns({ projectId, activeOnly: true });
+          const fullRows = Array.isArray(fullResponse?.results) ? fullResponse.results : [];
+          setRuns(fullRows);
+          analysisDashboardLog('runs_poll_refetch_full_after_terminal', {
+            projectId: Number(projectId),
+            resolvedCount: fullRows.length,
+          });
+        }
         setRunsRefreshError('');
         runsPollErrorsRef.current = 0;
         const intense = hasInFlightStatus(bulkMap.values());
@@ -738,12 +851,6 @@ export default function DashboardPage() {
             runsRefreshError,
             selectedAnalysis,
           })}
-          <div className="dashboard-score-card">
-            <span className="dashboard-score-label">Score del archivo</span>
-            <strong className="dashboard-score-value">
-              {selectedAnalysis ? selectedAnalysis.score : 'N/A'}
-            </strong>
-          </div>
         </section>
         {renderDashboardAnalysisSections({
           selectedAnalysis,

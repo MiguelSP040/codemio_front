@@ -35,4 +35,16 @@ describe('extractApiErrorMessage', () => {
 
     expect(extractApiErrorMessage(err)).toBe('Token inválido');
   });
+
+  it('reads field-level DRF errors like source_file', () => {
+    const err = {
+      response: {
+        data: {
+          source_file: ['El archivo "falsoJava.java" no parece código Java válido.'],
+        },
+      },
+    };
+
+    expect(extractApiErrorMessage(err)).toBe('El archivo "falsoJava.java" no parece código Java válido.');
+  });
 });
