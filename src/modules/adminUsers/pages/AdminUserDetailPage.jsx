@@ -36,6 +36,16 @@ function validate(field, value) {
   }
 }
 
+function normalizeAgeInput(value) {
+  return String(value ?? '').replaceAll(/\D/g, '').slice(0, 3);
+}
+
+function handleAgeKeyDown(e) {
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+}
+
 function renderEnabled(enabled) {
   if (enabled === null || enabled === undefined) return '—';
   return enabled ? 'Sí' : 'No';
@@ -104,10 +114,21 @@ export default function AdminUserDetailPage() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'edad' ? normalizeAgeInput(value) : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     setServerError('');
     if (touched[name]) {
-      setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+      setErrors((prev) => ({ ...prev, [name]: validate(name, nextValue) }));
+    }
+  }
+
+  function handleAgePaste(e) {
+    e.preventDefault();
+    const pasted = normalizeAgeInput(e.clipboardData?.getData('text') || '');
+    setForm((prev) => ({ ...prev, edad: pasted }));
+    setServerError('');
+    if (touched.edad) {
+      setErrors((prev) => ({ ...prev, edad: validate('edad', pasted) }));
     }
   }
 
@@ -233,14 +254,17 @@ export default function AdminUserDetailPage() {
               <input
                 id="edad"
                 name="edad"
-                type="number"
+                type="text"
                 inputMode="numeric"
                 min="13"
                 max="120"
                 step="1"
+                maxLength={3}
                 className={inputClass(errors.edad)}
                 value={form.edad}
                 onChange={handleChange}
+                onKeyDown={handleAgeKeyDown}
+                onPaste={handleAgePaste}
                 onBlur={handleBlur}
                 disabled={saving}
               />
