@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   clearSession,
@@ -35,6 +35,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(stateFromSession);
+  const socialBootstrapInFlightRef = useRef(false);
 
   useEffect(() => {
     const win = globalThis.window;
@@ -51,13 +52,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (auth.user || auth.token) return;
     let isMounted = true;
-    const socialBootstrapCode = new URLSearchParams(globalThis.window?.location?.search || '').get(
-      'social_code',
-    );
+    const socialBootstrapCode = new URLSearchParams(globalThis.window?.location?.search || '').get('social_code');
     if (socialDebugEnabled()) {
       console.log('[social-oauth] auth bootstrap started');
     }
     if (socialBootstrapCode) {
+      socialBootstrapInFlightRef.current = true;
       exchangeSocialBootstrapCode(socialBootstrapCode)
         .then((payload) => {
           if (!isMounted || !payload) return;
@@ -71,7 +71,15 @@ export function AuthProvider({ children }) {
           if (socialDebugEnabled()) {
             console.error('[social-oauth] social code exchange failed');
           }
+        })
+        .finally(() => {
+          socialBootstrapInFlightRef.current = false;
         });
+      return () => {
+        isMounted = false;
+      };
+    }
+    if (socialBootstrapInFlightRef.current) {
       return () => {
         isMounted = false;
       };
