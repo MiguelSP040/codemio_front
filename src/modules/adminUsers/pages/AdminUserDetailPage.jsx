@@ -5,13 +5,9 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { deleteUser, getUserById, updateUser } from '../services/adminUsersService';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
-import {
-  sanitizePlainText,
-  validateEdad,
-  validateNombre,
-  validatePerfilGithub,
-} from '../../../utils/validation';
+import { sanitizePlainText } from '../../../utils/validation';
 import { extractApiErrorMessage } from '../../../utils/apiErrors';
+import { validateProfileField } from '../../../utils/profileFields';
 import './adminUsers.css';
 
 function formatDate(value) {
@@ -23,19 +19,15 @@ function formatDate(value) {
   }
 }
 
-function validate(field, value) {
-  switch (field) {
-    case 'nombre':
-      return validateNombre(value, { required: true });
-    case 'edad':
-      return validateEdad(value, { required: false });
-    case 'perfil_github':
-      return validatePerfilGithub(value, { required: false });
-    default:
-      return '';
-  }
+function normalizeAgeInput(value) {
+  return String(value ?? '').replaceAll(/\D/g, '').slice(0, 3);
 }
 
+function handleAgeKeyDown(e) {
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+}
 function renderEnabled(enabled) {
   if (enabled === null || enabled === undefined) return '—';
   return enabled ? 'Sí' : 'No';
@@ -104,26 +96,46 @@ export default function AdminUserDetailPage() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'edad' ? normalizeAgeInput(value) : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     setServerError('');
     if (touched[name]) {
-      setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+      setErrors((prev) => ({
+        ...prev,
+        [name]: validateProfileField(name, nextValue, { edadRequired: false }),
+      }));
+    }
+  }
+
+  function handleAgePaste(e) {
+    e.preventDefault();
+    const pasted = normalizeAgeInput(e.clipboardData?.getData('text') || '');
+    setForm((prev) => ({ ...prev, edad: pasted }));
+    setServerError('');
+    if (touched.edad) {
+      setErrors((prev) => ({
+        ...prev,
+        edad: validateProfileField('edad', pasted, { edadRequired: false }),
+      }));
     }
   }
 
   function handleBlur(e) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-    setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validateProfileField(name, value, { edadRequired: false }),
+    }));
   }
 
   async function handleSave() {
     if (!user || saving) return;
 
     const nextErrors = {
-      nombre: validate('nombre', form.nombre),
-      edad: validate('edad', form.edad),
-      perfil_github: validate('perfil_github', form.perfil_github),
+      nombre: validateProfileField('nombre', form.nombre, { edadRequired: false }),
+      edad: validateProfileField('edad', form.edad, { edadRequired: false }),
+      perfil_github: validateProfileField('perfil_github', form.perfil_github, { edadRequired: false }),
     };
     setErrors(nextErrors);
     setTouched({ nombre: true, edad: true, perfil_github: true });
@@ -217,8 +229,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="nombre"
                 name="nombre"
+                type="text"
                 className={inputClass(errors.nombre)}
                 value={form.nombre}
+                maxLength={100}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}
@@ -231,11 +245,17 @@ export default function AdminUserDetailPage() {
               <input
                 id="edad"
                 name="edad"
-                type="number"
+                type="text"
                 inputMode="numeric"
+                min="13"
+                max="120"
+                step="1"
+                maxLength={3}
                 className={inputClass(errors.edad)}
                 value={form.edad}
                 onChange={handleChange}
+                onKeyDown={handleAgeKeyDown}
+                onPaste={handleAgePaste}
                 onBlur={handleBlur}
                 disabled={saving}
               />
@@ -247,8 +267,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="perfil_github"
                 name="perfil_github"
+                type="text"
                 className={inputClass(errors.perfil_github)}
                 value={form.perfil_github}
+                maxLength={255}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}

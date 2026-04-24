@@ -58,12 +58,25 @@ export default function AnalysisProgressModal({
   onClose,
   onGoToDashboard,
 }) {
-  const cardRef = useRef(null);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return undefined;
+
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
     return () => {
       document.body.style.overflow = prevOverflow;
     };
@@ -88,13 +101,16 @@ export default function AnalysisProgressModal({
   const subtitle = pickSubtitle({ allDone, anyFailed });
 
   const content = (
-    <div className="apm-overlay">
-      <dialog
-        ref={cardRef}
-        className="apm-card"
-        open
-        aria-labelledby="apm-title"
-      >
+    <dialog
+      ref={dialogRef}
+      className="apm-card"
+      aria-labelledby="apm-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="apm-card-inner">
         <header className="apm-header">
           <h2 id="apm-title" className="apm-title">{headline}</h2>
           <p className="apm-subtitle">{subtitle}</p>
@@ -159,8 +175,8 @@ export default function AnalysisProgressModal({
             </button>
           ) : null}
         </footer>
-      </dialog>
-    </div>
+      </div>
+    </dialog>
   );
 
   return createPortal(content, document.body);

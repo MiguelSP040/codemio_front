@@ -56,6 +56,20 @@ export async function getSocialSession() {
   return data;
 }
 
+export async function exchangeSocialBootstrapCode(code) {
+  const normalizedCode = String(code || '').trim();
+  if (!normalizedCode) {
+    throw new Error('Missing social bootstrap code');
+  }
+  if (socialDebugEnabled()) {
+    console.log('[social-oauth] exchanging one-time bootstrap code');
+  }
+  const { data } = await apiClient.get('/auth/social/bootstrap/', {
+    params: { code: normalizedCode },
+  });
+  return data;
+}
+
 export async function logoutSocialSession() {
   if (socialDebugEnabled()) {
     console.log('[social-oauth] posting /auth/social/logout/');
