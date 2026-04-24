@@ -119,6 +119,7 @@ export default function OnboardingPage() {
             placeholder="Tu nombre completo"
             className={fieldClass('nombre')}
             value={form.nombre}
+            maxLength={100}
             onChange={handleChange}
             onBlur={handleBlur}
             disabled={loading}
@@ -138,6 +139,7 @@ export default function OnboardingPage() {
             inputMode="numeric"
             min="13"
             max="120"
+            step="1"
             placeholder="Ej: 21"
             className={fieldClass('edad')}
             value={form.edad}
@@ -169,6 +171,7 @@ export default function OnboardingPage() {
               placeholder="https://github.com/tu-usuario"
               className={`${fieldClass('perfil_github')} onboarding-github-input`}
               value={form.perfil_github}
+              maxLength={255}
               onChange={handleChange}
               onBlur={handleBlur}
               disabled={loading}

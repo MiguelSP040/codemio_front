@@ -11,6 +11,7 @@ import {
 } from '../../analysis/services/analysisService';
 import { useAnalysisRunsPoll } from '../../../hooks/useAnalysisRunsPoll';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
+import { validateProjectName } from '../../../utils/validation';
 import { analysisDashboardLog } from '../../../utils/analysisInstrumentation';
 import { translateFindingMessage } from '../../../utils/sonarFindingTranslations';
 import humanizeErrorMessage from '../../../utils/errorMessages';
@@ -91,7 +92,7 @@ function renderDashboardHeaderContent({
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               onKeyDown={handleNameKeyDown}
-              maxLength={100}
+              maxLength={49}
               autoFocus
             />
             <button
@@ -603,12 +604,9 @@ export default function DashboardPage() {
 
   async function saveProjectName() {
     const normalized = draftName.trim();
-    if (normalized.length < 3) {
-      setNameError('El nombre del proyecto debe tener al menos 3 caracteres.');
-      return;
-    }
-    if (normalized.length > 100) {
-      setNameError('El nombre del proyecto no puede exceder 100 caracteres.');
+    const validationError = validateProjectName(normalized);
+    if (validationError) {
+      setNameError(validationError);
       return;
     }
     setSavingName(true);

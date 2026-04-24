@@ -2,14 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createProject } from '../services/projectService';
 import { extractApiErrorMessage } from '../../../utils/apiErrors';
+import { validateProjectName } from '../../../utils/validation';
 import './CreateProjectPage.css';
-
-function validate(value) {
-  if (!value.trim()) return 'Este campo es obligatorio.';
-  if (value.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres.';
-  if (value.trim().length > 100) return 'El nombre no puede exceder 100 caracteres.';
-  return '';
-}
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
@@ -23,18 +17,18 @@ export default function CreateProjectPage() {
   function handleChange(e) {
     setName(e.target.value);
     setServerError('');
-    if (touched) setError(validate(e.target.value));
+    if (touched) setError(validateProjectName(e.target.value));
   }
 
   function handleBlur() {
     setTouched(true);
-    setError(validate(name));
+    setError(validateProjectName(name));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const err = validate(name);
+    const err = validateProjectName(name);
     setError(err);
     setTouched(true);
     if (err) return;
@@ -129,12 +123,13 @@ export default function CreateProjectPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={loading}
+                maxLength={49}
                 autoFocus
               />
               {touched && error ? (
                 <span className="new-project-field-error" role="alert">{error}</span>
               ) : (
-                <span className="new-project-hint">Mínimo 3 caracteres, máximo 100</span>
+                <span className="new-project-hint">Usa un nombre corto, legible y sin caracteres raros.</span>
               )}
             </div>
 

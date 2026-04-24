@@ -217,8 +217,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="nombre"
                 name="nombre"
+                type="text"
                 className={inputClass(errors.nombre)}
                 value={form.nombre}
+                maxLength={100}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}
@@ -233,6 +235,9 @@ export default function AdminUserDetailPage() {
                 name="edad"
                 type="number"
                 inputMode="numeric"
+                min="13"
+                max="120"
+                step="1"
                 className={inputClass(errors.edad)}
                 value={form.edad}
                 onChange={handleChange}
@@ -247,8 +252,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="perfil_github"
                 name="perfil_github"
+                type="text"
                 className={inputClass(errors.perfil_github)}
                 value={form.perfil_github}
+                maxLength={255}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}

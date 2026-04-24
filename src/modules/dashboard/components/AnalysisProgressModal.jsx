@@ -89,10 +89,11 @@ export default function AnalysisProgressModal({
 
   const content = (
     <div className="apm-overlay">
-      <dialog
+      <div
         ref={cardRef}
         className="apm-card"
-        open
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="apm-title"
       >
         <header className="apm-header">
@@ -159,7 +160,7 @@ export default function AnalysisProgressModal({
             </button>
           ) : null}
         </footer>
-      </dialog>
+      </div>
     </div>
   );
 

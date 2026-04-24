@@ -250,6 +250,9 @@
 .admin-users-actions {
   text-align: right;
   white-space: nowrap;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
 }
 
 .admin-users-pill {

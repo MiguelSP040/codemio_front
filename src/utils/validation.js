@@ -2,8 +2,10 @@ const OTP_RE = /^\d{6}$/;
 
 const PROFILE_NAME_MIN_LEN = 2;
 const PROFILE_NAME_MAX_LEN = 100;
-const PROFILE_AGE_MIN = 1;
+const PROFILE_AGE_MIN = 13;
 const PROFILE_AGE_MAX = 120;
+const PROJECT_NAME_MAX_LEN = 49;
+const PROFILE_NAME_ALLOWED_CHARS_RE = /^[\p{L}\p{M} .'-]+$/u;
 
 // Email con cuantificadores acotados a límites RFC 5321 para evitar ReDoS.
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,63}$/;
@@ -11,6 +13,7 @@ const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,63}$/;
 const HAS_HTML_TAG_RE = /<\/?[a-zA-Z][a-zA-Z0-9]{0,20}(?:\s[^>]{0,500})?>/;
 // eslint-disable-next-line no-control-regex
 const HAS_CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/;
+const PROJECT_NAME_ALLOWED_CHARS_RE = /^[\p{L}\p{N} _.-]+$/u;
 
 export function isValidOtp(value) {
   return OTP_RE.test((value ?? '').toString());
@@ -41,6 +44,9 @@ export function validateNombre(value, { required = true } = {}) {
 
   if (!cleaned) return required ? 'Este campo es obligatorio.' : '';
   if (containsHtml(raw)) return 'El nombre no puede contener etiquetas HTML.';
+  if (!PROFILE_NAME_ALLOWED_CHARS_RE.test(cleaned)) {
+    return 'El nombre contiene caracteres no permitidos.';
+  }
   if (cleaned.length < PROFILE_NAME_MIN_LEN) {
     return `El nombre debe tener al menos ${PROFILE_NAME_MIN_LEN} caracteres.`;
   }
@@ -56,7 +62,7 @@ export function validateEdad(value, { required = true } = {}) {
   }
   if (Number.isNaN(Number(value)) || !Number.isInteger(Number(value))) return 'Ingresa un número entero.';
   const n = Number(value);
-  if (n < PROFILE_AGE_MIN) return 'La edad debe ser mayor que 0.';
+  if (n < PROFILE_AGE_MIN) return `La edad mínima permitida es ${PROFILE_AGE_MIN}.`;
   if (n > PROFILE_AGE_MAX) return `Ingresa una edad válida (máximo ${PROFILE_AGE_MAX}).`;
   return '';
 }
@@ -72,5 +78,25 @@ export function validatePerfilGithub(value, { required = false } = {}) {
     return 'El perfil de GitHub contiene caracteres no permitidos.';
   }
   if (cleaned.length > 255) return 'El perfil de GitHub es demasiado largo.';
+  return '';
+}
+
+export function isValidProjectName(value) {
+  const raw = (value ?? '').toString().trim();
+  return raw.length > 0 && raw.length <= PROJECT_NAME_MAX_LEN && PROJECT_NAME_ALLOWED_CHARS_RE.test(raw);
+}
+
+export function validateProjectName(value, { required = true } = {}) {
+  const raw = (value ?? '').toString();
+  const cleaned = sanitizePlainText(raw);
+
+  if (!cleaned) return required ? 'Este campo es obligatorio.' : '';
+  if (containsHtml(raw)) return 'El nombre del proyecto no puede contener etiquetas HTML.';
+  if (cleaned.length > PROJECT_NAME_MAX_LEN) {
+    return 'El nombre del proyecto es demasiado largo.';
+  }
+  if (!PROJECT_NAME_ALLOWED_CHARS_RE.test(cleaned)) {
+    return 'El nombre del proyecto contiene caracteres no permitidos.';
+  }
   return '';
 }

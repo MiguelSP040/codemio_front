@@ -7,6 +7,8 @@ import {
   validateNombre,
   validateEdad,
   validatePerfilGithub,
+  isValidProjectName,
+  validateProjectName,
 } from './validation';
 
 describe('isValidOtp', () => {
@@ -96,8 +98,14 @@ describe('validateNombre', () => {
     expect(validateNombre('a'.repeat(101))).toContain('no puede exceder');
   });
 
+  it('rejects disallowed special characters', () => {
+    expect(validateNombre('Ana@Pérez')).toBe('El nombre contiene caracteres no permitidos.');
+    expect(validateNombre('Pepe_123')).toBe('El nombre contiene caracteres no permitidos.');
+  });
+
   it('accepts valid names', () => {
     expect(validateNombre('Ana Pérez')).toBe('');
+    expect(validateNombre("O'Connor")).toBe('');
   });
 });
 
@@ -121,7 +129,7 @@ describe('validateEdad', () => {
   });
 
   it('rejects out-of-range values', () => {
-    expect(validateEdad(0)).toContain('mayor que 0');
+    expect(validateEdad(12)).toContain('mínima permitida');
     expect(validateEdad(121)).toContain('válida');
   });
 
@@ -160,5 +168,45 @@ describe('validatePerfilGithub', () => {
   it('accepts urls and usernames', () => {
     expect(validatePerfilGithub('danielamr')).toBe('');
     expect(validatePerfilGithub('https://github.com/danielamr')).toBe('');
+  });
+});
+
+describe('isValidProjectName', () => {
+  it('accepts safe project names under the limit', () => {
+    expect(isValidProjectName('Mi proyecto 1')).toBe(true);
+    expect(isValidProjectName('Proyecto-java_v2')).toBe(true);
+    expect(isValidProjectName('P_A.')).toBe(true);
+  });
+
+  it('rejects special characters and long values', () => {
+    expect(isValidProjectName('Proyecto <script>')).toBe(false);
+    expect(isValidProjectName('Proyecto@2026')).toBe(false);
+    expect(isValidProjectName('a'.repeat(50))).toBe(false);
+  });
+});
+
+describe('validateProjectName', () => {
+  it('requires value by default', () => {
+    expect(validateProjectName('')).toBe('Este campo es obligatorio.');
+    expect(validateProjectName(null)).toBe('Este campo es obligatorio.');
+  });
+
+  it('rejects html and special characters', () => {
+    expect(validateProjectName('<b>Proyecto</b>')).toBe(
+      'El nombre del proyecto no puede contener etiquetas HTML.',
+    );
+    expect(validateProjectName('Proyecto@2026')).toBe(
+      'El nombre del proyecto contiene caracteres no permitidos.',
+    );
+  });
+
+  it('rejects names with 50 characters or more', () => {
+    expect(validateProjectName('a'.repeat(50))).toBe('El nombre del proyecto es demasiado largo.');
+  });
+
+  it('accepts valid project names', () => {
+    expect(validateProjectName('Mi proyecto Java')).toBe('');
+    expect(validateProjectName('Proyecto-1_v2')).toBe('');
+    expect(validateProjectName('P_A.')).toBe('');
   });
 });

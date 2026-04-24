@@ -15,6 +15,9 @@
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  margin: 0;
+  border: none;
   background: var(--color-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
