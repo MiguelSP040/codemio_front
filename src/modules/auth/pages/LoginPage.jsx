@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { login, githubAuth } from '../services/authService';
@@ -16,7 +16,7 @@ function validate(field, value) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { loginAuth } = useAuth();
+  const { loginAuth, isAuthenticated } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [touched, setTouched] = useState({ email: false, password: false });
@@ -71,6 +71,12 @@ export default function LoginPage() {
     if (!touched[name]) return 'auth-input';
     return errors[name] ? 'auth-input auth-input--error' : 'auth-input auth-input--valid';
   }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="auth-page">
