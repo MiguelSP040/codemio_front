@@ -157,17 +157,27 @@ describe('validatePerfilGithub', () => {
 
   it('rejects disallowed characters', () => {
     expect(validatePerfilGithub('daniela mr')).toBe(
-      'El perfil de GitHub contiene caracteres no permitidos.',
+      'Ingresa un usuario de GitHub válido (sin URL).',
     );
   });
 
-  it('rejects too-long values', () => {
-    expect(validatePerfilGithub('a'.repeat(256))).toBe('El perfil de GitHub es demasiado largo.');
+  it('rejects url values', () => {
+    expect(validatePerfilGithub('https://github.com/danielamr')).toBe(
+      'Ingresa un usuario de GitHub válido (sin URL).',
+    );
   });
 
-  it('accepts urls and usernames', () => {
+  it('rejects invalid username formats', () => {
+    expect(validatePerfilGithub('-danielamr')).toBe('Ingresa un usuario de GitHub válido (sin URL).');
+    expect(validatePerfilGithub('danielamr-')).toBe('Ingresa un usuario de GitHub válido (sin URL).');
+    expect(validatePerfilGithub('daniel--amr')).toBe('Ingresa un usuario de GitHub válido (sin URL).');
+    expect(validatePerfilGithub('a'.repeat(40))).toBe('Ingresa un usuario de GitHub válido (sin URL).');
+  });
+
+  it('accepts only valid usernames', () => {
     expect(validatePerfilGithub('danielamr')).toBe('');
-    expect(validatePerfilGithub('https://github.com/danielamr')).toBe('');
+    expect(validatePerfilGithub('daniel-amr')).toBe('');
+    expect(validatePerfilGithub('daniel123')).toBe('');
   });
 });
 

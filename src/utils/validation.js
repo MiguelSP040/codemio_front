@@ -73,11 +73,9 @@ export function validatePerfilGithub(value, { required = false } = {}) {
 
   if (!cleaned) return required ? 'Este campo es obligatorio.' : '';
   if (containsHtml(raw)) return 'El perfil de GitHub no puede contener etiquetas HTML.';
-  // Texto simple: evitamos caracteres raros/control; permitimos letras, números, . - _ / : (por URLs o usernames).
-  if (!/^[A-Za-z0-9._\-/:]+$/.test(cleaned)) {
-    return 'El perfil de GitHub contiene caracteres no permitidos.';
+  if (!/^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$/.test(cleaned)) {
+    return 'Ingresa un usuario de GitHub válido (sin URL).';
   }
-  if (cleaned.length > 255) return 'El perfil de GitHub es demasiado largo.';
   return '';
 }
 

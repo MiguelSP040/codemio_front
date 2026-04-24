@@ -172,7 +172,7 @@ export default function OnboardingPage() {
         {/* Perfil de GitHub */}
         <div className="auth-field">
           <label htmlFor="perfil_github" className="auth-label">
-            Perfil de GitHub <span className="onboarding-optional">(opcional)</span>
+            Usuario de GitHub <span className="onboarding-optional">(opcional)</span>
           </label>
           <div className="auth-input-wrapper">
             <span className="onboarding-input-icon" aria-hidden="true">
@@ -183,12 +183,12 @@ export default function OnboardingPage() {
             <input
               id="perfil_github"
               name="perfil_github"
-              type="url"
-              autoComplete="url"
-              placeholder="https://github.com/tu-usuario"
+              type="text"
+              autoComplete="off"
+              placeholder="tu-usuario"
               className={`${fieldClass('perfil_github')} onboarding-github-input`}
               value={form.perfil_github}
-              maxLength={255}
+              maxLength={39}
               onChange={handleChange}
               onBlur={handleBlur}
               disabled={loading}
