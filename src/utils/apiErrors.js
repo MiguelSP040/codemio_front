@@ -8,7 +8,8 @@ function normalizeMessage(input) {
   if (/<!doctype html|<html[\s>]/i.test(text)) return '';
 
   // Strip simple HTML tags if they come in as part of an error payload.
-  const stripped = text.replaceAll(/<[^>]+>/g, ' ').replaceAll(/\s+/g, ' ').trim();
+  // Use [^>]* instead of [^>]+ to prevent catastrophic backtracking (ReDoS).
+  const stripped = text.replaceAll(/<[^>]*>/g, ' ').replaceAll(/\s+/g, ' ').trim();
   if (!stripped) return '';
 
   if (stripped.length > MAX_ERROR_LENGTH) {
