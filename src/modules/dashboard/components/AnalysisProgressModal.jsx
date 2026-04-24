@@ -109,9 +109,6 @@ export default function AnalysisProgressModal({
         e.preventDefault();
         onClose();
       }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <div className="apm-card-inner">
         <header className="apm-header">
