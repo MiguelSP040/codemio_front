@@ -19,6 +19,15 @@ function formatDate(value) {
   }
 }
 
+function normalizeAgeInput(value) {
+  return String(value ?? '').replaceAll(/\D/g, '').slice(0, 3);
+}
+
+function handleAgeKeyDown(e) {
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+}
 function renderEnabled(enabled) {
   if (enabled === null || enabled === undefined) return '—';
   return enabled ? 'Sí' : 'No';
@@ -87,12 +96,26 @@ export default function AdminUserDetailPage() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'edad' ? normalizeAgeInput(value) : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     setServerError('');
     if (touched[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: validateProfileField(name, value, { edadRequired: false }),
+        [name]: validateProfileField(name, nextValue, { edadRequired: false }),
+      }));
+    }
+  }
+
+  function handleAgePaste(e) {
+    e.preventDefault();
+    const pasted = normalizeAgeInput(e.clipboardData?.getData('text') || '');
+    setForm((prev) => ({ ...prev, edad: pasted }));
+    setServerError('');
+    if (touched.edad) {
+      setErrors((prev) => ({
+        ...prev,
+        edad: validateProfileField('edad', pasted, { edadRequired: false }),
       }));
     }
   }
@@ -206,8 +229,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="nombre"
                 name="nombre"
+                type="text"
                 className={inputClass(errors.nombre)}
                 value={form.nombre}
+                maxLength={100}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}
@@ -220,11 +245,17 @@ export default function AdminUserDetailPage() {
               <input
                 id="edad"
                 name="edad"
-                type="number"
+                type="text"
                 inputMode="numeric"
+                min="13"
+                max="120"
+                step="1"
+                maxLength={3}
                 className={inputClass(errors.edad)}
                 value={form.edad}
                 onChange={handleChange}
+                onKeyDown={handleAgeKeyDown}
+                onPaste={handleAgePaste}
                 onBlur={handleBlur}
                 disabled={saving}
               />
@@ -236,8 +267,10 @@ export default function AdminUserDetailPage() {
               <input
                 id="perfil_github"
                 name="perfil_github"
+                type="text"
                 className={inputClass(errors.perfil_github)}
                 value={form.perfil_github}
+                maxLength={255}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={saving}

@@ -23,6 +23,7 @@ import AnalysisProgressModal from '../components/AnalysisProgressModal';
 import PageHeader from '../../../components/ui/PageHeader/PageHeader';
 import LoadingState from '../../../components/ui/LoadingState/LoadingState';
 import toast from '../../../utils/toast';
+import { validateProjectName } from '../../../utils/validation';
 import './ProjectsPage.css';
 
 const PROGRESS_POLL_FAST_MS = 3000;
@@ -76,13 +77,6 @@ function qualityTone(score) {
   if (score >= 85) return 'projects-quality--good';
   if (score >= 70) return 'projects-quality--warning';
   return 'projects-quality--critical';
-}
-
-function validate(value) {
-  if (!value.trim()) return 'Este campo es obligatorio.';
-  if (value.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres.';
-  if (value.trim().length > 100) return 'El nombre no puede exceder 100 caracteres.';
-  return '';
 }
 
 function getFileExtension(fileName) {
@@ -209,21 +203,21 @@ function ProjectCardEditingForm({
         value={draftName}
         onChange={(e) => setDraftName(e.target.value)}
         onKeyDown={(e) => handleNameKeyDown(e, project.id)}
-        maxLength={100}
+        maxLength={49}
         disabled={editingLoading}
         autoFocus
       />
       {nameError ? (
         <span className="pj-field-error" role="alert">{nameError}</span>
       ) : (
-        <span className="pj-hint">Minimo 3 caracteres, maximo 100</span>
+        <span className="pj-hint">Usa un nombre corto, legible y sin caracteres raros.</span>
       )}
       <div className="projects-card-edit-actions">
         <button
           type="button"
           className="pj-btn pj-btn--primary"
           onClick={() => saveProjectName(project.id)}
-          disabled={draftName.trim().length < 3 || editingLoading}
+          disabled={Boolean(validateProjectName(draftName) || editingLoading)}
         >
           {editingLoading ? 'Guardando...' : 'Guardar'}
         </button>
@@ -622,12 +616,9 @@ export default function ProjectsPage() {
 
   async function saveProjectName(projectId) {
     const normalized = draftName.trim();
-    if (normalized.length < 3) {
-      setNameError('El nombre debe tener al menos 3 caracteres.');
-      return;
-    }
-    if (normalized.length > 100) {
-      setNameError('El nombre no puede exceder 100 caracteres.');
+    const validationError = validateProjectName(normalized);
+    if (validationError) {
+      setNameError(validationError);
       return;
     }
     setEditingLoading(true);
@@ -687,17 +678,17 @@ export default function ProjectsPage() {
   function handleChange(e) {
     setName(e.target.value);
     setServerError('');
-    if (touched) setError(validate(e.target.value));
+    if (touched) setError(validateProjectName(e.target.value));
   }
 
   function handleBlur() {
     setTouched(true);
-    setError(validate(name));
+    setError(validateProjectName(name));
   }
 
   async function handleCreateSubmit(e) {
     e.preventDefault();
-    const err = validate(name);
+    const err = validateProjectName(name);
     setError(err);
     setTouched(true);
     if (err) return;
@@ -922,13 +913,13 @@ export default function ProjectsPage() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     disabled={loading}
-                    maxLength={100}
+                    maxLength={49}
                     autoFocus
                   />
                   {touched && error ? (
                     <span className="pj-field-error" role="alert">{error}</span>
                   ) : (
-                    <span className="pj-hint">Mínimo 3 caracteres, máximo 100</span>
+                    <span className="pj-hint">Usa un nombre corto, legible y sin caracteres raros.</span>
                   )}
                 </div>
 

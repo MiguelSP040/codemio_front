@@ -15,6 +15,15 @@ import logo from '../../../assets/images/codemio-logo-completo.png';
 import '../styles/auth.css';
 import './OnboardingPage.css';
 
+function normalizeAgeInput(value) {
+  return String(value ?? '').replaceAll(/\D/g, '').slice(0, 3);
+}
+
+function handleAgeKeyDown(e) {
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+}
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, onboardingCompleted, setUser } = useAuth();
@@ -29,13 +38,27 @@ export default function OnboardingPage() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'edad' ? normalizeAgeInput(value) : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     setServerError('');
 
     if (touched[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: validateProfileField(name, value, { edadRequired: true }),
+        [name]: validateProfileField(name, nextValue, { edadRequired: true }),
+      }));
+    }
+  }
+
+  function handleAgePaste(e) {
+    e.preventDefault();
+    const pasted = normalizeAgeInput(e.clipboardData?.getData('text') || '');
+    setForm((prev) => ({ ...prev, edad: pasted }));
+    setServerError('');
+    if (touched.edad) {
+      setErrors((prev) => ({
+        ...prev,
+        edad: validateProfileField('edad', pasted, { edadRequired: true }),
       }));
     }
   }
@@ -110,6 +133,7 @@ export default function OnboardingPage() {
             placeholder="Tu nombre completo"
             className={fieldClass('nombre')}
             value={form.nombre}
+            maxLength={100}
             onChange={handleChange}
             onBlur={handleBlur}
             disabled={loading}
@@ -125,14 +149,18 @@ export default function OnboardingPage() {
           <input
             id="edad"
             name="edad"
-            type="number"
+            type="text"
             inputMode="numeric"
             min="13"
             max="120"
+            step="1"
+            maxLength={3}
             placeholder="Ej: 21"
             className={fieldClass('edad')}
             value={form.edad}
             onChange={handleChange}
+            onKeyDown={handleAgeKeyDown}
+            onPaste={handleAgePaste}
             onBlur={handleBlur}
             disabled={loading}
           />
@@ -160,6 +188,7 @@ export default function OnboardingPage() {
               placeholder="https://github.com/tu-usuario"
               className={`${fieldClass('perfil_github')} onboarding-github-input`}
               value={form.perfil_github}
+              maxLength={255}
               onChange={handleChange}
               onBlur={handleBlur}
               disabled={loading}
